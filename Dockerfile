@@ -9,4 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./src ./src
 
-CMD [ "python",  "src/app.py" ]
+COPY ./default-config.json /usr/src/app/conf/config.json
+
+CMD [ "python",  "./src/app.py", "./conf/config.json" ]
