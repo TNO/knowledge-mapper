@@ -124,9 +124,11 @@ class SparkelClient:
         bindings = response.json()['results']['bindings']
 
         for binding in bindings:
-            for key in binding.keys():
-                if binding[key]['type'] == 'uri':
-                    binding[key] = f'<{binding[key]["value"]}>'
-                # TODO: Handle literals
+            for key, value in binding.items():
+
+                if value['type'] == 'uri':
+                    binding[key] = f'<{value["value"]}>'
+                elif binding[key]['type'] == 'literal':
+                    binding[key] = f'"{value["value"]}"^^<{value["datatype"]}>'
 
         return bindings
