@@ -109,10 +109,36 @@ class SparkelClient:
             log.info('Knowledge base successfully deleted.')
 
 
-    def query_sparql(self, ki_id: str, bindings):
+    def query_sparql(self, ki_id: str, incoming_bindings):
         ki = self.kis[ki_id]
-        # TODO: Include bindings as VALUES
-        query = f'SELECT {" ".join([f"?{var}" for var in ki["vars"]])} WHERE {{ {ki["pattern"]} }}'
+
+        # For all partial bindings that are actually partial, we set the
+        # variables that ARE in the graph pattern, but NOT in the binding to
+        # UNDEF, so that they match anything.
+        for var in ki['vars']:
+            for incoming_binding in incoming_bindings:
+                if var not in incoming_binding:
+                    incoming_binding[var] = 'UNDEF'
+
+        query = '''
+            SELECT {{variables}} WHERE {{{{
+                {triple_pattern}
+                {values_clause}
+            }}}}
+        '''.format(
+                triple_pattern=ki['pattern'],
+                values_clause='''
+                    VALUES ({{variables}}) {{{{
+                        {bindings}
+                    }}}}
+                '''.format(
+                    bindings='\n'.join([
+                        f'({" ".join([binding[var] for var in ki["vars"]])})' for binding in incoming_bindings
+                    ])
+                ) if incoming_bindings else '',
+            ).format(
+                variables=' '.join([f'?{var}' for var in ki['vars']]),
+            )
         log.info('Sending query to SPARQL endpoint: %s', query)
         response = requests.get(
             f'{self.sparql_url}?query={quote(query)}',
@@ -121,9 +147,9 @@ class SparkelClient:
             }
         )
 
-        bindings = response.json()['results']['bindings']
+        result_bindings = response.json()['results']['bindings']
 
-        for binding in bindings:
+        for binding in result_bindings:
             for key, value in binding.items():
 
                 if value['type'] == 'uri':
@@ -131,4 +157,4 @@ class SparkelClient:
                 elif binding[key]['type'] == 'literal':
                     binding[key] = f'"{value["value"]}"^^<{value["datatype"]}>'
 
-        return bindings
+        return result_bindings
