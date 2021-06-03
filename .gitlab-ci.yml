@@ -1,0 +1,15 @@
+stages:
+  - build-docker-image
+
+docker build tag:
+  stage: build-docker-image
+  needs: []
+  image: docker:stable
+  rules:
+    - if: '$CI_COMMIT_TAG != null' # Only on tags
+      when: manual # You have to click a button in GitLab to trigger this job.
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN ci.tno.nl
+    - docker build --pull . -t $CI_REGISTRY_IMAGE
+    - docker push $CI_REGISTRY_IMAGE
+    - docker image rm -f $CI_REGISTRY_IMAGE
