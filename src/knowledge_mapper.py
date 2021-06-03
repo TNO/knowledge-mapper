@@ -2,7 +2,7 @@ import requests
 import logging as log
 from urllib.parse import quote
 
-class SparkelClient:
+class KnowledgeMapper:
 
 
     def __init__(self, sparql_url: str, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
@@ -60,7 +60,7 @@ class SparkelClient:
                 answer = self.query_sparql(handle_request['knowledgeInteractionId'], handle_request['bindingSet'])
                 self.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], answer)
             else:
-                raise Exception("Invalid internal status from SparkelClient.long_poll!")
+                raise Exception("Invalid internal status from KnowledgeMapper.long_poll!")
 
         self.clean_up()
 
@@ -139,6 +139,7 @@ class SparkelClient:
             ).format(
                 variables=' '.join([f'?{var}' for var in ki['vars']]),
             )
+
         log.info('Sending query to SPARQL endpoint: %s', query)
         response = requests.get(
             f'{self.sparql_url}?query={quote(query)}',
