@@ -1,6 +1,8 @@
 import requests
 import logging as log
+import os
 from urllib.parse import quote
+from requests.auth import HTTPBasicAuth
 
 class KnowledgeMapper:
 
@@ -140,13 +142,24 @@ class KnowledgeMapper:
                 variables=' '.join([f'?{var}' for var in ki['vars']]),
             )
 
+        args = {
+            'headers': {
+                'Accept': 'application/json'
+            }
+        }
+
+        if os.environ['SPARQL_USERNAME'] and os.environ['SPARQL_PASSWORD']:
+            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
+
         log.info('Sending query to SPARQL endpoint: %s', query)
         response = requests.get(
             f'{self.sparql_url}?query={quote(query)}',
-            headers={
-                'Accept': 'application/json'
-            }
+            **args
         )
+
+        if not response.ok:
+            log.error(response)
+            log.error(response.text)
 
         result_bindings = response.json()['results']['bindings']
 
@@ -156,6 +169,9 @@ class KnowledgeMapper:
                 if value['type'] == 'uri':
                     binding[key] = f'<{value["value"]}>'
                 elif binding[key]['type'] == 'literal':
-                    binding[key] = f'"{value["value"]}"^^<{value["datatype"]}>'
+                    if 'datatype' in value:
+                        binding[key] = f'"{value["value"]}"^^<{value["datatype"]}>'
+                    else:
+                        binding[key] = f'"{value["value"]}"'
 
         return result_bindings
