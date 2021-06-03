@@ -6,7 +6,7 @@ docker build tag:
   needs: []
   image: docker:stable
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d+.\d+.\d+/' # Only on semver tags.
+    - if: '$CI_COMMIT_TAG =~ /^\d+.\d+.\d+/' # Only on semver tags (e.g., "1.1.1")
   script:
     - DOCKER_IMAGE_TAG=ci.tno.nl/tke/knowledge-mapper:$CI_COMMIT_TAG
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN ci.tno.nl
