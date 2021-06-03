@@ -19,7 +19,7 @@ docker build latest:
   needs: []
   image: docker:stable
   rules:
-    - if: '$CI_COMMIT_REF_NAME == main' # Only on main branch
+    - if: '$CI_COMMIT_REF_NAME == "main"' # Only on main branch
   script:
     - DOCKER_IMAGE_TAG=ci.tno.nl/tke/knowledge-mapper:latest
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN ci.tno.nl
