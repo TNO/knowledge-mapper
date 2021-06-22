@@ -10,3 +10,11 @@ services:
     volumes:
       - ./test/config.ttl:/fuseki/config.ttl
       - ./test/data.ttl:/fuseki/data.ttl
+  fuseki-auth:
+    image: stain/jena-fuseki
+    ports:
+      - 3031:3030
+    volumes:
+      - ./test/config.ttl:/fuseki/config.ttl
+      - ./test/data.ttl:/fuseki/data.ttl
+      - ./test/shiro.ini:/fuseki/shiro.ini
