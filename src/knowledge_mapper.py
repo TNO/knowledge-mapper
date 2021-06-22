@@ -148,7 +148,7 @@ class KnowledgeMapper:
             }
         }
 
-        if os.environ['SPARQL_USERNAME'] and os.environ['SPARQL_PASSWORD']:
+        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
             args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
 
         log.info('Sending query to SPARQL endpoint: %s', query)
