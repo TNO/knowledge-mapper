@@ -26,6 +26,12 @@ class KnowledgeMapper:
             raise Exception('Registering knowledge base failed.')
 
 
+    def test_sparql_endpoint(self):
+        log.info('Testing SPARQL endpoint.')
+        self.do_sparql('SELECT * WHERE { ?s ?p ?o . } LIMIT 0')
+        log.info('Succes!')
+
+
     def add_knowledge_interaction(self, type: str, pattern: str, vars: list):
         response = requests.post(
             f'{self.ke_url}/sc/ki',
@@ -59,12 +65,17 @@ class KnowledgeMapper:
                 break
             elif status == "handle":
                 log.info('Handling handle request %d', handle_request['handleRequestId'])
-                answer = self.query_sparql(handle_request['knowledgeInteractionId'], handle_request['bindingSet'])
-                self.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], answer)
+
+                # Generate the SPARQL query based on the incoming bindings and the knowledge interaction's graph pattern.
+                query = self.generate_sparql(handle_request['knowledgeInteractionId'], handle_request['bindingSet'])
+
+                # Fire the SPARQL query.
+                result = self.do_sparql(query)
+
+                # Restructure the bindings into TKE bindings and pass it back to the smart connector.
+                self.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], self.restructure_bindings(result))
             else:
                 raise Exception("Invalid internal status from KnowledgeMapper.long_poll!")
-
-        self.clean_up()
 
 
     def long_poll(self):
@@ -105,13 +116,12 @@ class KnowledgeMapper:
     def clean_up(self):
         response = requests.delete(f'{self.ke_url}/sc', headers={'Knowledge-Base-Id': self.kb_id})
         if not response.ok:
-            log.error(response.text)
-            log.error('Deletion of knowledge base failed.')
+            raise CleanUpFailedError('Deletion of knowledge base failed: {}'.format(response.text))
         else:
             log.info('Knowledge base successfully deleted.')
 
 
-    def query_sparql(self, ki_id: str, incoming_bindings):
+    def generate_sparql(self, ki_id: str, incoming_bindings):
         ki = self.kis[ki_id]
 
         # For all partial bindings that are actually partial, we set the
@@ -122,7 +132,7 @@ class KnowledgeMapper:
                 if var not in incoming_binding:
                     incoming_binding[var] = 'UNDEF'
 
-        query = '''
+        return '''
             SELECT {{variables}} WHERE {{{{
                 {triple_pattern}
                 {values_clause}
@@ -142,6 +152,8 @@ class KnowledgeMapper:
                 variables=' '.join([f'?{var}' for var in ki['vars']]),
             )
 
+
+    def do_sparql(self, query):
         args = {
             'headers': {
                 'Accept': 'application/json'
@@ -151,27 +163,40 @@ class KnowledgeMapper:
         if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
             args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
 
-        log.info('Sending query to SPARQL endpoint: %s', query)
         response = requests.get(
             f'{self.sparql_url}?query={quote(query)}',
             **args
         )
 
-        if not response.ok:
-            log.error(response)
-            log.error(response.text)
+        if response.status_code == 401:
+            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
+        elif not response.ok:
+            raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
 
-        result_bindings = response.json()['results']['bindings']
+        return response.json()
 
-        for binding in result_bindings:
+
+    def restructure_bindings(self, sparql_results):
+        restructured_binding_set = []
+        for binding in sparql_results['results']['bindings']:
+            restructured_binding = dict()
             for key, value in binding.items():
-
                 if value['type'] == 'uri':
-                    binding[key] = f'<{value["value"]}>'
+                    restructured_value = f'<{value["value"]}>'
                 elif binding[key]['type'] == 'literal':
                     if 'datatype' in value:
-                        binding[key] = f'"{value["value"]}"^^<{value["datatype"]}>'
+                        restructured_value = f'"{value["value"]}"^^<{value["datatype"]}>'
                     else:
-                        binding[key] = f'"{value["value"]}"'
+                        restructured_value = f'"{value["value"]}"'
+                restructured_binding[key] = restructured_value
 
-        return result_bindings
+            restructured_binding_set.append(restructured_binding)
+
+        return restructured_binding_set
+
+
+class UnauthorizedError(RuntimeError):
+   pass
+
+class CleanUpFailedError(RuntimeError):
+    pass

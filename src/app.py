@@ -15,4 +15,18 @@ if __name__ == '__main__':
         client = KnowledgeMapper(config['sparql_endpoint'], config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
         for ki in config['knowledge_interactions']:
             client.add_knowledge_interaction(ki['type'], ki['pattern'], ki['vars'])
-        client.start()
+
+        exit_code = 0
+        try:
+            client.test_sparql_endpoint()
+            client.start()
+        except KeyboardInterrupt:
+            log.info('Shutting down...')
+        except Exception as e:
+            log.error(e)
+            exit_code = 1
+        finally:
+            client.clean_up()
+
+        log.info('Goodbye.')
+        exit(exit_code)
