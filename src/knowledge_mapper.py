@@ -32,6 +32,8 @@ class KnowledgeMapper:
                 )
                 if response.ok:
                     success = True
+                else:
+                    log.error('%s', response.text)
             except requests.exceptions.ConnectionError:
                 log.warn(f'Connecting to {self.ke_url} failed.')
 
