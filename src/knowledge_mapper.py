@@ -1,8 +1,12 @@
 import requests
 import logging as log
 import os
+import time
 from urllib.parse import quote
 from requests.auth import HTTPBasicAuth
+
+MAX_CONNECTION_ATTEMPTS = 10
+WAIT_BEFORE_RETRY = 1
 
 class KnowledgeMapper:
 
@@ -13,17 +17,31 @@ class KnowledgeMapper:
         self.kb_id = kb_id
         self.kis = dict()
 
-        response = requests.post(
-            f'{self.ke_url}/sc',
-            json={
-                'knowledgeBaseId': kb_id,
-                'knowledgeBaseName': kb_name,
-                'knowledgeBaseDescription': kb_desc
-            }
-        )
-        if not response.ok:
-            log.error('%s', response.text)
-            raise Exception('Registering knowledge base failed.')
+        attempts = 0
+        success = False
+        while not success:
+            try:
+                attempts += 1
+                response = requests.post(
+                    f'{self.ke_url}/sc',
+                    json={
+                        'knowledgeBaseId': kb_id,
+                        'knowledgeBaseName': kb_name,
+                        'knowledgeBaseDescription': kb_desc
+                    }
+                )
+                if response.ok:
+                    success = True
+                else:
+                    log.error('%s', response.text)
+            except requests.exceptions.ConnectionError:
+                log.warn(f'Connecting to {self.ke_url} failed.')
+
+            if not success and attempts < MAX_CONNECTION_ATTEMPTS:
+                log.warn(f'Request to {self.ke_url} failed. Retrying in {WAIT_BEFORE_RETRY} s.')
+                time.sleep(WAIT_BEFORE_RETRY)
+            elif not success:
+                raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
 
 
     def test_sparql_endpoint(self):
