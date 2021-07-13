@@ -18,7 +18,7 @@ if __name__ == '__main__':
         if 'sparql_endpoint' in config:
             data_source = SparqlSource(config['sparql_endpoint'])
         elif 'sql_host' in config:
-            data_source = SqlSource(config['sql_host'], config['sql_port'])
+            data_source = SqlSource(config['sql_host'], config['sql_port'], config['sql_database'], config['sql_user'], config['sql_password'])
         else:
             log.error('Invalid config.')
             sys.exit(1)
@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
         client = KnowledgeMapper(data_source, config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
         for ki in config['knowledge_interactions']:
-            client.add_knowledge_interaction(ki['type'], ki['pattern'], ki['vars'])
+            client.add_knowledge_interaction(ki)
 
         exit_code = 0
         try:

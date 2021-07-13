@@ -18,3 +18,14 @@ services:
       - ./test/config.ttl:/fuseki/config.ttl
       - ./test/data.ttl:/fuseki/data.ttl
       - ./test/shiro.ini:/fuseki/shiro.ini
+  sql-db:
+    image: mariadb:10.5
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mariadb/seed_data:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MARIADB_DATABASE: treedb
+      MARIADB_USER: user
+      MARIADB_PASSWORD: pw
+      MARIADB_RANDOM_ROOT_PASSWORD: 1

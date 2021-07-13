@@ -41,7 +41,8 @@ class KnowledgeMapper:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
 
 
-    def add_knowledge_interaction(self, type: str, pattern: str, vars: list):
+    def add_knowledge_interaction(self, ki):
+        pattern = ki['pattern']
         response = requests.post(
             f'{self.ke_url}/sc/ki',
             json={
@@ -57,11 +58,7 @@ class KnowledgeMapper:
             raise Exception('Registering knowledge interaction failed.')
 
         ki_id = response.text
-        self.kis[ki_id] = {
-            'type': type,
-            'pattern': pattern,
-            'vars': vars,
-        }
+        self.kis[ki_id] = ki
 
 
     def start(self):

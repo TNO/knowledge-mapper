@@ -3,9 +3,11 @@ import logging as log
 import os
 from urllib.parse import quote
 from requests.auth import HTTPBasicAuth
-
+import mariadb
 
 class DataSource:
+    def test(self):
+        raise NotImplementedError("Please implement this abstract method.")
     def handle(self, ki, binding_set):
         raise NotImplementedError("Please implement this abstract method.")
 
@@ -54,9 +56,47 @@ class SparqlSource(DataSource):
 
 
 class SqlSource(DataSource):
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, database: str, user: str, password: str):
         self.host = host
         self.port = port
+        self.conn = mariadb.connect(
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database)
+
+    def test(self):
+        log.info('Testing SQL connection.')
+        self.conn.ping()
+        log.info('Succes!')
+
+    def handle(self, ki, binding_set):
+        # Create a cursor and execute the query.
+        # TODO: Incoming binding support (add a WHERE clause to the query).
+        cursor = self.conn.cursor(named_tuple=True)
+        cursor.execute(ki['sql_query'])
+        
+        result_binding_set = []
+        for row in cursor:
+            binding = dict()
+            for variable in ki['vars']:
+                # Get the value of the current variable from the current row.
+                value = getattr(row, variable)
+
+                # Check the type of the value and set the datatype accordingly.
+                # TODO: Support more data types?
+                if isinstance(value, int):
+                    typed_value = f"\"{value}\"^^<http://www.w3.org/2001/XMLSchema#integer>"
+                else:
+                    # Fall back to a string literal.
+                    typed_value = f"\"{value}\""
+
+                binding[variable] = typed_value
+
+            result_binding_set.append(binding)
+
+        return result_binding_set
 
 
 def generate_sparql(ki, incoming_bindings):
