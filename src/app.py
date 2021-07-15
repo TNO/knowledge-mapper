@@ -3,6 +3,7 @@ import logging as log
 import json
 from data_sources import SparqlSource, SqlSource
 import sys
+import importlib
 
 from knowledge_mapper import KnowledgeMapper
 
@@ -19,6 +20,15 @@ if __name__ == '__main__':
             data_source = SparqlSource(config['sparql_endpoint'])
         elif 'sql_host' in config:
             data_source = SqlSource(config['sql_host'], config['sql_port'], config['sql_database'], config['sql_user'], config['sql_password'])
+        elif 'plugin' in config:
+            plugin_cfg = config['plugin']
+            module_name, class_name = plugin_cfg['class'].rsplit(".", 1)
+            plugin_module = importlib.import_module(module_name)
+            plugin_class = getattr(plugin_module, class_name)
+            if 'args' in plugin_cfg:
+                data_source = plugin_class(*plugin_cfg['args'])
+            else:
+                data_source = plugin_class()
         else:
             log.error('Invalid config.')
             sys.exit(1)
