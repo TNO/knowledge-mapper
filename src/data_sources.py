@@ -86,7 +86,10 @@ class SqlSource(DataSource):
 
                 # Check the type of the value and set the datatype accordingly.
                 # TODO: Support more data types?
-                if isinstance(value, int):
+                if variable in ki['column_prefixes']:
+                    prefix = ki['column_prefixes'][variable]
+                    typed_value = f"<{prefix}{value}>"
+                elif isinstance(value, int):
                     typed_value = f"\"{value}\"^^<http://www.w3.org/2001/XMLSchema#integer>"
                 else:
                     # Fall back to a string literal.
