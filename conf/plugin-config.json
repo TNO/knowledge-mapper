@@ -8,7 +8,7 @@
 
   "plugin": {
     "class": "plugins.example.ExampleDataSource",
-    "args": []
+    "args": ["https://example.org/something"]
   },
 
   "knowledge_interactions": [
