@@ -72,11 +72,36 @@ class SqlSource(DataSource):
         log.info('Succes!')
 
     def handle(self, ki, binding_set):
+        sql_bindings = ()
+        if binding_set:
+            # TODO: Validate behavior when binding is empty...
+            binding_constraints = '0 '
+
+            # Add constraint clause with a disjunct for every binding, and in
+            # each disjunct a conjunction with a conjunct for every binding
+            # entry.
+            for binding in binding_set:
+                binding_constraints += 'OR 1 '
+                for key, value in binding.items():
+                    binding_constraints += f'AND {key} = ? '
+                    prefix = ""
+                    if key in ki['column_prefixes']:
+                        prefix = ki['column_prefixes'][key]
+                    # If prefixed, remove the <>'s and the prefix, otherwise,
+                    # use `value` as is.
+                    unprefixed = value[len(prefix) + 1:-1]
+                    sql_bindings += (unprefixed,)
+
+            # HAVING is used because WHERE is evaluated before aggregations, and
+            # so aliases defined in the query are unavailable.
+            query = f"{ki['sql_query']} HAVING {binding_constraints}"
+        else:
+            query = ki['sql_query']
+
         # Create a cursor and execute the query.
-        # TODO: Incoming binding support (add a WHERE clause to the query).
         cursor = self.conn.cursor(named_tuple=True)
-        cursor.execute(ki['sql_query'])
-        
+        cursor.execute(query, sql_bindings)
+
         result_binding_set = []
         for row in cursor:
             binding = dict()
