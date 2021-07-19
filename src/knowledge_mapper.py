@@ -1,19 +1,16 @@
 import requests
 import logging as log
-import os
 import time
-from urllib.parse import quote
-from requests.auth import HTTPBasicAuth
+
+from data_sources import DataSource
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1
 
 class KnowledgeMapper:
-
-
-    def __init__(self, sparql_url: str, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
+    def __init__(self, data_source: DataSource, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
+        self.data_source = data_source
         self.ke_url = ke_url
-        self.sparql_url = sparql_url
         self.kb_id = kb_id
         self.kis = dict()
 
@@ -44,13 +41,8 @@ class KnowledgeMapper:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
 
 
-    def test_sparql_endpoint(self):
-        log.info('Testing SPARQL endpoint.')
-        self.do_sparql('SELECT * WHERE { ?s ?p ?o . } LIMIT 0')
-        log.info('Succes!')
-
-
-    def add_knowledge_interaction(self, type: str, pattern: str, vars: list):
+    def add_knowledge_interaction(self, ki):
+        pattern = ki['pattern']
         response = requests.post(
             f'{self.ke_url}/sc/ki',
             json={
@@ -66,11 +58,7 @@ class KnowledgeMapper:
             raise Exception('Registering knowledge interaction failed.')
 
         ki_id = response.text
-        self.kis[ki_id] = {
-            'type': type,
-            'pattern': pattern,
-            'vars': vars,
-        }
+        self.kis[ki_id] = ki
 
 
     def start(self):
@@ -84,14 +72,15 @@ class KnowledgeMapper:
             elif status == "handle":
                 log.info('Handling handle request %d', handle_request['handleRequestId'])
 
-                # Generate the SPARQL query based on the incoming bindings and the knowledge interaction's graph pattern.
-                query = self.generate_sparql(handle_request['knowledgeInteractionId'], handle_request['bindingSet'])
+                ki = self.kis[handle_request['knowledgeInteractionId']]
 
-                # Fire the SPARQL query.
-                result = self.do_sparql(query)
+                # Have the data source handle the incoming bindings, and
+                # retrieve the resulting bindings.
+                result = self.data_source.handle(ki, handle_request['bindingSet'])
 
-                # Restructure the bindings into TKE bindings and pass it back to the smart connector.
-                self.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], self.restructure_bindings(result))
+                # Post the bindings to the SC, with the correct KI ID and handle
+                # request ID.
+                self.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], result)
             else:
                 raise Exception("Invalid internal status from KnowledgeMapper.long_poll!")
 
@@ -138,83 +127,6 @@ class KnowledgeMapper:
         else:
             log.info('Knowledge base successfully deleted.')
 
-
-    def generate_sparql(self, ki_id: str, incoming_bindings):
-        ki = self.kis[ki_id]
-
-        # For all partial bindings that are actually partial, we set the
-        # variables that ARE in the graph pattern, but NOT in the binding to
-        # UNDEF, so that they match anything.
-        for var in ki['vars']:
-            for incoming_binding in incoming_bindings:
-                if var not in incoming_binding:
-                    incoming_binding[var] = 'UNDEF'
-
-        return '''
-            SELECT {{variables}} WHERE {{{{
-                {triple_pattern}
-                {values_clause}
-            }}}}
-        '''.format(
-                triple_pattern=ki['pattern'],
-                values_clause='''
-                    VALUES ({{variables}}) {{{{
-                        {bindings}
-                    }}}}
-                '''.format(
-                    bindings='\n'.join([
-                        f'({" ".join([binding[var] for var in ki["vars"]])})' for binding in incoming_bindings
-                    ])
-                ) if incoming_bindings else '',
-            ).format(
-                variables=' '.join([f'?{var}' for var in ki['vars']]),
-            )
-
-
-    def do_sparql(self, query):
-        args = {
-            'headers': {
-                'Accept': 'application/json'
-            }
-        }
-
-        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
-            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
-
-        response = requests.get(
-            f'{self.sparql_url}?query={quote(query)}',
-            **args
-        )
-
-        if response.status_code == 401:
-            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
-        elif not response.ok:
-            raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
-
-        return response.json()
-
-
-    def restructure_bindings(self, sparql_results):
-        restructured_binding_set = []
-        for binding in sparql_results['results']['bindings']:
-            restructured_binding = dict()
-            for key, value in binding.items():
-                if value['type'] == 'uri':
-                    restructured_value = f'<{value["value"]}>'
-                elif binding[key]['type'] == 'literal':
-                    if 'datatype' in value:
-                        restructured_value = f'"{value["value"]}"^^<{value["datatype"]}>'
-                    else:
-                        restructured_value = f'"{value["value"]}"'
-                restructured_binding[key] = restructured_value
-
-            restructured_binding_set.append(restructured_binding)
-
-        return restructured_binding_set
-
-
-class UnauthorizedError(RuntimeError):
-   pass
 
 class CleanUpFailedError(RuntimeError):
     pass

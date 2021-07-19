@@ -1,0 +1,18 @@
+{
+  "knowledge_engine_endpoint": "http://localhost:8280/rest",
+  "knowledge_base": {
+    "id": "https://example.org/a-sparql-knowledge-base",
+    "name": "Some SPARQL knowledge base",
+    "description": "This is just an example."
+  },
+
+  "sparql_endpoint": "http://localhost:3030/example/sparql",
+
+  "knowledge_interactions": [
+    {
+      "type": "answer",
+      "vars": ["a", "b"],
+      "pattern": "?a <https://example.org/isRelatedTo> ?b ."
+    }
+  ]
+}

@@ -13,3 +13,40 @@ When there is an incoming request from the knowledge network (through the REST A
 We publish releases of the knowledge mapper as Docker images.
 Configuration goes into a file `/usr/src/app/conf/config.json` in that image.
 You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.json` there, or overwrite `/usr/src/app/conf/config.json` in your own image.
+
+## Configuration
+
+### SQL
+
+```jsonc
+{
+  "knowledge_engine_endpoint": "http://localhost:8280/rest",
+  "knowledge_base": {
+    "id": "https://example.org/a-sql-knowledge-base",
+    "name": "Some SQL knowledge base",
+    "description": "This is just an example."
+  },
+  
+  // DB connection and credentials
+  "sql_host": "127.0.0.1",
+  "sql_port": 3306,
+  "sql_database": "treedb",
+  "sql_user": "user",
+  "sql_password": "pw",
+
+  "knowledge_interactions": [
+    {
+      // This map makes ensures that the value is prefixed for the variables in the keys.
+      "column_prefixes": {
+        // When a row (from DB) is retrieved with value 42 for the 'tree'
+        // column, it is mapped to <http://example.org/trees/42> in the binding.
+        "tree": "http://example.org/trees/"
+      },
+      "type": "answer",
+      "vars": ["tree", "height"],
+      "pattern": "?tree <https://example.org/hasHeight> ?height .",
+      "sql_query": "SELECT id AS tree, height FROM trees"
+    }
+  ]
+}
+```
