@@ -14,13 +14,23 @@
 
   "knowledge_interactions": [
     {
+      "type": "answer",
       "column_prefixes": {
         "tree": "http://example.org/trees/"
       },
-      "type": "answer",
       "vars": ["tree", "height"],
       "pattern": "?tree <https://example.org/hasHeight> ?height .",
       "sql_query": "SELECT id AS tree, height FROM trees"
+    },
+    {
+      "type": "react",
+      "column_prefixes": {
+        "tree": "http://example.org/trees/"
+      },
+      "vars": ["tree", "height"],
+      "argument_pattern": "?tree <https://example.org/hasHeight> ?height .",
+      "result_pattern": null,
+      "sql_query": "INSERT INTO trees (id, height) VALUES (?, ?)"
     }
   ]
 }
