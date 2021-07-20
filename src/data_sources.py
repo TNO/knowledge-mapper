@@ -66,12 +66,21 @@ class SqlSource(DataSource):
             port=port,
             database=database)
 
+
     def test(self):
         log.info('Testing SQL connection.')
         self.conn.ping()
         log.info('Succes!')
 
+
     def handle(self, ki, binding_set):
+        if ki['type'] == 'answer':
+            return self.handle_answer(ki, binding_set)
+        elif ki['type'] == 'react':
+            return self.handle_react(ki, binding_set)
+
+
+    def handle_answer(self, ki, binding_set):
         sql_bindings = ()
         if binding_set:
             binding_constraints = '0 '
@@ -127,6 +136,35 @@ class SqlSource(DataSource):
             result_binding_set.append(binding)
 
         return result_binding_set
+
+
+    def handle_react(self, ki, binding_set):
+        if binding_set:
+            sql_binding_set = []
+            for binding in binding_set:
+                sql_binding = ()
+                for variable in ki['vars']:
+                    value = binding[variable]
+                    # If prefixed, remove the <>'s and the prefix, otherwise,
+                    # use `value` as is.
+                    if variable in ki['column_prefixes']:
+                        prefix = ki['column_prefixes'][variable]
+                        sql_binding += (value[len(prefix) + 1:-1],)
+                    else:
+                        # TODO: Handle other datatypes correctly if they're
+                        # given with "value"^^:datatype syntax.
+                        sql_binding += (value,)
+
+                sql_binding_set.append(sql_binding)
+
+            # Create a cursor and execute the query.
+            try:
+                cursor = self.conn.cursor()
+                cursor.executemany(ki['sql_query'], sql_binding_set)
+                self.conn.commit()
+            except mariadb.Error as e:
+                log.warn(e)
+            return []
 
 
 def generate_sparql(ki, incoming_bindings):

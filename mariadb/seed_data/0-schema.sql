@@ -1,6 +1,8 @@
 USE treedb;
 
 CREATE TABLE trees (
-  id varchar(255) NOT NULL,
-  height INT UNSIGNED NOT NULL
+  id VARCHAR(255) NOT NULL,
+  height INT UNSIGNED NOT NULL,
+
+  PRIMARY KEY(id)
 );

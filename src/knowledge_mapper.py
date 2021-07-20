@@ -42,12 +42,42 @@ class KnowledgeMapper:
 
 
     def add_knowledge_interaction(self, ki):
+        if ki['type'] == 'answer':
+            self.add_answer_knowledge_interaction(ki)
+        elif ki['type'] == 'react':
+            self.add_react_knowledge_interaction(ki)
+
+
+    def add_answer_knowledge_interaction(self, ki):
         pattern = ki['pattern']
         response = requests.post(
             f'{self.ke_url}/sc/ki',
             json={
                 'knowledgeInteractionType': 'AnswerKnowledgeInteraction',
                 'graphPattern': pattern
+            },
+            headers={
+                'Knowledge-Base-Id': self.kb_id
+            }
+        )
+        if not response.ok:
+            log.error('%s', response.text)
+            raise Exception('Registering knowledge interaction failed.')
+
+        ki_id = response.text
+        self.kis[ki_id] = ki
+
+
+    def add_react_knowledge_interaction(self, ki):
+        argument_pattern = ki['argument_pattern']
+        result_pattern = ki['result_pattern']
+
+        response = requests.post(
+            f'{self.ke_url}/sc/ki',
+            json={
+                'knowledgeInteractionType': 'ReactKnowledgeInteraction',
+                'argumentGraphPattern': argument_pattern,
+                'resultGraphPattern': result_pattern
             },
             headers={
                 'Knowledge-Base-Id': self.kb_id
