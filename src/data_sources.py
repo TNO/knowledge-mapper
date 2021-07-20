@@ -74,7 +74,6 @@ class SqlSource(DataSource):
     def handle(self, ki, binding_set):
         sql_bindings = ()
         if binding_set:
-            # TODO: Validate behavior when binding is empty...
             binding_constraints = '0 '
 
             # Add constraint clause with a disjunct for every binding, and in
@@ -89,7 +88,10 @@ class SqlSource(DataSource):
                         prefix = ki['column_prefixes'][key]
                     # If prefixed, remove the <>'s and the prefix, otherwise,
                     # use `value` as is.
-                    unprefixed = value[len(prefix) + 1:-1]
+                    if prefix:
+                        unprefixed = value[len(prefix) + 1:-1]
+                    else:
+                        unprefixed = value
                     sql_bindings += (unprefixed,)
 
             # HAVING is used because WHERE is evaluated before aggregations, and
