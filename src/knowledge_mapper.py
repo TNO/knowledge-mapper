@@ -39,6 +39,7 @@ class KnowledgeMapper:
                 time.sleep(WAIT_BEFORE_RETRY)
             elif not success:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
+        log.info(f'Successfully registered knowledge base {self.kb_id}')
 
 
     def add_knowledge_interaction(self, ki):

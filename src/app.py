@@ -39,16 +39,12 @@ if __name__ == '__main__':
         for ki in config['knowledge_interactions']:
             client.add_knowledge_interaction(ki)
 
-        exit_code = 0
         try:
             client.start()
         except KeyboardInterrupt:
-            log.info('Shutting down...')
-        except Exception as e:
-            log.error(e)
-            exit_code = 1
+            log.info('Shutting down gracefully...')
         finally:
             client.clean_up()
 
         log.info('Goodbye.')
-        exit(exit_code)
+        exit(0)
