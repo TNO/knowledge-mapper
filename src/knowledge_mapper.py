@@ -32,10 +32,10 @@ class KnowledgeMapper:
                 else:
                     log.error('%s', response.text)
             except requests.exceptions.ConnectionError:
-                log.warn(f'Connecting to {self.ke_url} failed.')
+                log.warning(f'Connecting to {self.ke_url} failed.')
 
             if not success and attempts < MAX_CONNECTION_ATTEMPTS:
-                log.warn(f'Request to {self.ke_url} failed. Retrying in {WAIT_BEFORE_RETRY} s.')
+                log.warning(f'Request to {self.ke_url} failed. Retrying in {WAIT_BEFORE_RETRY} s.')
                 time.sleep(WAIT_BEFORE_RETRY)
             elif not success:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')

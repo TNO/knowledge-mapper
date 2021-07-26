@@ -1,13 +1,35 @@
 import argparse
 import logging as log
 import json
-from data_sources import SparqlSource, SqlSource
+from data_sources import DataSource, SparqlSource, SqlSource
 import sys
 import importlib
+import time
 
 from knowledge_mapper import KnowledgeMapper
 
 log.basicConfig(level=log.INFO)
+
+
+DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 5
+DATA_SOURCE_WAIT_BEFORE_RETRY = 2
+
+def test_data_source(data_source: DataSource):
+    success = False
+    attempts = 0
+    while not success:
+        try:
+            data_source.test()
+            success = True
+        except Exception as e:
+            attempts += 1
+            if attempts < DATA_SOURCE_MAX_CONNECTION_ATTEMPTS:
+                log.warning(f'Request to data source failed. Retrying in {DATA_SOURCE_WAIT_BEFORE_RETRY} s.')
+                time.sleep(DATA_SOURCE_WAIT_BEFORE_RETRY)
+            else:
+                log.error(f'Request to data source failed.')
+                raise e
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Expose a SPARQL endpoint to a knowledge network.')
@@ -33,7 +55,7 @@ if __name__ == '__main__':
             log.error('Invalid config.')
             sys.exit(1)
 
-        data_source.test()
+        test_data_source(data_source)
 
         client = KnowledgeMapper(data_source, config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
         for ki in config['knowledge_interactions']:
@@ -48,3 +70,5 @@ if __name__ == '__main__':
 
         log.info('Goodbye.')
         exit(0)
+
+
