@@ -18,19 +18,24 @@
       "column_prefixes": {
         "tree": "http://example.org/trees/"
       },
-      "vars": ["tree", "height"],
-      "pattern": "?tree <https://example.org/hasHeight> ?height .",
-      "sql_query": "SELECT id AS tree, height FROM trees"
+      "vars": ["tree", "height", "name"],
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
+      "sql_query": "SELECT id AS tree, height, name FROM trees"
     },
     {
       "type": "react",
       "column_prefixes": {
         "tree": "http://example.org/trees/"
       },
-      "vars": ["tree", "height"],
-      "argument_pattern": "?tree <https://example.org/hasHeight> ?height .",
+      "vars": ["tree", "height", "name"],
+      "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
       "result_pattern": null,
-      "sql_query": "INSERT INTO trees (id, height) VALUES (?, ?)"
+      "sql_query": [
+        {
+          "statement": "INSERT INTO trees (id, height, name) VALUES (?, ?, ?)",
+          "bindings": ["tree", "height", "name"]
+        }
+      ]
     }
   ]
 }

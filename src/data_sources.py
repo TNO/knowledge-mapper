@@ -140,30 +140,37 @@ class SqlSource(DataSource):
 
     def handle_react(self, ki, binding_set):
         if binding_set:
-            sql_binding_set = []
             for binding in binding_set:
-                sql_binding = ()
-                for variable in ki['vars']:
-                    value = binding[variable]
-                    # If prefixed, remove the <>'s and the prefix, otherwise,
-                    # use `value` as is.
-                    if variable in ki['column_prefixes']:
-                        prefix = ki['column_prefixes'][variable]
-                        sql_binding += (value[len(prefix) + 1:-1],)
-                    else:
-                        # TODO: Handle other datatypes correctly if they're
-                        # given with "value"^^:datatype syntax.
-                        sql_binding += (value,)
+                for statement in ki['sql_query']:
+                    variables = statement['bindings']
+                    sql_binding = ()
+                    for variable in variables:
+                        value = binding[variable]
+                        # If prefixed, remove the <>'s and the prefix, otherwise,
+                        # use `value` as is.
+                        if variable in ki['column_prefixes']:
+                            prefix = ki['column_prefixes'][variable]
+                            sql_binding += (value[len(prefix) + 1:-1],)
+                        elif value[0] == '"' and value[-1] == '"':
+                            # This is a string literal. We want to use the
+                            # string INSIDE the quotes for the SQL binding.
+                            sql_binding += (value[1:-1],)
+                        else:
+                            # TODO: Handle other datatypes correctly if they're
+                            # given with "value"^^:datatype syntax.
+                            sql_binding += (value,)
 
-                sql_binding_set.append(sql_binding)
-
-            # Create a cursor and execute the query.
-            try:
-                cursor = self.conn.cursor()
-                cursor.executemany(ki['sql_query'], sql_binding_set)
+                    # Create a cursor and execute the query.
+                    try:
+                        cursor = self.conn.cursor()
+                        cursor.execute(statement['statement'], sql_binding)
+                    except mariadb.Error as e:
+                        log.warn(e)
+                        self.conn.rollback()
+                        continue
+                # Only commit after a complete query (with multiple statements)
+                # is executed.
                 self.conn.commit()
-            except mariadb.Error as e:
-                log.warn(e)
             return []
 
 
