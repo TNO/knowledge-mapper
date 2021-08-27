@@ -1,12 +1,15 @@
 import argparse
 import logging as log
 import json
-from data_sources import DataSource, SparqlSource, SqlSource
 import sys
 import importlib
 import time
 
 from knowledge_mapper import KnowledgeMapper
+
+from data_source import DataSource
+from sparql_source import SparqlSource
+from sql_source import SqlSource
 
 log.basicConfig(level=log.INFO)
 
@@ -70,5 +73,3 @@ if __name__ == '__main__':
 
         log.info('Goodbye.')
         exit(0)
-
-

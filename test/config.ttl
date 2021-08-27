@@ -6,8 +6,12 @@
 
 :service a fuseki:Service ;
   fuseki:name         "example" ;       # http://host:port/example
-  fuseki:serviceQuery "sparql" ;   # SPARQL query service
-  fuseki:serviceQuery "query" ;    # SPARQL query service (alt name)
+  fuseki:endpoint [
+    fuseki:operation fuseki:query ;
+  ];
+  fuseki:endpoint [
+    fuseki:operation fuseki:update ;
+  ];
   fuseki:dataset [
     a ja:RDFDataset ;
     rdfs:label "Example dataset" ;

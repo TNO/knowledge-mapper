@@ -6,7 +6,7 @@
     "description": "This is just an example."
   },
 
-  "sparql_endpoint": "http://localhost:3030/example",
+  "sparql_endpoint": "http://localhost:3031/example",
 
   "knowledge_interactions": [
     {

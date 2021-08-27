@@ -2,7 +2,7 @@ import requests
 import logging as log
 import time
 
-from data_sources import DataSource
+from data_source import DataSource
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1
