@@ -6,13 +6,19 @@
     "description": "This is just an example."
   },
 
-  "sparql_endpoint": "http://localhost:3031/example/sparql",
+  "sparql_endpoint": "http://localhost:3031/example",
 
   "knowledge_interactions": [
     {
       "type": "answer",
       "vars": ["a", "b"],
       "pattern": "?a <https://example.org/isRelatedTo> ?b ."
+    },
+    {
+      "type": "react",
+      "vars": ["a", "b"],
+      "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
+      "result_pattern": null
     }
   ]
 }
