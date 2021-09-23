@@ -1,8 +1,6 @@
-FROM python:3.9.5-alpine
+FROM python:3.9.7-bullseye
 
 WORKDIR /usr/src/app
-
-RUN apk add --no-cache gcc musl-dev mariadb-connector-c-dev
 
 # Install the requirements in the clean Python environment.
 COPY ./requirements.txt .
