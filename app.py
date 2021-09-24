@@ -5,11 +5,11 @@ import sys
 import importlib
 import time
 
-from knowledge_mapper import KnowledgeMapper
+from knowledge_mapper.knowledge_mapper import KnowledgeMapper
 
-from data_source import DataSource
-from sparql_source import SparqlSource
-from sql_source import SqlSource
+from knowledge_mapper.data_source import DataSource
+from knowledge_mapper.sparql_source import SparqlSource
+from knowledge_mapper.sql_source import SqlSource
 
 log.basicConfig(level=log.INFO)
 

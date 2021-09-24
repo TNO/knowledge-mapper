@@ -4,7 +4,7 @@ import os
 import logging as log
 from urllib.parse import quote
 
-from data_source import DataSource
+from .data_source import DataSource
 
 class SparqlSource(DataSource):
     def __init__(self, endpoint: str):

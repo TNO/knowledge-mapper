@@ -2,8 +2,8 @@ import requests
 import logging as log
 import time
 
-from data_source import DataSource
-from tke_client import TkeClient
+from .data_source import DataSource
+from .tke_client import TkeClient
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1
@@ -18,6 +18,7 @@ class KnowledgeMapper:
         self.tke_client = TkeClient(ke_url, kb_id, kb_name, kb_desc)
 
         self.tke_client.register()
+        self.data_source.set_tke_client(self.tke_client)
 
 
     def start(self):

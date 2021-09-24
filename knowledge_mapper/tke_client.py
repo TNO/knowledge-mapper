@@ -47,6 +47,30 @@ class TkeClient:
             self.add_answer_knowledge_interaction(ki)
         elif ki['type'] == 'react':
             self.add_react_knowledge_interaction(ki)
+        elif ki['type'] == 'ask':
+            self.add_ask_knowledge_interaction(ki)
+        elif ki['type'] == 'post':
+            self.add_post_knowledge_interaction(ki)
+
+    
+    def add_ask_knowledge_interaction(self, ki):
+        pattern = ki['pattern']
+        response = requests.post(
+            f'{self.ke_url}/sc/ki',
+            json={
+                'knowledgeInteractionType': 'AskKnowledgeInteraction',
+                'graphPattern': pattern
+            },
+            headers={
+                'Knowledge-Base-Id': self.kb_id
+            }
+        )
+        if not response.ok:
+            log.error('%s', response.text)
+            raise Exception('Registering knowledge interaction failed.')
+
+        ki_id = response.text
+        self.kis[ki_id] = ki
 
 
     def add_answer_knowledge_interaction(self, ki):
@@ -56,6 +80,29 @@ class TkeClient:
             json={
                 'knowledgeInteractionType': 'AnswerKnowledgeInteraction',
                 'graphPattern': pattern
+            },
+            headers={
+                'Knowledge-Base-Id': self.kb_id
+            }
+        )
+        if not response.ok:
+            log.error('%s', response.text)
+            raise Exception('Registering knowledge interaction failed.')
+
+        ki_id = response.text
+        self.kis[ki_id] = ki
+
+
+    def add_post_knowledge_interaction(self, ki):
+        argument_pattern = ki['argument_pattern']
+        result_pattern = ki['result_pattern']
+
+        response = requests.post(
+            f'{self.ke_url}/sc/ki',
+            json={
+                'knowledgeInteractionType': 'PostKnowledgeInteraction',
+                'argumentGraphPattern': argument_pattern,
+                'resultGraphPattern': result_pattern
             },
             headers={
                 'Knowledge-Base-Id': self.kb_id
@@ -90,6 +137,38 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+
+
+    def ask(self, ki_id, bindings):
+        response = requests.post(
+            f'{self.ke_url}/sc/ask',
+            json=bindings,
+            headers={
+                'Knowledge-Base-Id': self.kb_id,
+                'Knowledge-Interaction-Id': ki_id,
+            }
+        )
+        if not response.ok:
+            log.error('%s', response.text)
+            raise Exception('Asking to smart connector failed.')
+
+        return response.json()
+
+
+    def post(self, ki_id, bindings):
+        response = requests.post(
+            f'{self.ke_url}/sc/ask',
+            json=bindings,
+            headers={
+                'Knowledge-Base-Id': self.kb_id,
+                'Knowledge-Interaction-Id': ki_id,
+            }
+        )
+        if not response.ok:
+            log.error('%s', response.text)
+            raise Exception('Posting to smart connector failed.')
+
+        return response.json()
 
 
     def long_poll(self):

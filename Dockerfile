@@ -7,8 +7,9 @@ COPY ./requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./src ./src
+COPY ./app.py .
+COPY ./knowledge_mapper ./knowledge_mapper
 
-COPY ./conf/sparql-config.json /usr/src/app/conf/config.json
+COPY ./conf/sparql-config.json ./conf/config.json
 
-CMD [ "python",  "./src/app.py", "./conf/config.json" ]
+CMD [ "python",  "./app.py", "./conf/config.json" ]

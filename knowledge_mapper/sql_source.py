@@ -1,7 +1,7 @@
 import logging as log
 import mariadb
 
-from data_source import DataSource
+from .data_source import DataSource
 
 class SqlSource(DataSource):
     def __init__(self, host: str, port: int, database: str, user: str, password: str):
