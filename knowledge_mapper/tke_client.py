@@ -44,13 +44,13 @@ class TkeClient:
 
     def add_knowledge_interaction(self, ki):
         if ki['type'] == 'answer':
-            self.add_answer_knowledge_interaction(ki)
+            return self.add_answer_knowledge_interaction(ki)
         elif ki['type'] == 'react':
-            self.add_react_knowledge_interaction(ki)
+            return self.add_react_knowledge_interaction(ki)
         elif ki['type'] == 'ask':
-            self.add_ask_knowledge_interaction(ki)
+            return self.add_ask_knowledge_interaction(ki)
         elif ki['type'] == 'post':
-            self.add_post_knowledge_interaction(ki)
+            return self.add_post_knowledge_interaction(ki)
 
     
     def add_ask_knowledge_interaction(self, ki):
@@ -71,6 +71,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        return ki_id
 
 
     def add_answer_knowledge_interaction(self, ki):
@@ -91,6 +92,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        return ki_id
 
 
     def add_post_knowledge_interaction(self, ki):
@@ -114,6 +116,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        return ki_id
 
 
     def add_react_knowledge_interaction(self, ki):
@@ -137,6 +140,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        return ki_id
 
 
     def ask(self, ki_id, bindings):
