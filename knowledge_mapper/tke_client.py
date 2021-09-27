@@ -206,6 +206,11 @@ class TkeClient:
         elif response.status_code == 200:
             log.info('Received 200')
             return "handle", response.json()
+        else:
+            log.warn(f'long_poll received unexpected status {response.status_code}')
+            log.warn(response.text)
+            log.warn('retrying anyway..')
+            return "repoll", None
 
 
     def post_handle_response(self, ki_id, handle_id, bindings):
