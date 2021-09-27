@@ -42,6 +42,7 @@ class TkeClient:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
         log.info(f'Successfully registered knowledge base {self.kb_id}')
 
+
     def add_knowledge_interaction(self, ki):
         if ki['type'] == 'answer':
             return self.add_answer_knowledge_interaction(ki)
@@ -51,6 +52,16 @@ class TkeClient:
             return self.add_ask_knowledge_interaction(ki)
         elif ki['type'] == 'post':
             return self.add_post_knowledge_interaction(ki)
+
+
+    def get_ki(self, name=None, id=None):
+        if name is not None and id is None:
+            for ki in self.kis.values():
+                if ki['name'] == name:
+                    return ki
+        if id is not None and name is None:
+            if id in self.kis:
+                return self.kis[id]
 
     
     def add_ask_knowledge_interaction(self, ki):
@@ -71,6 +82,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        ki['id'] = ki_id
         return ki_id
 
 
@@ -92,6 +104,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        ki['id'] = ki_id
         return ki_id
 
 
@@ -116,6 +129,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        ki['id'] = ki_id
         return ki_id
 
 
@@ -140,6 +154,7 @@ class TkeClient:
 
         ki_id = response.text
         self.kis[ki_id] = ki
+        ki['id'] = ki_id
         return ki_id
 
 
