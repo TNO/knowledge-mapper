@@ -14,6 +14,10 @@ We publish releases of the knowledge mapper as Docker images.
 Configuration goes into a file `/usr/src/app/conf/config.json` in that image.
 You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.json` there, or overwrite `/usr/src/app/conf/config.json` in your own image.
 
+## Authorization
+
+In order for another knowledge base to request a knowledge interaction, authorization needs to be set as shown in the configuration file below.
+
 ## Configuration
 
 ### SQL
@@ -45,6 +49,7 @@ You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.j
       "type": "answer",
       "vars": ["tree", "height"],
       "pattern": "?tree <https://example.org/hasHeight> ?height .",
+      "authorized" : ["https://example.org/another-knowledge-base"].
       "sql_query": "SELECT id AS tree, height FROM trees"
     }
   ]
