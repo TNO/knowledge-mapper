@@ -33,13 +33,21 @@ class KnowledgeMapper:
                 log.info('Handling handle request %d', handle_request['handleRequestId'])
 
                 ki = self.tke_client.kis[handle_request['knowledgeInteractionId']]
-
-                # Have the data source handle the incoming bindings, and
-                # retrieve the resulting bindings.
-                result = self.data_source.handle(ki, handle_request['bindingSet'])
-
-                # Post the bindings to the SC, with the correct KI ID and handle
-                # request ID.
+                
+                # For this implementation we assume that the knowledge mapper is responsible for authorisatiion
+                # Check whether the requesting knowledge base is allowed to request the knowledge interaction
+                requesting_kb = handle_request['requestingKnowledgeBaseId']
+                result = []
+                if 'authorized' in ki:
+                    if requesting_kb in ki['authorized']:
+                        # Have the data source handle the incoming bindings, and retrieve the resulting bindings.
+                        result = self.data_source.handle(ki, handle_request['bindingSet'])
+                    else:
+                        log.info('Knowledge base %s is not authorized for this request!', requesting_kb)
+                else:
+                    log.info('No authorization is set for this knowledge interaction %s!', ki)
+                    
+                # Post the bindings to the SC, with the correct KI ID and handle request ID.
                 self.tke_client.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], result)
             else:
                 raise Exception("Invalid internal status from KnowledgeMapper.long_poll!")
