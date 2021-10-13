@@ -14,9 +14,19 @@ We publish releases of the knowledge mapper as Docker images.
 Configuration goes into a file `/usr/src/app/conf/config.json` in that image.
 You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.json` there, or overwrite `/usr/src/app/conf/config.json` in your own image.
 
-## Authorization
+## Authorization with deny-unless-permit policy
 
-In order for another knowledge base to request a knowledge interaction, authorization needs to be set as shown in the configuration file below.
+In order for another knowledge base to request a knowledge interaction, authorization can be set using the boolean configuration property `authorization_enabled`. This is an optional setting which means that if the property is absent no authorization is being applied and all knowledge interactions are permitted.
+
+If the property is set to `true`, a deny-unless-permit policy is being applied. Then, for every knowledge interaction, a `permitted` list can be added that indicates which knowledge bases are permitted to request that knowledge interaction.
+
+There are some special cases for the values of this `permitted` list:
+- If this list is absent or empty, NO knowledge bases are permitted.
+- If the list equals `*`, ALL knowledge bases are permitted.
+
+For all other cases, the `permitted` list contains the ids of the knowledge bases that are permitted.
+
+The configuration file below gives an example of authorization enabled and a knowledge interaction with a permitted list with a single other knowledge base. 
 
 ## Configuration
 
@@ -38,6 +48,8 @@ In order for another knowledge base to request a knowledge interaction, authoriz
   "sql_user": "user",
   "sql_password": "pw",
 
+  "authorization_enabled": true,
+
   "knowledge_interactions": [
     {
       // This map makes ensures that the value is prefixed for the variables in the keys.
@@ -49,7 +61,7 @@ In order for another knowledge base to request a knowledge interaction, authoriz
       "type": "answer",
       "vars": ["tree", "height"],
       "pattern": "?tree <https://example.org/hasHeight> ?height .",
-      "authorized" : ["https://example.org/another-knowledge-base"].
+      "permitted" : ["https://example.org/another-knowledge-base"],
       "sql_query": "SELECT id AS tree, height FROM trees"
     }
   ]
