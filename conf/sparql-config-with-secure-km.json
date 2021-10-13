@@ -7,20 +7,22 @@
   },
 
   "sparql_endpoint": "http://localhost:3030/example",
+  
+  "authorization_enabled": true,
 
   "knowledge_interactions": [
     {
       "type": "answer",
       "vars": ["a", "b"],
       "pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "authorized": ["https://example.org/another-knowledge-base"]
+      "permitted": ["https://example.org/another-knowledge-base"]
     },
     {
       "type": "react",
       "vars": ["a", "b"],
       "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
       "result_pattern": null,
-      "authorized": ["https://example.org/another-knowledge-base"]
+      "permitted": ["https://example.org/another-knowledge-base"]
     }
   ]
 }
