@@ -65,13 +65,17 @@ class TkeClient:
 
     
     def add_ask_knowledge_interaction(self, ki):
-        pattern = ki['pattern']
+        body = {
+            'knowledgeInteractionType': 'AskKnowledgeInteraction',
+            'graphPattern': ki['pattern']
+        }
+
+        if 'prefixes' in ki:
+            body['prefixes'] = ki['prefixes']
+
         response = requests.post(
             f'{self.ke_url}/sc/ki',
-            json={
-                'knowledgeInteractionType': 'AskKnowledgeInteraction',
-                'graphPattern': pattern
-            },
+            json=body,
             headers={
                 'Knowledge-Base-Id': self.kb_id
             }
@@ -87,13 +91,17 @@ class TkeClient:
 
 
     def add_answer_knowledge_interaction(self, ki):
-        pattern = ki['pattern']
+        body = {
+            'knowledgeInteractionType': 'AnswerKnowledgeInteraction',
+            'graphPattern': ki['pattern']
+        }
+
+        if 'prefixes' in ki:
+            body['prefixes'] = ki['prefixes']
+
         response = requests.post(
             f'{self.ke_url}/sc/ki',
-            json={
-                'knowledgeInteractionType': 'AnswerKnowledgeInteraction',
-                'graphPattern': pattern
-            },
+            json=body,
             headers={
                 'Knowledge-Base-Id': self.kb_id
             }
@@ -109,16 +117,18 @@ class TkeClient:
 
 
     def add_post_knowledge_interaction(self, ki):
-        argument_pattern = ki['argument_pattern']
-        result_pattern = ki['result_pattern']
+        body = {
+            'knowledgeInteractionType': 'PostKnowledgeInteraction',
+            'argumentGraphPattern': ki['argument_pattern'],
+            'resultGraphPattern': ki['result_pattern']
+        }
+
+        if 'prefixes' in ki:
+            body['prefixes'] = ki['prefixes']
 
         response = requests.post(
             f'{self.ke_url}/sc/ki',
-            json={
-                'knowledgeInteractionType': 'PostKnowledgeInteraction',
-                'argumentGraphPattern': argument_pattern,
-                'resultGraphPattern': result_pattern
-            },
+            json=body,
             headers={
                 'Knowledge-Base-Id': self.kb_id
             }
@@ -134,16 +144,18 @@ class TkeClient:
 
 
     def add_react_knowledge_interaction(self, ki):
-        argument_pattern = ki['argument_pattern']
-        result_pattern = ki['result_pattern']
+        body = {
+            'knowledgeInteractionType': 'ReactKnowledgeInteraction',
+            'argumentGraphPattern': ki['argument_pattern'],
+            'resultGraphPattern': ki['result_pattern']
+        }
+
+        if 'prefixes' in ki:
+            body['prefixes'] = ki['prefixes']
 
         response = requests.post(
             f'{self.ke_url}/sc/ki',
-            json={
-                'knowledgeInteractionType': 'ReactKnowledgeInteraction',
-                'argumentGraphPattern': argument_pattern,
-                'resultGraphPattern': result_pattern
-            },
+            json=body,
             headers={
                 'Knowledge-Base-Id': self.kb_id
             }

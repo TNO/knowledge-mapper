@@ -7,7 +7,7 @@
   },
 
   "plugin": {
-    "class": "plugins.example.ExampleDataSource",
+    "class": "knowledge_mapper.plugins.example.ExampleDataSource",
     "args": ["https://example.org/something"]
   },
 
@@ -15,7 +15,10 @@
     {
       "type": "answer",
       "vars": ["a", "b"],
-      "pattern": "?a <https://example.org/isRelatedTo> ?b ."
+      "prefixes": {
+        "ex": "https://example.org/"
+      },
+      "pattern": "?a ex:isRelatedTo ?b ."
     }
   ]
 }
