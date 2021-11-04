@@ -60,7 +60,12 @@ if __name__ == '__main__':
 
         test_data_source(data_source)
 
-        client = KnowledgeMapper(data_source, config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
+        if 'authorization_enabled' in config:
+            auth_enabled = config['authorization_enabled']
+        else:
+            auth_enabled = False
+        
+        client = KnowledgeMapper(data_source, auth_enabled, config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
         for ki in config['knowledge_interactions']:
             client.add_knowledge_interaction(ki)
 
