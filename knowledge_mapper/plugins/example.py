@@ -1,4 +1,4 @@
-from data_sources import DataSource
+from ..data_source import DataSource
 
 class ExampleDataSource(DataSource):
     def __init__(self, example):
