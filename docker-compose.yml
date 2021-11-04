@@ -1,5 +1,5 @@
 services:
-  sc:
+  tke-runtime:
     image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.0
     ports:
       - 8280:8280
