@@ -4,16 +4,18 @@ import time
 
 from .data_source import DataSource
 from .tke_client import TkeClient
+from _ast import If
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1
 
 class KnowledgeMapper:
-    def __init__(self, data_source: DataSource, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
+    def __init__(self, data_source: DataSource, auth_enabled: bool, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
         self.data_source = data_source
         self.ke_url = ke_url
         self.kb_id = kb_id
         self.kis = dict()
+        self.auth_enabled = auth_enabled
 
         self.tke_client = TkeClient(ke_url, kb_id, kb_name, kb_desc)
 
@@ -33,13 +35,33 @@ class KnowledgeMapper:
                 log.info('Handling handle request %d', handle_request['handleRequestId'])
 
                 ki = self.tke_client.kis[handle_request['knowledgeInteractionId']]
-
-                # Have the data source handle the incoming bindings, and
-                # retrieve the resulting bindings.
-                result = self.data_source.handle(ki, handle_request['bindingSet'])
-
-                # Post the bindings to the SC, with the correct KI ID and handle
-                # request ID.
+                
+                # For this implementation we assume that the knowledge mapper is responsible for authorisation
+                # Check whether the requesting knowledge base is permitted to request the knowledge interaction
+                permission = False
+                if self.auth_enabled:
+                    if 'permitted' in ki:
+                        if ki['permitted'] != "*":
+                            # check whether the requesting kb is in the permitted list
+                            requesting_kb = handle_request['requestingKnowledgeBaseId']                        
+                            if requesting_kb in ki['permitted']:
+                                permission = True
+                            else:
+                                log.info('Knowledge base %s is not permitted to do this request!', requesting_kb)
+                        else: # permission is set to *, so every one is permitted
+                            permission = True
+                    else: # no permission is set, so deny
+                        log.info('No permission is set at all for this knowledge interaction %s, so deny!', ki)
+                else: # no authorization is defined so, have the data source handle the request.
+                    permission = True
+                    
+                # if permitted, then handle the request
+                if permission:
+                    result = self.data_source.handle(ki, handle_request['bindingSet'])
+                else:
+                    result = []
+                                    
+                # Post the bindings to the SC, with the correct KI ID and handle request ID.
                 self.tke_client.post_handle_response(handle_request['knowledgeInteractionId'], handle_request['handleRequestId'], result)
             else:
                 raise Exception("Invalid internal status from KnowledgeMapper.long_poll!")
