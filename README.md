@@ -1,6 +1,6 @@
 # Knowledge Mapper
 
-This mapper makes it easier to disclose data from knowledge bases that use SPARQL and (future work) other protocols to a knowledge network.
+This mapper makes it easier to disclose data from knowledge bases that use SPARQL and other protocols to a knowledge network.
 
 ## Where does it operate?
 
@@ -10,9 +10,34 @@ When there is an incoming request from the knowledge network (through the REST A
 
 ## How to use it?
 
-We publish releases of the knowledge mapper as Docker images.
-Configuration goes into a file `/usr/src/app/conf/config.json` in that image.
-You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.json` there, or overwrite `/usr/src/app/conf/config.json` in your own image.
+Two options: cloning the repo, or installing via `pip`
+
+### Clone the repo
+
+```
+git clone git@ci.tno.nl:tke/knowledge-mapper.git
+```
+
+Then run it with, for example,
+
+```
+python -m knowledge_mapper conf/sql-config.json
+```
+
+### Install via `pip`
+
+(Currently on the test PyPI; may break as it is reset every now and then... Let's release on the real PyPI soon.)
+
+```
+pip install --index-url https://test.pypi.org/simple/ knowledge_mapper===0.1.0.post2
+```
+
+Then run it with:
+
+```
+python -m knowledge_mapper config.json
+```
+(make sure you have a valid config in `config.json`)
 
 ## Authorization with deny-unless-permit policy
 
@@ -31,6 +56,8 @@ The configuration file below gives an example of authorization enabled and a kno
 ## Configuration
 
 ### SQL
+
+(remove the comments, otherwise it doesn't parse correctly)
 
 ```jsonc
 {

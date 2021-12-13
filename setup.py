@@ -2,7 +2,12 @@ from setuptools import setup
 
 setup(
     name="knowledge_mapper",
-    version="0.1.0",
+    version="0.1.0-2",
     packages=["knowledge_mapper"],
-    install_requires=["requests", "mariadb"],
+    install_requires=["requests", "mysql-connector-python"],
+    entry_points={
+        "console_scripts": [
+            "knowledge_mapper=knowledge_mapper.__main__:main",
+        ]
+    }
 )
