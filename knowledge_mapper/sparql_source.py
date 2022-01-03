@@ -7,8 +7,16 @@ from urllib.parse import quote
 from .data_source import DataSource
 
 class SparqlSource(DataSource):
-    def __init__(self, endpoint: str):
+    def __init__(self, endpoint: str, env_username, env_password):
         self.endpoint = endpoint
+        self.auth = False
+        # env_username and env_password MUST be the names of the environment variables
+        #that contain the username and password to get access to the endpoint
+        # if they are present, the self.auth flag will go up
+        if (env_username != None and env_username in os.environ) and (env_password != None and env_password in os.environ):
+            self.auth = True
+            self.username = os.environ[env_username]
+            self.password = os.environ[env_password]
 
 
     def test(self):
@@ -49,8 +57,8 @@ class SparqlSource(DataSource):
             }
         }
 
-        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
-            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
+        if self.auth:
+            args['auth'] = HTTPBasicAuth(self.username, self.password)
 
         response = requests.get(
             f'{self.endpoint}?query={quote(query)}',
@@ -73,8 +81,8 @@ class SparqlSource(DataSource):
             }
         }
 
-        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
-            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
+        if self.auth:
+            args['auth'] = HTTPBasicAuth(self.username, self.password)
 
         response = requests.post(
             f'{self.endpoint}',
