@@ -35,14 +35,14 @@ def test_data_source(data_source: DataSource):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Expose a SPARQL endpoint to a knowledge network.')
+    parser = argparse.ArgumentParser(description='Expose an endpoint to a knowledge network.')
     parser.add_argument('config')
     args = parser.parse_args()
     with open(args.config) as config_file:
         config = json.load(config_file)
 
-        if 'sparql_endpoint' in config:
-            data_source = SparqlSource(config['sparql_endpoint'], 'SPARQL_USERNAME', 'SPARQL_PASSWORD')
+        if 'sparql' in config:
+            data_source = SparqlSource(config['sparql']['endpoint'], config['sparql']['username_environment_var'], config['sparql']['password_environment_var'])
         elif 'sql_host' in config:
             data_source = SqlSource(config['sql_host'], config['sql_port'], config['sql_database'], config['sql_user'], config['sql_password'])
         elif 'plugin' in config:

@@ -6,7 +6,11 @@
     "description": "This is just an example."
   },
 
-  "sparql_endpoint": "http://localhost:3030/example",
+  "sparql": {
+    "endpoint": "http://localhost:3030/example",
+    "username_environment_var": "SPARQL_USERNAME",
+    "password_environment_var": "SPARQL_PASSWORD"
+  },
   
   "authorization_enabled": true,
 

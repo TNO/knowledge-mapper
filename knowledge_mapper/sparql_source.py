@@ -66,7 +66,7 @@ class SparqlSource(DataSource):
         )
 
         if response.status_code == 401:
-            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
+            raise UnauthorizedError("Provide BasicAuth with system environment variables.")
         elif not response.ok:
             raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
 
@@ -91,7 +91,7 @@ class SparqlSource(DataSource):
         )
 
         if response.status_code == 401:
-            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
+            raise UnauthorizedError("Provide BasicAuth with system environment variables with the names used in the config file.")
         elif not response.ok:
             raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
 
