@@ -42,7 +42,13 @@ if __name__ == '__main__':
         config = json.load(config_file)
 
         if 'sparql' in config:
-            data_source = SparqlSource(config['sparql']['endpoint'], config['sparql']['username_environment_var'], config['sparql']['password_environment_var'])
+            endpoint = config['sparql']['endpoint']
+            username = None
+            password = None
+            if 'username_environment_var' in config['sparql'] and 'password_environment_var' in config['sparql']:
+                username = config['sparql']['username_environment_var']
+                password = config['sparql']['password_environment_var']
+            data_source = SparqlSource(endpoint, username, password)
         elif 'sql_host' in config:
             data_source = SqlSource(config['sql_host'], config['sql_port'], config['sql_database'], config['sql_user'], config['sql_password'])
         elif 'plugin' in config:
