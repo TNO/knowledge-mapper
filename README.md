@@ -30,6 +30,44 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ## Configuration
 
+### SPARQL
+
+```jsonc
+{
+  "knowledge_engine_endpoint": "http://localhost:8280/rest",
+  "knowledge_base": {
+    "id": "https://example.org/a-sparql-knowledge-base",
+    "name": "Some SPARQL knowledge base",
+    "description": "This is just an example."
+  },
+
+  "sparql": {
+    "endpoint": "http://localhost:3031/example",
+    "username_environment_var": "SPARQL_USERNAME",
+    "password_environment_var": "SPARQL_PASSWORD"
+  },
+  
+  "authorization_enabled": true,
+
+  "knowledge_interactions": [
+    {
+      "type": "answer",
+      "vars": ["a", "b"],
+      "pattern": "?a <https://example.org/isRelatedTo> ?b .",
+      "permitted": ["https://example.org/another-knowledge-base"]
+    },
+    {
+      "type": "react",
+      "vars": ["a", "b"],
+      "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
+      "result_pattern": null,
+      "permitted": ["https://example.org/another-knowledge-base"]
+    }
+  ]
+}
+```
+
+
 ### SQL
 
 ```jsonc
