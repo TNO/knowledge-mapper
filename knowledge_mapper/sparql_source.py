@@ -97,7 +97,6 @@ class SparqlSource(DataSource):
 
         return
 
-
 def generate_sparql_select(ki, incoming_bindings):
     # For all partial bindings that are actually partial, we set the
     # variables that ARE in the graph pattern, but NOT in the binding to
@@ -108,11 +107,13 @@ def generate_sparql_select(ki, incoming_bindings):
                 incoming_binding[var] = 'UNDEF'
 
     return '''
+        {prefixes_clause}
         SELECT {{variables}} WHERE {{{{
             {triple_pattern}
             {values_clause}
         }}}}
     '''.format(
+            prefixes_clause='\n\t'.join(f"PREFIX {prefix}: <{ki['prefixes'][prefix]}>" for prefix in ki['prefixes'].keys()) ,
             triple_pattern=ki['pattern'],
             values_clause='''
                 VALUES ({{variables}}) {{{{
