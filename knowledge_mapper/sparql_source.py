@@ -7,8 +7,16 @@ from urllib.parse import quote
 from .data_source import DataSource
 
 class SparqlSource(DataSource):
-    def __init__(self, endpoint: str):
+    def __init__(self, endpoint: str, env_username, env_password):
         self.endpoint = endpoint
+        self.auth = False
+        # env_username and env_password MUST be the names of the environment variables
+        #that contain the username and password to get access to the endpoint
+        # if they are present, the self.auth flag will go up
+        if (env_username != None and env_username in os.environ) and (env_password != None and env_password in os.environ):
+            self.auth = True
+            self.username = os.environ[env_username]
+            self.password = os.environ[env_password]
 
 
     def test(self):
@@ -49,8 +57,8 @@ class SparqlSource(DataSource):
             }
         }
 
-        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
-            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
+        if self.auth:
+            args['auth'] = HTTPBasicAuth(self.username, self.password)
 
         response = requests.get(
             f'{self.endpoint}?query={quote(query)}',
@@ -58,7 +66,7 @@ class SparqlSource(DataSource):
         )
 
         if response.status_code == 401:
-            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
+            raise UnauthorizedError("Provide BasicAuth with system environment variables.")
         elif not response.ok:
             raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
 
@@ -73,8 +81,8 @@ class SparqlSource(DataSource):
             }
         }
 
-        if 'SPARQL_USERNAME' in os.environ and 'SPARQL_PASSWORD' in os.environ:
-            args['auth'] = HTTPBasicAuth(os.environ['SPARQL_USERNAME'], os.environ['SPARQL_PASSWORD'])
+        if self.auth:
+            args['auth'] = HTTPBasicAuth(self.username, self.password)
 
         response = requests.post(
             f'{self.endpoint}',
@@ -83,12 +91,11 @@ class SparqlSource(DataSource):
         )
 
         if response.status_code == 401:
-            raise UnauthorizedError("Provide BasicAuth with system environment variables SPARQL_USERNAME and SPARQL_PASSWORD.")
+            raise UnauthorizedError("Provide BasicAuth with system environment variables with the names used in the config file.")
         elif not response.ok:
             raise RuntimeError("Invalid response from SPARQL endpoint.  (status: {}, body: {})".format(response.status_code, response.text))
 
         return
-
 
 def generate_sparql_select(ki, incoming_bindings):
     # For all partial bindings that are actually partial, we set the
@@ -100,11 +107,13 @@ def generate_sparql_select(ki, incoming_bindings):
                 incoming_binding[var] = 'UNDEF'
 
     return '''
+        {prefixes_clause}
         SELECT {{variables}} WHERE {{{{
             {triple_pattern}
             {values_clause}
         }}}}
     '''.format(
+            prefixes_clause='\n\t'.join(f"PREFIX {prefix}: <{ki['prefixes'][prefix]}>" for prefix in ki['prefixes'].keys()) ,
             triple_pattern=ki['pattern'],
             values_clause='''
                 VALUES ({{variables}}) {{{{

@@ -6,19 +6,27 @@
     "description": "This is just an example."
   },
 
-  "sparql_endpoint": "http://localhost:3031/example",
+  "sparql": {
+    "endpoint": "http://localhost:3031/example",
+    "username_environment_var": "SPARQL_USERNAME",
+    "password_environment_var": "SPARQL_PASSWORD"
+  },
+  
+  "authorization_enabled": true,
 
   "knowledge_interactions": [
     {
       "type": "answer",
       "vars": ["a", "b"],
-      "pattern": "?a <https://example.org/isRelatedTo> ?b ."
+      "pattern": "?a <https://example.org/isRelatedTo> ?b .",
+      "permitted": ["https://example.org/another-knowledge-base"]
     },
     {
       "type": "react",
       "vars": ["a", "b"],
       "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "result_pattern": null
+      "result_pattern": null,
+      "permitted": ["https://example.org/another-knowledge-base"]
     }
   ]
 }
