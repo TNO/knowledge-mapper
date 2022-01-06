@@ -106,6 +106,11 @@ def generate_sparql_select(ki, incoming_bindings):
             if var not in incoming_binding:
                 incoming_binding[var] = 'UNDEF'
 
+    if 'prefixes' in ki:
+        prefixes = ki['prefixes']
+    else:
+        prefixes = dict()
+
     return '''
         {prefixes_clause}
         SELECT {{variables}} WHERE {{{{
@@ -113,7 +118,7 @@ def generate_sparql_select(ki, incoming_bindings):
             {values_clause}
         }}}}
     '''.format(
-            prefixes_clause='\n\t'.join(f"PREFIX {prefix}: <{ki['prefixes'][prefix]}>" for prefix in ki['prefixes'].keys()) ,
+            prefixes_clause='\n\t'.join(f"PREFIX {prefix}: <{ki['prefixes'][prefix]}>" for prefix in prefixes.keys()) ,
             triple_pattern=ki['pattern'],
             values_clause='''
                 VALUES ({{variables}}) {{{{
