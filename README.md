@@ -94,3 +94,30 @@ The configuration file below gives an example of authorization enabled and a kno
   ]
 }
 ```
+
+# Development instructions
+
+## Building a new distribution
+
+- Make sure the `./dist` directory is empty or non-existing.
+- Make sure you use a Python environment with the packages `distutils` and `wheel`  installed.
+- Make sure the version number is correct in `setup.py`.
+- Build the project:
+
+```bash
+# this creates a source distribution (`sdist`) and a built distribution (`bdist_wheel`).
+python setup.py sdist bdist_wheel
+```
+- There should now be 2 files under the `./dist` directory.
+
+## Releasing a new distribution
+
+- Make sure you just built a new distribution with a *NEW* version number and have it in `./dist`
+- Use `twine` to upload your new distribution to PyPI:
+
+```
+twine upload dist/*
+```
+
+- Enter your PyPI credentials in the prompt
+- Make sure the new version is working as intended (attempt to upgrade project that use it)
