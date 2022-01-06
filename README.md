@@ -26,15 +26,13 @@ python -m knowledge_mapper conf/sql-config.json
 
 ### Install via `pip`
 
-(Currently on the test PyPI; may break as it is reset every now and then... Let's release on the real PyPI soon.)
-
-```
-pip install --index-url https://test.pypi.org/simple/ knowledge_mapper===0.1.0.post2
+```bash
+pip install knowledge_mapper
 ```
 
 Then run it with:
 
-```
+```bash
 python -m knowledge_mapper config.json
 ```
 (make sure you have a valid config in `config.json`)
