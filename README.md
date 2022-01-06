@@ -1,6 +1,6 @@
 # Knowledge Mapper
 
-This mapper makes it easier to disclose data from knowledge bases that use SPARQL and (future work) other protocols to a knowledge network.
+This mapper makes it easier to disclose data from knowledge bases that use SPARQL and other protocols to a knowledge network.
 
 ## Where does it operate?
 
@@ -10,9 +10,32 @@ When there is an incoming request from the knowledge network (through the REST A
 
 ## How to use it?
 
-We publish releases of the knowledge mapper as Docker images.
-Configuration goes into a file `/usr/src/app/conf/config.json` in that image.
-You can mount a Docker volume at `/usr/src/app/conf`, and put your own `config.json` there, or overwrite `/usr/src/app/conf/config.json` in your own image.
+Two options: cloning the repo, or installing via `pip`
+
+### Clone the repo
+
+```
+git clone git@ci.tno.nl:tke/knowledge-mapper.git
+```
+
+Then run it with, for example,
+
+```
+python -m knowledge_mapper conf/sql-config.json
+```
+
+### Install via `pip`
+
+```bash
+pip install knowledge_mapper
+```
+
+Then run it with:
+
+```bash
+python -m knowledge_mapper config.json
+```
+(make sure you have a valid config in `config.json`)
 
 ## Authorization with deny-unless-permit policy
 
@@ -70,6 +93,8 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ### SQL
 
+(remove the comments, otherwise it doesn't parse correctly)
+
 ```jsonc
 {
   "knowledge_engine_endpoint": "http://localhost:8280/rest",
@@ -105,3 +130,30 @@ The configuration file below gives an example of authorization enabled and a kno
   ]
 }
 ```
+
+# Development instructions
+
+## Building a new distribution
+
+- Make sure the `./dist` directory is empty or non-existing.
+- Make sure you use a Python environment with the packages `distutils` and `wheel`  installed.
+- Make sure the version number is correct in `setup.py`.
+- Build the project:
+
+```bash
+# this creates a source distribution (`sdist`) and a built distribution (`bdist_wheel`).
+python setup.py sdist bdist_wheel
+```
+- There should now be 2 files under the `./dist` directory.
+
+## Releasing a new distribution
+
+- Make sure you just built a new distribution with a *NEW* version number and have it in `./dist`
+- Use `twine` to upload your new distribution to PyPI:
+
+```
+twine upload dist/*
+```
+
+- Enter your PyPI credentials in the prompt
+- Make sure the new version is working as intended (attempt to upgrade project that use it)

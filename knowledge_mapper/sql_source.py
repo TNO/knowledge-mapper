@@ -1,5 +1,5 @@
 import logging as log
-import mariadb
+import mysql.connector
 
 from .data_source import DataSource
 
@@ -7,7 +7,7 @@ class SqlSource(DataSource):
     def __init__(self, host: str, port: int, database: str, user: str, password: str):
         self.host = host
         self.port = port
-        self.conn = mariadb.connect(
+        self.conn = mysql.connector.connect(
             user=user,
             password=password,
             host=host,
@@ -39,7 +39,7 @@ class SqlSource(DataSource):
             for binding in binding_set:
                 binding_constraints += 'OR 1 '
                 for key, value in binding.items():
-                    binding_constraints += f'AND {key} = ? '
+                    binding_constraints += f'AND {key} = %s '
                     prefix = ""
                     if key in ki['column_prefixes']:
                         prefix = ki['column_prefixes'][key]
@@ -116,7 +116,7 @@ class SqlSource(DataSource):
                     try:
                         cursor = self.conn.cursor()
                         cursor.execute(statement['statement'], sql_binding)
-                    except mariadb.Error as e:
+                    except mysql.connector.Error as e:
                         log.warn(e)
                         self.conn.rollback()
                         continue

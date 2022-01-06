@@ -32,7 +32,7 @@
       "result_pattern": null,
       "sql_query": [
         {
-          "statement": "INSERT INTO trees (id, height, name) VALUES (?, ?, ?)",
+          "statement": "INSERT INTO trees (id, height, name) VALUES (%s, %s, %s)",
           "bindings": ["tree", "height", "name"]
         }
       ]

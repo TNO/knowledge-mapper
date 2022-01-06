@@ -34,7 +34,7 @@ def test_data_source(data_source: DataSource):
                 raise e
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='Expose an endpoint to a knowledge network.')
     parser.add_argument('config')
     args = parser.parse_args()
@@ -84,3 +84,6 @@ if __name__ == '__main__':
 
         log.info('Goodbye.')
         exit(0)
+
+if __name__ == '__main__':
+    main()
