@@ -137,7 +137,7 @@ The configuration file below gives an example of authorization enabled and a kno
 
 - Make sure the `./dist` directory is empty or non-existing.
 - Make sure you use a Python environment with the packages `distutils` and `wheel`  installed.
-- Make sure the version number is correct in `setup.py`.
+- Make sure the version number is correct in `setup.py` *AND* `knowledge_mapper/__init__.py`.
 - Build the project:
 
 ```bash
