@@ -35,6 +35,8 @@ def test_data_source(data_source: DataSource):
 
 
 def main():
+    from . import __version__
+    log.info(f'Running Knowledge Mapper {__version__}')
     parser = argparse.ArgumentParser(description='Expose an endpoint to a knowledge network.')
     parser.add_argument('config')
     args = parser.parse_args()
@@ -71,16 +73,23 @@ def main():
         else:
             auth_enabled = False
         
-        client = KnowledgeMapper(data_source, auth_enabled, config['knowledge_engine_endpoint'], config['knowledge_base']['id'], config['knowledge_base']['name'], config['knowledge_base']['description'])
+        km = KnowledgeMapper(
+            data_source,
+            auth_enabled,
+            config['knowledge_engine_endpoint'],
+            config['knowledge_base']['id'],
+            config['knowledge_base']['name'],
+            config['knowledge_base']['description']
+        )
         for ki in config['knowledge_interactions']:
-            client.add_knowledge_interaction(ki)
+            km.add_knowledge_interaction(ki)
 
         try:
-            client.start()
+            km.start()
         except KeyboardInterrupt:
             log.info('Shutting down gracefully...')
         finally:
-            client.clean_up()
+            km.clean_up()
 
         log.info('Goodbye.')
         exit(0)

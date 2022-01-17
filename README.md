@@ -133,6 +133,54 @@ The configuration file below gives an example of authorization enabled and a kno
 
 # Development instructions
 
+## Testing
+
+There's unit tests in the Python package that require a TKE runtime to be running at port 8082:
+```bash
+# Start the TKE runtime and store the container ID in a variable (in bash)
+TKE_CONTAINER_ID=$(docker run -d --rm -p 8280:8280 ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2)
+
+# Perform the unit tests
+pytest
+
+# Stop the TKE runtime
+docker stop $TKE_CONTAINER_ID
+```
+
+There's also integration tests that require the testbed defined in `docker-compose.yml`:
+```bash
+# Start the testbed
+docker-compose up -d
+```
+
+SPARQL KB:
+```bash
+python -m knowledge_mapper conf/sparql-kb-config.json
+# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
+# the testbed
+```
+
+SPARQL KB with authentication and authorization:
+```bash
+SPARQL_USERNAME=admin SPARQL_PASSWORD=pw python -m knowledge_mapper conf/sparql-kb-with-authentication-and-authorization-config.json
+# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
+# the testbed
+```
+
+SQL KB (credentials in JSON, but see #16):
+```bash
+python -m knowledge_mapper conf/sql-config.json
+# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
+# the testbed
+```
+
+Custom plugin (Python class):
+```bash
+python -m knowledge_mapper conf/plugin-config.json
+# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
+# the testbed
+```
+
 ## Building a new distribution
 
 - Make sure the `./dist` directory is empty or non-existing.
