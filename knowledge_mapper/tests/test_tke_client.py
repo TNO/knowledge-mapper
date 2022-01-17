@@ -82,3 +82,22 @@ async def test_ask_answer():
     # Wait for both tasks to complete. (They are scheduled not sequentially, but
     # asynchronously.)
     await asyncio.gather(kb1_task(), kb2_task())
+
+def test_reregister():
+    kb_id, kb_name = generate_kb_id_and_name()
+    client = tke.TkeClient(ke_runtime_url)
+    client.connect()
+
+    kb1 = client.register(tke_kb.KnowledgeBaseRegistrationRequest(id=kb_id, name=kb_name, description="KB that will be reregistered"))
+    assert kb1 is not None
+
+    # Try to register with the same id, and the reregister flag turned OFF
+    kb2 = client.register(tke_kb.KnowledgeBaseRegistrationRequest(id=kb_id, name=kb_name, description="KB that will be reregistered"), reregister=False)
+    assert kb2 is None
+
+    # Try to register with the same id, and the reregister flag turned ON
+    kb3 = client.register(tke_kb.KnowledgeBaseRegistrationRequest(id=kb_id, name=kb_name, description="KB that will be reregistered"), reregister=True)
+    assert kb3 is not None
+
+    # We only have to clean up the final one since it uses the same ID
+    kb3.unregister()

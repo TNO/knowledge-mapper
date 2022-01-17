@@ -15,7 +15,7 @@ class KnowledgeBaseRegistrationRequest:
     description: str
 
 class KnowledgeBase:
-    def __init__(self, req: KnowledgeBaseRegistrationRequest, ke_url: str = None):
+    def __init__(self, req: KnowledgeBaseRegistrationRequest, ke_url: str):
         self.ke_url = ke_url
         self.id = req.id
         self.name = req.name
@@ -24,13 +24,14 @@ class KnowledgeBase:
         self.kis_by_name = dict()
 
 
-    def from_json(kb_json: dict) -> KnowledgeBase:
+    def from_json(kb_json: dict, ke_url: str) -> KnowledgeBase:
         return KnowledgeBase(
             KnowledgeBaseRegistrationRequest(
                 id=kb_json['knowledgeBaseId'],
                 name=kb_json['knowledgeBaseName'],
                 description=kb_json['knowledgeBaseDescription']
-            )
+            ),
+            ke_url=ke_url
         )
 
 
