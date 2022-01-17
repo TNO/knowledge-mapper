@@ -71,4 +71,9 @@ class KnowledgeMapper:
         if 'prefixes' in ki:
             req.prefixes = ki['prefixes']
 
-        self.kb.register_knowledge_interaction(req)
+        if 'name' in ki:
+            name = ki['name']
+        else:
+            name = None
+
+        self.kb.register_knowledge_interaction(req, name=name)

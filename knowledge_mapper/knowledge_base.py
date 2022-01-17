@@ -21,6 +21,7 @@ class KnowledgeBase:
         self.name = req.name
         self.description = req.description
         self.kis = dict()
+        self.kis_by_name = dict()
 
 
     def from_json(kb_json: dict) -> KnowledgeBase:
@@ -46,7 +47,7 @@ class KnowledgeBase:
             raise UnexpectedHttpResponseError(response)
 
 
-    def register_knowledge_interaction(self, ki: knowledge_interaction.KnowledgeInteractionRegistrationRequest) -> knowledge_interaction.KnowledgeInteraction:
+    def register_knowledge_interaction(self, ki: knowledge_interaction.KnowledgeInteractionRegistrationRequest, name=None) -> knowledge_interaction.KnowledgeInteraction:
         body = {
             'knowledgeInteractionType': ki.type,
             'prefixes': ki.prefixes
@@ -72,20 +73,22 @@ class KnowledgeBase:
         ki_id = response.text
 
         registered_ki = knowledge_interaction.KnowledgeInteraction.from_req(ki, ki_id, self)
-
         self.kis[ki_id] = registered_ki
+
+        if name is not None:
+            self.kis_by_name[name] = registered_ki
 
         return registered_ki
 
 
-    def get_ki(self, name=None, id=None):
+    def get_ki(self, name=None, id=None) -> knowledge_interaction.KnowledgeInteraction:
         if name is not None and id is None:
-            for ki in self.kis.values():
-                if ki['name'] == name:
-                    return ki
+            if name in self.kis_by_name:
+                return self.kis_by_name[name]
         if id is not None and name is None:
             if id in self.kis:
                 return self.kis[id]
+        return None
 
 
     def start_handle_loop(self, loops=None):
