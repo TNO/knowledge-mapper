@@ -14,7 +14,7 @@ class TkeClient:
         self.ke_url = ke_url
 
 
-    def connect(self):
+    def connect(self, max_attempts=MAX_CONNECTION_ATTEMPTS, wait_between_attempts=WAIT_BEFORE_RETRY):
         attempts = 0
         success = False
         while not success:
@@ -25,9 +25,9 @@ class TkeClient:
             except requests.exceptions.ConnectionError:
                 log.warning(f'Connecting to {self.ke_url} failed.')
 
-            if not success and attempts < MAX_CONNECTION_ATTEMPTS:
-                log.warning(f'Request to {self.ke_url} failed. Retrying in {WAIT_BEFORE_RETRY} s.')
-                time.sleep(WAIT_BEFORE_RETRY)
+            if not success and (max_attempts is None or attempts < max_attempts):
+                log.warning(f'Request to {self.ke_url} failed after attempt {attempts}. Retrying in {wait_between_attempts} s.')
+                time.sleep(wait_between_attempts)
             elif not success:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
         log.info(f'Succesfully connected to {self.ke_url}.')
@@ -39,7 +39,7 @@ class TkeClient:
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
 
-        return [knowledge_base.KnowledgeBase.from_json(kb_data) for kb_data in response.json()]
+        return [knowledge_base.KnowledgeBase.from_json(kb_data, self.ke_url) for kb_data in response.json()]
 
     def get_knowledge_base(self, kb_id: str) -> knowledge_base.KnowledgeBase | None:
         response = requests.get(
@@ -54,14 +54,17 @@ class TkeClient:
         elif not response.ok:
             raise UnexpectedHttpResponseError(response)
 
-        return [knowledge_base.KnowledgeBase.from_json(kb_data) for kb_data in response.json()]
+        return knowledge_base.KnowledgeBase.from_json(response.json()[0], self.ke_url)
 
 
-    def register(self, req: knowledge_base.KnowledgeBaseRegistrationRequest, reregister=False) -> knowledge_base.KnowledgeBase:
-        if reregister:
-            already_existing = self.get_knowledge_base(req.id)
-            if already_existing is not None:
+    def register(self, req: knowledge_base.KnowledgeBaseRegistrationRequest, reregister=True) -> knowledge_base.KnowledgeBase | None:
+        already_existing = self.get_knowledge_base(req.id)
+        if already_existing is not None:
+            if reregister:
                 already_existing.unregister()
+            else:
+                return None
+
         response = requests.post(
             f'{self.ke_url}/sc',
             json={
@@ -73,7 +76,7 @@ class TkeClient:
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
 
-        return knowledge_base.KnowledgeBase(req, ke_url=self.ke_url)
+        return knowledge_base.KnowledgeBase(req, self.ke_url)
 
 
 class CleanUpFailedError(RuntimeError):
