@@ -7,16 +7,18 @@ class SqlSource(DataSource):
     def __init__(self, host: str, port: int, database: str, user: str, password: str):
         self.host = host
         self.port = port
-        self.conn = mysql.connector.connect(
-            user=user,
-            password=password,
-            host=host,
-            port=port,
-            database=database)
-
+        self.database = database
+        self.user = user
+        self.password = password
 
     def test(self):
         log.info('Testing SQL connection.')
+        self.conn = mysql.connector.connect(
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            database=self.database)
         self.conn.ping()
         log.info('Succes!')
 

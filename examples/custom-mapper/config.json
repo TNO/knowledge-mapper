@@ -1,0 +1,21 @@
+{
+  "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
+  "knowledge_base": {
+    "id": "https://example.org/a-knowledge-base",
+    "name": "Some knowledge base",
+    "description": "This is just an example."
+  },
+
+  "plugin": {
+    "class": "your_package.example.ExampleDataSource",
+    "args": ["this is an argument that ends up in the class's __init__"]
+  },
+
+  "knowledge_interactions": [
+    {
+      "type": "answer",
+      "vars": ["tree", "height", "name"],
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name ."
+    }
+  ]
+}

@@ -1,7 +1,0 @@
-@prefix : <https://example.org/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-:something :isRelatedTo 42 .
-
-:somethingDifferent :isRelatedTo 1337 .

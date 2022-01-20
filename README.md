@@ -95,8 +95,6 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ### SQL
 
-(remove the comments, otherwise it doesn't parse correctly)
-
 ```jsonc
 {
   "knowledge_engine_endpoint": "http://localhost:8280/rest",
@@ -139,14 +137,14 @@ The configuration file below gives an example of authorization enabled and a kno
 
 There's unit tests in the Python package that require a TKE runtime to be running at port 8082:
 ```bash
-# Start the TKE runtime and store the container ID in a variable (in bash)
-TKE_CONTAINER_ID=$(docker run -d --rm -p 8280:8280 ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2)
+# Start the TKE runtime
+docker run -d --rm -p 8280:8280 --name tke-runtime ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2
 
 # Perform the unit tests
 pytest
 
 # Stop the TKE runtime
-docker stop $TKE_CONTAINER_ID
+docker stop tke-runtime
 ```
 
 There's also integration tests that require the testbed defined in `docker-compose.yml`:

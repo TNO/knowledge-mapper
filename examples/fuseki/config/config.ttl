@@ -20,7 +20,7 @@
       ja:reasoner [ ja:reasonerURL <http://jena.hpl.hp.com/2003/RDFSExptRuleReasoner> ];
       ja:baseModel [
         a ja:MemoryModel ;
-        ja:content [ ja:externalContent <file:///fuseki/data.ttl> ] ;
+        ja:content [ ja:externalContent <file:///fuseki/data/data.ttl> ] ;
       ]
     ]
   ]
