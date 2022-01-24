@@ -2,7 +2,7 @@
 
 ![architecture diagram](./docs/img/architecture.png)
 
-This mapper makes it easier to disclose data from knowledge bases that use SPARQL and other protocols to a knowledge network.
+The Knowledge Mapper makes it easier to disclose data from supported knowledge bases to a knowledge network.
 
 ## Where does it operate?
 

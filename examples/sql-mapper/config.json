@@ -11,7 +11,7 @@
   "sql_port": 3306,
   "sql_database": "treedb",
   "sql_user": "user",
-  "sql_password": "pw",
+  "sql_password": "password",
 
   "knowledge_interactions": [
     // Knowledge interaction that discloses all trees

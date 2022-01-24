@@ -19,14 +19,14 @@
       "type": "answer",
       "vars": ["tree", "height", "name"],
       "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
-      "permitted": ["https://example.org/another-knowledge-base"]
+      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"]
     },
     {
       "type": "react",
       "vars": ["tree", "height", "name"],
       "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
       "result_pattern": null,
-      "permitted": ["https://example.org/another-knowledge-base"]
+      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"]
     }
   ]
 }

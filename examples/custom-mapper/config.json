@@ -1,7 +1,7 @@
 {
   "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
   "knowledge_base": {
-    "id": "https://example.org/a-knowledge-base",
+    "id": "https://example.org/a-custom-knowledge-base",
     "name": "Some knowledge base",
     "description": "This is just an example."
   },
