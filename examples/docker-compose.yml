@@ -6,7 +6,7 @@ services:
       - 8280:8280
   
   # Data source 1: A triple store with a SPARQL endpoint.
-  fuseki:
+  triple-store:
     image: stain/jena-fuseki
     volumes:
       - ./fuseki/config.ttl:/fuseki/config.ttl
@@ -23,7 +23,7 @@ services:
       SPARQL_PASSWORD: password
   
   # Data source 2: An SQL database
-  mariadb:
+  sql-db:
     image: mariadb:10.5
     ports:
       - 3306:3306

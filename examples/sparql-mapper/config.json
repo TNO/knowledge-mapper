@@ -7,7 +7,7 @@
   },
 
   "sparql": {
-    "endpoint": "http://fuseki:3030/example",
+    "endpoint": "http://triple-store:3030/example",
     "username_environment_var": "SPARQL_USERNAME",
     "password_environment_var": "SPARQL_PASSWORD"
   },

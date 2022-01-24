@@ -7,7 +7,7 @@
   },
 
   // Connection details for the SQL database
-  "sql_host": "mariadb",
+  "sql_host": "sql-db",
   "sql_port": 3306,
   "sql_database": "treedb",
   "sql_user": "user",
