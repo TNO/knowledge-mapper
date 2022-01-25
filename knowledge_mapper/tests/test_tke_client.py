@@ -3,12 +3,16 @@ import knowledge_mapper.knowledge_interaction as tke_ki
 import knowledge_mapper.tke_client as tke
 import pytest
 import asyncio
+from os import environ
 
 from uuid import uuid4
 
+if 'KE_RUNTIME_URL' in environ:
+    ke_runtime_url = environ['KE_RUNTIME_URL']
+else:
+    ke_runtime_url = 'http://localhost:8280/rest'
 
-ke_runtime_url = 'http://localhost:8280/rest'
-
+print(f'Using KE runtime at {ke_runtime_url} for tests.')
 
 def generate_kb_id_and_name(prefix='https://example.org/'):
     random_characters = uuid4().hex
