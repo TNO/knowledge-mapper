@@ -105,7 +105,7 @@ However, at this point the knowledge mapper will not know where to get this know
 
 Notice the similarty between this SQL-query and the graph pattern defined in the knowledge interaction above.
 The knowledge mapper maps the variables in the SQL results to graph pattern variables in the knowledge interaction.
-For exaple, SQL variable height becomes ?height in the graph pattern (i.e., objects for predicate <https://example.org/hasHeight>).
+For example, SQL variable height becomes ?height in the graph pattern (i.e., objects for predicate <https://example.org/hasHeight>).
 
 With this configuration (see [here](examples/sql-mapper/config.json) for the entire file) we can start the Knowledge Mapper:
 
