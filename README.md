@@ -1,6 +1,6 @@
 # Knowledge Mapper
 
-This mapper makes it easier to disclose data from knowledge bases that use SPARQL and other protocols to a knowledge network.
+The Knowledge Mapper makes it easier to share data from supported knowledge bases to a knowledge network. It also makes it easier to share data from other kinds of knowledge bases, as it takes care of connecting to the knowledge network and registering your knowledge base and knowledge interactions.
 
 ## Where does it operate?
 
@@ -8,36 +8,104 @@ Given the configuration of your mappings, it talks to the knowledge engine's RES
 
 When there is an incoming request from the knowledge network (through the REST API), the mapper uses the configuration to retrieve the knowledge from the knowledge base.
 
-## How to use it?
+The following diagram shows where the Knowledge Mapper operates within the Knowledge Engine ecosystem. As an example, it shows how a SPARQL data source can be connected with a simple configuration file and a single command:
 
-Two options: cloning the repo, or installing via `pip`
+![architecture diagram](./docs/img/architecture.png)
 
-### Clone the repo
+## How do I use it?
 
-```
-git clone git@ci.tno.nl:tke/knowledge-mapper.git
-```
-
-Then run it with, for example,
-
-```
-python -m knowledge_mapper conf/sql-config.json
-```
-
-### Install via `pip`
+1. Install `knowledge_mapper` in a Python environment with `pip`:
 
 ```bash
 pip install knowledge_mapper
 ```
 
-Then run it with:
+2. Make a configuration file (e.g. `config.json`) that defines the knowledge interactions and mappings from your data source. (See [the examples linked here](./examples/README.md).)
+
+3. Start your Knowledge Mapper:
 
 ```bash
 python -m knowledge_mapper config.json
 ```
-(make sure you have a valid config in `config.json`)
 
-## Authorization with deny-unless-permit policy
+## Configuration
+
+The minimal configuration looks like this:
+```jsonc
+{
+  // The endpoint where a knowledge engine is available.
+  "knowledge_engine_endpoint": "http://localhost:8280/rest",
+  "knowledge_base": {
+    // An URL representing the identity of this knowledge base
+    "id": "https://example.org/a-knowledge-base",
+    // A name for this knowledge base
+    "name": "Some knowledge base",
+    // A description for this knowledge base
+    "description": "This is just an example."
+  },
+
+  "knowledge_interactions": [
+    // Several knowledge interaction definitions can be placed here.
+  ]
+}
+```
+
+In the `knowledge_interaction` property, you can add the definitions of your knowledge interactions, including their graph patterns.
+
+Let's add a knowledge interaction that expresses that we have knowledge available about trees:
+
+```jsonc
+{
+  // ...
+  "knowledge_interactions": [
+    {
+      // The type of this knowledge interaction. If we have knowledge
+      // available that is requestable, the type should be "answer".
+      "type": "answer",
+      // The graph pattern that expresses the 'shape' of our knowledge.
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
+      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
+      "vars": ["tree", "height", "name"]
+    },
+  ]
+}
+```
+
+However, at this point the knowledge mapper will not know where to get this knowledge! So let's add this to the configuration too. Let's assume we have the data about the trees in a SQL database.
+
+```jsonc
+{
+  // ...
+
+  // Connection details for the SQL database
+  "sql_host": "sql-db",
+  "sql_port": 3306,
+  "sql_database": "treedb",
+  "sql_user": "user",
+  "sql_password": "password",
+
+  "knowledge_interactions": [
+    {
+      // ...
+
+      // SQL query to query data to be used to fill bindings for the graph pattern.
+      // Note that the column names in the result set "tree" and "height" must 
+      // correspond with the variable names in the graph pattern.
+      "sql_query": "SELECT id AS tree, height, name FROM trees"
+    },
+  ]
+}
+```
+
+With this configuration (see [here](examples/sql-mapper/config.json) for the entire file) we can start the Knowledge Mapper:
+
+```
+python -m knowledge_mapper examples/sql-mapper/config.json
+```
+
+The Knowledge Mapper will now continuously listen for incoming knowledge requests, and answer them by using the given SQL query and mapping them to bindings for the graph pattern.
+
+### Authorization with deny-unless-permit policy
 
 In order for another knowledge base to request a knowledge interaction, authorization can be set using the boolean configuration property `authorization_enabled`. This is an optional setting which means that if the property is absent no authorization is being applied and all knowledge interactions are permitted.
 
@@ -53,83 +121,17 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ## Configuration
 
-### SPARQL
-
-```jsonc
-{
-  "knowledge_engine_endpoint": "http://localhost:8280/rest",
-  "knowledge_base": {
-    "id": "https://example.org/a-sparql-knowledge-base",
-    "name": "Some SPARQL knowledge base",
-    "description": "This is just an example."
-  },
-
-  "sparql": {
-    "endpoint": "http://localhost:3031/example",
-    "username_environment_var": "SPARQL_USERNAME",
-    "password_environment_var": "SPARQL_PASSWORD"
-  },
-  
-  "authorization_enabled": true,
-
-  "knowledge_interactions": [
-    {
-      "type": "answer",
-      "vars": ["a", "b"],
-      "pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "permitted": ["https://example.org/another-knowledge-base"]
-    },
-    {
-      "type": "react",
-      "vars": ["a", "b"],
-      "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "result_pattern": null,
-      "permitted": ["https://example.org/another-knowledge-base"]
-    }
-  ]
-}
-```
-
-
 ### SQL
 
-(remove the comments, otherwise it doesn't parse correctly)
+See [the example config for SQL data sources](examples/sql-mapper/config.json).
 
-```jsonc
-{
-  "knowledge_engine_endpoint": "http://localhost:8280/rest",
-  "knowledge_base": {
-    "id": "https://example.org/a-sql-knowledge-base",
-    "name": "Some SQL knowledge base",
-    "description": "This is just an example."
-  },
-  
-  // DB connection and credentials
-  "sql_host": "127.0.0.1",
-  "sql_port": 3306,
-  "sql_database": "treedb",
-  "sql_user": "user",
-  "sql_password": "pw",
+### SPARQL
 
-  "authorization_enabled": true,
+See [the example config for SPARQL data sources](examples/sparql-mapper/config.json).
 
-  "knowledge_interactions": [
-    {
-      // This map makes ensures that the value is prefixed for the variables in the keys.
-      "column_prefixes": {
-        // When a row (from DB) is retrieved with value 42 for the 'tree'
-        // column, it is mapped to <http://example.org/trees/42> in the binding.
-        "tree": "http://example.org/trees/"
-      },
-      "type": "answer",
-      "vars": ["tree", "height"],
-      "pattern": "?tree <https://example.org/hasHeight> ?height .",
-      "permitted" : ["https://example.org/another-knowledge-base"],
-      "sql_query": "SELECT id AS tree, height FROM trees"
-    }
-  ]
-}
-```
+### Custom data source
+
+See [the example config for a custom data source](custom-conf/config.json).
 
 # Development instructions
 
@@ -137,49 +139,22 @@ The configuration file below gives an example of authorization enabled and a kno
 
 There's unit tests in the Python package that require a TKE runtime to be running at port 8082:
 ```bash
-# Start the TKE runtime and store the container ID in a variable (in bash)
-TKE_CONTAINER_ID=$(docker run -d --rm -p 8280:8280 ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2)
+# Start the TKE runtime
+docker run -d --rm -p 8280:8280 --name tke-runtime ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2
 
 # Perform the unit tests
 pytest
 
 # Stop the TKE runtime
-docker stop $TKE_CONTAINER_ID
+docker stop tke-runtime
 ```
 
-There's also integration tests that require the testbed defined in `docker-compose.yml`:
-```bash
-# Start the testbed
-docker-compose up -d
-```
+There's also an example setup that acts like an integration test. See [examples/README.md](examples/README.md).
 
-SPARQL KB:
-```bash
-python -m knowledge_mapper conf/sparql-kb-config.json
-# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
-# the testbed
-```
 
-SPARQL KB with authentication and authorization:
-```bash
-SPARQL_USERNAME=admin SPARQL_PASSWORD=pw python -m knowledge_mapper conf/sparql-kb-with-authentication-and-authorization-config.json
-# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
-# the testbed
-```
+# Developer instructions
 
-SQL KB (credentials in JSON, but see #16):
-```bash
-python -m knowledge_mapper conf/sql-config.json
-# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
-# the testbed
-```
-
-Custom plugin (Python class):
-```bash
-python -m knowledge_mapper conf/plugin-config.json
-# exit with EXIT signal (Ctrl+C). It should clean up gracefully so you can reuse
-# the testbed
-```
+These are instructions for developers that work on the Knowledge Mapper project.
 
 ## Building a new distribution
 

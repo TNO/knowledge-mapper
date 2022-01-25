@@ -3,5 +3,6 @@ charset-normalizer==2.0.10
 idna==3.3
 mysql-connector-python==8.0.27
 protobuf==3.19.1
+pyjson5==1.6.1
 requests==2.27.1
 urllib3==1.26.7

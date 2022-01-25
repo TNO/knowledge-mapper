@@ -1,0 +1,32 @@
+{
+  // The endpoint where a knowledge engine is available.
+  "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
+  "knowledge_base": {
+    // An URL representing the identity of this knowledge base
+    "id": "https://example.org/a-custom-knowledge-base",
+    // A name for this knowledge base
+    "name": "Some knowledge base",
+    // A description for this knowledge base
+    "description": "This is just an example."
+  },
+
+  // This property tells the Knowledge Mapper that we want to use a custom
+  // Python class as the data source.
+  "plugin": {
+    "class": "your_package.example.ExampleDataSource",
+    "args": ["this is an argument that ends up in the class's __init__"]
+  },
+
+  // Several knowledge interaction definitions can be placed here.
+  "knowledge_interactions": [
+    {
+      // The type of this knowledge interaction. If we have knowledge
+      // available that is requestable, the type should be "answer".
+      "type": "answer",
+      // The graph pattern that expresses the 'shape' of our knowledge.
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
+      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
+      "vars": ["tree", "height", "name"]
+    }
+  ]
+}

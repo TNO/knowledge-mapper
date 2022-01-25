@@ -1,0 +1,58 @@
+services:
+  # This service is the TNO Knowledge Engine runtime where all interoperability is interoperated.
+  tke-runtime:
+    image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2
+    ports:
+      - 8280:8280
+  
+  # Data source 1: A triple store with a SPARQL endpoint.
+  triple-store:
+    image: stain/jena-fuseki
+    volumes:
+      - ./fuseki/config.ttl:/fuseki/config.ttl
+      - ./fuseki/data.ttl:/fuseki/data.ttl
+      - ./fuseki/shiro.ini:/fuseki/shiro.ini
+
+  # Knowledge mapper for the SPARQL endpoint
+  sparql-mapper:
+    build:
+      context: ..
+      dockerfile: ./examples/sparql-mapper/Dockerfile
+    environment:
+      SPARQL_USERNAME: user
+      SPARQL_PASSWORD: password
+  
+  # Data source 2: An SQL database
+  sql-db:
+    image: mariadb:10.5
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mariadb/seed_data:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MARIADB_DATABASE: treedb
+      MARIADB_USER: user
+      MARIADB_PASSWORD: password
+      MARIADB_RANDOM_ROOT_PASSWORD: 1
+
+  # Knowledge mapper for the SQL database
+  sql-mapper:
+    build:
+      context: ..
+      dockerfile: ./examples/sql-mapper/Dockerfile
+
+  # This is a custom knowledge mapper without an underlying data source that
+  # uses a Python function to generate its data. You can imagine that it is
+  # possible to disclose sources like REST APIs this way, but it requires some
+  # coding.
+  custom-mapper:
+    build:
+      context: ..
+      dockerfile: ./examples/custom-mapper/Dockerfile
+
+  # This is a simple Python application that uses the TkeClient class to
+  # register itself and request knowledge that it then prints.
+  tree-printer:
+    build:
+      context: ..
+      dockerfile: ./examples/tree-printer/Dockerfile

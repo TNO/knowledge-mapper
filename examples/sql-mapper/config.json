@@ -1,0 +1,69 @@
+{
+  // The endpoint where a knowledge engine is available.
+  "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
+  "knowledge_base": {
+    // An URL representing the identity of this knowledge base
+    "id": "https://example.org/a-sql-knowledge-base",
+    // A name for this knowledge base
+    "name": "Some SQL knowledge base",
+    // A description for this knowledge base
+    "description": "This is just an example."
+  },
+
+  // These connection details for the SQL database tell the Knowledge Mapper
+  // to use the SQL database as its data source.
+  "sql_host": "sql-db",
+  "sql_port": 3306,
+  "sql_database": "treedb",
+  "sql_user": "user",
+  "sql_password": "password",
+
+  // Several knowledge interaction definitions can be placed here.
+  "knowledge_interactions": [
+    // Knowledge interaction that discloses all trees
+    {
+      // The type of this knowledge interaction. If we have knowledge
+      // available that is requestable, the type should be "answer".
+      "type": "answer",
+      // The graph pattern that expresses the 'shape' of our knowledge.
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
+      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
+      "vars": ["tree", "height", "name"],
+      // SQL query to query data to be used to fill bindings for the graph pattern.
+      // Note that the column names in the result set "tree" and "height" must 
+      // correspond with the variable names in the graph pattern.
+      "sql_query": "SELECT id AS tree, height, name FROM trees",
+      // This tells the Knowledge Mapper to map values in the "tree" column
+      // to URIs prefixed with "http://example.org/trees/".
+      "column_prefixes": {
+        "tree": "http://example.org/trees/"
+      }
+    },
+    // Knowledge interaction that WRITES trees to the SQL database when they are
+    // POSTed to the interoperability layer
+    {
+      // The type of this knowledge interaction. If we want to respons to when new knowledge
+      // arrives, the type should be "react".
+      "type": "react",
+      // The graph pattern that expresses the 'shape' of the knowledge that we receive.
+      "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
+      // The graph pattern that expresses the 'shape' of the knowledge that we send as a response.
+      "result_pattern": null,
+      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
+      "vars": ["tree", "height", "name"],
+      // A list of SQL queries to be fired when new knowledge arrives.
+      // In this case, we simply insert the bindings into the table.
+      "sql_query": [
+        {
+          "statement": "INSERT INTO trees (id, height, name) VALUES (%s, %s, %s)",
+          "bindings": ["tree", "height", "name"]
+        }
+      ],
+      // This tells the Knowledge Mapper to map values in the "tree" column
+      // to URIs prefixed with "http://example.org/trees/".
+      "column_prefixes": {
+        "tree": "http://example.org/trees/"
+      }
+    }
+  ]
+}

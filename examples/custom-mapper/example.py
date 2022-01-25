@@ -1,8 +1,8 @@
-from ..data_source import DataSource
+from knowledge_mapper.data_source import DataSource
 
 class ExampleDataSource(DataSource):
-    def __init__(self, example):
-        self.example = example
+    def __init__(self, argument):
+        print(argument)
 
     def test(self):
         print('testing example')
@@ -10,7 +10,8 @@ class ExampleDataSource(DataSource):
     def handle(self, ki, binding_set):
         result_bindings = []
         binding = dict()
-        for variable in ki['vars']:
-            binding[variable] = f'<{self.example}>'
+        binding['tree'] = '<http://example.org/maple>'
+        binding['height'] = '44'
+        binding['name'] = '"Maple"'
         result_bindings.append(binding)
         return result_bindings
