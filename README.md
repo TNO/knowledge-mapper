@@ -1,6 +1,12 @@
 # Knowledge Mapper
 
-The Knowledge Mapper makes it easier to share data from supported knowledge bases to a knowledge network. It also makes it easier to share data from other kinds of knowledge bases, as it takes care of connecting to the knowledge network and registering your knowledge base and knowledge interactions.
+The Knowledge Mapper makes it easier to share your data in a knowledge base to the TNO Knowledge Engine (TKE) network. 
+It maps SQL, SPARQL, and Python classes to the format used by Smart Connectors in a TKE network.
+This allows your knowledge base to be connected to the network using only a single configuration file.
+
+The mapper also helps if you use other programming and query languages.
+It provides functions that allow you to easily share data to a TKE network.
+The mapper takes care of connecting to the TKE network and helps in registering your knowledge base and knowledge interactions.
 
 ## Where does it operate?
 
@@ -96,6 +102,10 @@ However, at this point the knowledge mapper will not know where to get this know
   ]
 }
 ```
+
+Notice the similarty between this SQL-query and the graph pattern defined in the knowledge interaction above.
+The knowledge mapper maps the variables in the SQL results to graph pattern variables in the knowledge interaction.
+For exaple, SQL variable height becomes ?height in the graph pattern (i.e., objects for predicate <https://example.org/hasHeight>).
 
 With this configuration (see [here](examples/sql-mapper/config.json) for the entire file) we can start the Knowledge Mapper:
 
