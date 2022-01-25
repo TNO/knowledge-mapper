@@ -8,6 +8,8 @@ Given the configuration of your mappings, it talks to the knowledge engine's RES
 
 When there is an incoming request from the knowledge network (through the REST API), the mapper uses the configuration to retrieve the knowledge from the knowledge base.
 
+The following diagram shows where the Knowledge Mapper operates within the Knowledge Engine ecosystem. As an example, it shows how a SPARQL data source can be connected with a simple configuration file and a single command:
+
 ![architecture diagram](./docs/img/architecture.png)
 
 ## How do I use it?
@@ -119,81 +121,17 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ## Configuration
 
-### SPARQL
-
-```jsonc
-{
-  "knowledge_engine_endpoint": "http://localhost:8280/rest",
-  "knowledge_base": {
-    "id": "https://example.org/a-sparql-knowledge-base",
-    "name": "Some SPARQL knowledge base",
-    "description": "This is just an example."
-  },
-
-  "sparql": {
-    "endpoint": "http://localhost:3031/example",
-    "username_environment_var": "SPARQL_USERNAME",
-    "password_environment_var": "SPARQL_PASSWORD"
-  },
-  
-  "authorization_enabled": true,
-
-  "knowledge_interactions": [
-    {
-      "type": "answer",
-      "vars": ["a", "b"],
-      "pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "permitted": ["https://example.org/another-knowledge-base"]
-    },
-    {
-      "type": "react",
-      "vars": ["a", "b"],
-      "argument_pattern": "?a <https://example.org/isRelatedTo> ?b .",
-      "result_pattern": null,
-      "permitted": ["https://example.org/another-knowledge-base"]
-    }
-  ]
-}
-```
-
-
 ### SQL
 
-```jsonc
-{
-  "knowledge_engine_endpoint": "http://localhost:8280/rest",
-  "knowledge_base": {
-    "id": "https://example.org/a-sql-knowledge-base",
-    "name": "Some SQL knowledge base",
-    "description": "This is just an example."
-  },
-  
-  // DB connection and credentials
-  "sql_host": "127.0.0.1",
-  "sql_port": 3306,
-  "sql_database": "treedb",
-  "sql_user": "user",
-  "sql_password": "pw",
+See [the example config for SQL data sources](examples/sql-mapper/config.json).
 
-  "authorization_enabled": true,
+### SPARQL
 
-  "knowledge_interactions": [
-    {
-      // This map makes ensures that the value is prefixed for the variables in the keys.
-      "column_prefixes": {
-        // When a row (from DB) is retrieved with value 42 for the 'tree'
-        // column, it is mapped to <http://example.org/trees/42> in the binding.
-        "tree": "http://example.org/trees/"
-      },
-      "type": "answer",
-      "vars": ["tree", "height"],
-      "pattern": "?tree <https://example.org/hasHeight> ?height .",
-      "permitted" : ["https://example.org/another-knowledge-base"],
-      "sql_query": "SELECT id AS tree, height FROM trees"
-    }
-  ]
-}
-```
+See [the example config for SPARQL data sources](examples/sparql-mapper/config.json).
+
+### Custom data source
+
+See [the example config for a custom data source](custom-conf/config.json).
 
 # Development instructions
 
