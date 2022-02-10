@@ -71,7 +71,7 @@ class KnowledgeBase:
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
         
-        ki_id = response.text
+        ki_id = response.json()['knowledgeInteractionId']
 
         registered_ki = knowledge_interaction.KnowledgeInteraction.from_req(ki, ki_id, self)
         self.kis[ki_id] = registered_ki

@@ -150,8 +150,7 @@ See [the example config for a custom data source](custom-conf/config.json).
 There's unit tests in the Python package that require a TKE runtime to be running at port 8082:
 ```bash
 # Start the TKE runtime
-docker run -d --rm -p 8280:8280 --name tke-runtime ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.0.2
-
+docker run -d --rm -p 8280:8280 --name tke-runtime ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.0
 # Perform the unit tests
 pytest
 
