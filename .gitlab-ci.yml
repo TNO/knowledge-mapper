@@ -5,7 +5,7 @@ test:
   stage: test
   needs: []
   services:
-    - name: $CI_REGISTRY/tke/knowledge-engine/smart-connector-rest-dist:1.0.3-SNAPSHOT
+    - name: $CI_REGISTRY/tke/knowledge-engine/smart-connector-rest-dist:1.1.0
       alias: tke-runtime
   image:
     name: python:3.10
