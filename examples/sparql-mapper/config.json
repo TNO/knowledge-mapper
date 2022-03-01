@@ -33,7 +33,9 @@
       // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
       "vars": ["tree", "height", "name"],
       // A list of id's of knowledge bases that are permitted to use this interaction.
-      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"]
+      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"],
+      // An optional name of this knowledge interaction.
+      "name": "answer-trees-with-heights-and-names"
     },
     {
       // The type of this knowledge interaction. If we want to respons to when new knowledge
@@ -46,7 +48,9 @@
       // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
       "vars": ["tree", "height", "name"],
       // A list of id's of knowledge bases that are permitted to use this interaction.
-      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"]
+      "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"],
+      // An optional name of this knowledge interaction.
+      "name": "react-trees-with-heights-and-names"
     }
   ]
 }

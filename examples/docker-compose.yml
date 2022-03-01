@@ -1,7 +1,7 @@
 services:
   # This service is the TNO Knowledge Engine runtime where all interoperability is interoperated.
   tke-runtime:
-    image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.0
+    image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.1
     ports:
       - 8280:8280
   

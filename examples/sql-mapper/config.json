@@ -37,7 +37,9 @@
       // to URIs prefixed with "http://example.org/trees/".
       "column_prefixes": {
         "tree": "http://example.org/trees/"
-      }
+      },
+      // An optional name of this knowledge interaction.
+      "name": "answer-trees-with-heights-and-names"
     },
     // Knowledge interaction that WRITES trees to the SQL database when they are
     // POSTed to the interoperability layer
@@ -63,7 +65,9 @@
       // to URIs prefixed with "http://example.org/trees/".
       "column_prefixes": {
         "tree": "http://example.org/trees/"
-      }
+      },
+      // An optional name of this knowledge interaction.
+      "name": "react-trees-with-heights-and-names"
     }
   ]
 }
