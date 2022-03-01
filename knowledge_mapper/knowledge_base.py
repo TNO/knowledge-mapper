@@ -54,6 +54,9 @@ class KnowledgeBase:
             'prefixes': ki.prefixes
         }
 
+        if name is not None:
+            body['knowledgeInteractionName'] = name
+
         if isinstance(ki, knowledge_interaction.AskKnowledgeInteractionRegistrationRequest | knowledge_interaction.AnswerKnowledgeInteractionRegistrationRequest):
             body['graphPattern'] = ki.pattern
         elif isinstance(ki, knowledge_interaction.PostKnowledgeInteractionRegistrationRequest | knowledge_interaction.ReactKnowledgeInteractionRegistrationRequest):
@@ -72,6 +75,8 @@ class KnowledgeBase:
             raise UnexpectedHttpResponseError(response)
         
         ki_id = response.json()['knowledgeInteractionId']
+
+        log.info(f'Successfully registered knowledge interaction {ki_id}.')
 
         registered_ki = knowledge_interaction.KnowledgeInteraction.from_req(ki, ki_id, self)
         self.kis[ki_id] = registered_ki
