@@ -3,6 +3,7 @@ import knowledge_mapper.knowledge_interaction as tke_ki
 import knowledge_mapper.tke_client as tke
 import pytest
 import asyncio
+import requests
 from os import environ
 
 from uuid import uuid4
@@ -35,7 +36,16 @@ async def test_ask_answer():
         client_1.connect()
         kb1 = client_1.register(tke_kb.KnowledgeBaseRegistrationRequest(id=kb1_id, name=kb1_name, description="KB 1"))
 
-        ask_ki: tke_ki.AskKnowledgeInteraction = kb1.register_knowledge_interaction(tke_ki.AskKnowledgeInteractionRegistrationRequest(prefixes={'ex': 'http://example.org/'}, pattern='?a ex:likes ?b'))
+        ki_name = 'things-that-like-other-things'
+        ask_ki: tke_ki.AskKnowledgeInteraction = kb1.register_knowledge_interaction(tke_ki.AskKnowledgeInteractionRegistrationRequest(prefixes={'ex': 'http://example.org/'}, pattern='?a ex:likes ?b'), ki_name)
+
+        # Make sure that the KIs name is in the KI's ID.
+        assert(kb1.id + '/interaction/' + ki_name in requests.get(
+            ke_runtime_url + '/sc/ki',
+            headers = {
+                'Knowledge-Base-Id': kb1.id
+            }
+        ).text)
 
         # Wait for the other KI to tell us that it has been registered.
         await answer_ki_registered.wait()
