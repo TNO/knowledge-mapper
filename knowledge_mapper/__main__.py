@@ -4,6 +4,7 @@ import pyjson5
 import sys
 import importlib
 import time
+import signal
 
 from knowledge_mapper.knowledge_mapper import KnowledgeMapper
 
@@ -13,6 +14,12 @@ from knowledge_mapper.sql_source import SqlSource
 
 log.basicConfig(level=log.INFO)
 
+# This function is called when a SIGTERM signal is received. This makes it so
+# that the knowledge mapper can be gracefully killed by Docker.
+def handle_sigterm(*args):
+    raise KeyboardInterrupt()
+
+signal.signal(signal.SIGTERM, handle_sigterm)
 
 DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 5
 DATA_SOURCE_WAIT_BEFORE_RETRY = 2
