@@ -1,19 +1,15 @@
-FROM python:3.9.8-bullseye
+FROM python:3.10
 
-WORKDIR /usr/src/app
-
-# Install the requirements in the clean Python environment.
-COPY ./requirements.txt .
-
-RUN python -m venv venv
-ENV PATH="/usr/src/app/venv/bin:$PATH"
+WORKDIR /usr/src/app/
 
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app.py .
+# Install requirements in the Python environment.
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
 COPY ./knowledge_mapper ./knowledge_mapper
 
-COPY ./conf/sparql-kb-config.json ./conf/config.json
+COPY  ./examples/sparql-mapper/config.json ./conf/config.json
 
-CMD [ "python",  "./app.py", "./conf/config.json" ]
+ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./conf/config.json" ]
