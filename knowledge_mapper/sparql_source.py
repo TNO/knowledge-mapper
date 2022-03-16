@@ -136,7 +136,14 @@ def generate_sparql_select(ki, incoming_bindings):
 
 def generate_sparql_insert(ki, bindings):
     variables = ki['vars']
+    if 'prefixes' in ki:
+        prefixes = ki['prefixes']
+    else:
+        prefixes = dict()
+    pref = '\n\t'.join(f"PREFIX {prefix}: <{ki['prefixes'][prefix]}>" for prefix in prefixes.keys())
+
     return f'''
+        {pref}
         INSERT {{
             {ki['argument_pattern']}
         }} WHERE {{ VALUES ({' '.join([f'?{variable}' for variable in variables])}) {{
