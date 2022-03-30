@@ -51,7 +51,7 @@ class KnowledgeMapper:
             
         # if permitted, then handle the request
         if permission:
-            result = self.data_source.handle(ki, bindings)
+            result = self.data_source.handle(ki, bindings, requesting_kb)
         else:
             result = []
         return result

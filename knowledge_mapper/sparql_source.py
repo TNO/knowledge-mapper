@@ -25,14 +25,14 @@ class SparqlSource(DataSource):
         log.info('Succes!')
 
 
-    def handle(self, ki, binding_set):
+    def handle(self, ki, binding_set, requesting_kb):
         if ki['type'] == 'answer':
-            return self.handle_answer(ki, binding_set)
+            return self.handle_answer(ki, binding_set, requesting_kb)
         elif ki['type'] == 'react':
-            return self.handle_react(ki, binding_set)
+            return self.handle_react(ki, binding_set, requesting_kb)
 
 
-    def handle_answer(self, ki, binding_set):
+    def handle_answer(self, ki, binding_set, requesting_kb):
         # Generate the SPARQL query based on the incoming bindings and the knowledge interaction's graph pattern.
         query = generate_sparql_select(ki, binding_set)
         # Fire the SPARQL query.
@@ -41,7 +41,7 @@ class SparqlSource(DataSource):
         return restructure_bindings(result)
 
 
-    def handle_react(self, ki, binding_set):
+    def handle_react(self, ki, binding_set, requesting_kb):
         # Generate the SPARQL query based on the incoming bindings and the knowledge interaction's graph pattern.
         query = generate_sparql_insert(ki, binding_set)
         # Fire the SPARQL query.

@@ -23,14 +23,14 @@ class SqlSource(DataSource):
         log.info('Succes!')
 
 
-    def handle(self, ki, binding_set):
+    def handle(self, ki, binding_set, requesting_kb):
         if ki['type'] == 'answer':
-            return self.handle_answer(ki, binding_set)
+            return self.handle_answer(ki, binding_set, requesting_kb)
         elif ki['type'] == 'react':
-            return self.handle_react(ki, binding_set)
+            return self.handle_react(ki, binding_set, requesting_kb)
 
 
-    def handle_answer(self, ki, binding_set):
+    def handle_answer(self, ki, binding_set, requesting_kb):
         sql_bindings = ()
         if binding_set:
             binding_constraints = '0 '
@@ -92,7 +92,7 @@ class SqlSource(DataSource):
         return result_binding_set
 
 
-    def handle_react(self, ki, binding_set):
+    def handle_react(self, ki, binding_set, requesting_kb):
         if binding_set:
             for binding in binding_set:
                 for statement in ki['sql_query']:
