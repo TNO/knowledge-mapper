@@ -28,7 +28,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - ./mariadb/seed_data:/docker-entrypoint-initdb.d/:ro
+      - ./sql-db/seed_data:/docker-entrypoint-initdb.d/:ro
     environment:
       MARIADB_DATABASE: treedb
       MARIADB_USER: user
