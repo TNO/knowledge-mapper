@@ -22,8 +22,8 @@ def handle_sigterm(*args):
 
 signal.signal(signal.SIGTERM, handle_sigterm)
 
-DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 5
-DATA_SOURCE_WAIT_BEFORE_RETRY = 2
+DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 10
+DATA_SOURCE_WAIT_BEFORE_RETRY = 3
 
 def test_data_source(data_source: DataSource):
     success = False
