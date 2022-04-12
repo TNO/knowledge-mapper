@@ -54,5 +54,5 @@ class SqlAuth:
     
     def add_knowledge_interaction(self, ki):
         cursor = self.conn.cursor()
-        cursor.execute('INSERT INTO knowledge_interactions (id, name) VALUES (%s, %s)', (ki['id'], ki['name']))
+        cursor.execute('INSERT INTO knowledge_interactions (id, name) VALUES (%s, %s) ON DUPLICATE KEY UPDATE name=%s;', (ki['id'], ki['name'], ki['name']))
         self.conn.commit()
