@@ -1,0 +1,15 @@
+FROM python:3.10
+
+WORKDIR /usr/src/app/
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+# NOTE: In a real mapper you shouldn't copy the folder, but can simply add it to `requirements.txt`
+COPY ./knowledge_mapper ./knowledge_mapper
+
+# Place the configuration in the Docker image
+COPY ./examples/dynamic-auth-mapper/config.json .
+
+ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./config.json" ]

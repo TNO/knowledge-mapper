@@ -85,9 +85,12 @@ class SqlSource(DataSource):
 
             result_binding_set.append(binding)
 
+        cursor.close()
+
         # The connection caches query results if not committed and this resulted in 
         # subsequent queries not containing the latest changes to the tables.
         self.conn.commit()
+
 
         return result_binding_set
 

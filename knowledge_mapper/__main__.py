@@ -76,13 +76,25 @@ def main():
         test_data_source(data_source)
 
         if 'authorization_enabled' in config:
-            auth_enabled = config['authorization_enabled']
+            if 'authorization' in config:
+                log.error('Cannot use both `authorization_enabled` and `authorization`, as `authorization_enabled=true` is a shorthand for `authorization={type="static"}`.')
+                sys.exit(1)
+
+            if config['auth_enabled'] == True:
+                auth_config = {'type': 'static'}
+            elif config['auth_enabled'] == False:
+                auth_config = None
+            else:
+                log.error('"authorization_enabled" must be either "true" or "false"')
+                sys.exit(1)
+        elif 'authorization' in config:
+            auth_config = config['authorization']
         else:
-            auth_enabled = False
+            auth_config = None
         
         km = KnowledgeMapper(
             data_source,
-            auth_enabled,
+            auth_config,
             config['knowledge_engine_endpoint'],
             config['knowledge_base']['id'],
             config['knowledge_base']['name'],
