@@ -2,16 +2,18 @@ import logging as log
 import mysql.connector
 import time
 
+from knowledge_mapper.auth.base_auth import BaseAuth
+
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 2
 
-class SqlAuth:
-    def __init__(self, host: str, port: int, database: str, user: str, password: str):
-        self.host = host
-        self.port = port
-        self.database = database
-        self.user = user
-        self.password = password
+class SqlAuth(BaseAuth):
+    def __init__(self, conf: dict):
+        self.host = conf['sql']['host']
+        self.port = conf['sql']['port']
+        self.database = conf['sql']['database']
+        self.user = conf['sql']['user']
+        self.password = conf['sql']['password']
         self.connect()
 
     def connect(self, max_attempts=MAX_CONNECTION_ATTEMPTS, wait_between_attempts=WAIT_BEFORE_RETRY):
@@ -50,6 +52,11 @@ class SqlAuth:
             raise Exception('Expected a row in the result set.')
         cursor.close()
         self.conn.commit()
+        if row.permission:
+            log.debug(f'KB {kb_id} has access to KI {ki["id"]}')
+        else:
+            log.debug(f'KB {kb_id} does not have access to KI {ki["id"]}')
+
         return row.permission
     
     def add_knowledge_interaction(self, ki):

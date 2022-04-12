@@ -7,12 +7,13 @@ import time
 import signal
 
 from knowledge_mapper.knowledge_mapper import KnowledgeMapper
-
+from knowledge_mapper.auth.sql_auth import SqlAuth
+from knowledge_mapper.auth.static_auth import StaticAuth
 from knowledge_mapper.data_source import DataSource
 from knowledge_mapper.sparql_source import SparqlSource
 from knowledge_mapper.sql_source import SqlSource
 
-log.basicConfig(level=log.INFO)
+log.basicConfig(level=log.DEBUG)
 
 # This function is called when a SIGTERM signal is received. This makes it so
 # that the knowledge mapper can be gracefully killed by Docker.
@@ -91,10 +92,17 @@ def main():
             auth_config = config['authorization']
         else:
             auth_config = None
-        
+
+        if auth_config['type'] == 'sql':
+            authorization = SqlAuth(auth_config)
+        elif auth_config['type'] == 'static':
+            authorization = StaticAuth(auth_config)
+        else:
+            authorization = None
+
         km = KnowledgeMapper(
             data_source,
-            auth_config,
+            authorization,
             config['knowledge_engine_endpoint'],
             config['knowledge_base']['id'],
             config['knowledge_base']['name'],
