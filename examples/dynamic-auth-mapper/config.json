@@ -3,19 +3,18 @@
   "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
   "knowledge_base": {
     // An URL representing the identity of this knowledge base
-    "id": "https://example.org/a-sparql-knowledge-base-with-dyn-auth",
+    "id": "https://example.org/a-custom-knowledge-base-with-dyn-auth",
     // A name for this knowledge base
-    "name": "Some SPARQL knowledge base",
+    "name": "Some knowledge base",
     // A description for this knowledge base
     "description": "This is just an example."
   },
 
-  // This property tells the Knowledge Mapper to use a SPARQL endpoint as
-  // its data source.
-  "sparql": {
-    "endpoint": "http://triple-store:3030/example",
-    "username_environment_var": "SPARQL_USERNAME",
-    "password_environment_var": "SPARQL_PASSWORD"
+  // This property tells the Knowledge Mapper that we want to use a custom
+  // Python class as the data source.
+  "plugin": {
+    "class": "your_package.example.ExampleDataSource",
+    "args": ["this is an argument that ends up in ExampleDataSource's __init__"]
   },
   
   // This property enables dynamic authorization so that you can permit/block
@@ -43,19 +42,6 @@
       "vars": ["tree", "height", "name"],
       // An optional name of this knowledge interaction.
       "name": "answer-trees-with-heights-and-names"
-    },
-    {
-      // The type of this knowledge interaction. If we want to respons to when new knowledge
-      // arrives, the type should be "react".
-      "type": "react",
-      // The graph pattern that expresses the 'shape' of the knowledge that we receive.
-      "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
-      // The graph pattern that expresses the 'shape' of the knowledge that we send as a response.
-      "result_pattern": null,
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"],
-      // An optional name of this knowledge interaction.
-      "name": "react-trees-with-heights-and-names"
     }
   ]
 }

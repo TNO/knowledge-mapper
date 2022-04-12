@@ -22,8 +22,10 @@ if __name__ == '__main__':
         for tree in trees:
             print_tree(tree)
 
-        if len(trees) < 4:
+        if len(trees) < 5:
             print(f'Haven\'t found all trees yet. Retrying in 5 seconds...', flush=True)
+            if (len(trees) == 4):
+                print(f'(do you still need to give access at http://localhost:8080/?server=auth-db&username=user&db=knowledge_mapper_db&select=rules ?)', flush=True)
             sleep(5)
             continue
         else:

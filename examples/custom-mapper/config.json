@@ -14,7 +14,7 @@
   // Python class as the data source.
   "plugin": {
     "class": "your_package.example.ExampleDataSource",
-    "args": ["this is an argument that ends up in the class's __init__"]
+    "args": ["this is an argument that ends up in ExampleDataSource's __init__"]
   },
 
   // Several knowledge interaction definitions can be placed here.
