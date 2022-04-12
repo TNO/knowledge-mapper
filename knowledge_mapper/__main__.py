@@ -13,7 +13,7 @@ from knowledge_mapper.data_source import DataSource
 from knowledge_mapper.sparql_source import SparqlSource
 from knowledge_mapper.sql_source import SqlSource
 
-log.basicConfig(level=log.DEBUG)
+log.basicConfig(level=log.INFO)
 
 # This function is called when a SIGTERM signal is received. This makes it so
 # that the knowledge mapper can be gracefully killed by Docker.
