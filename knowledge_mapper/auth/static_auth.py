@@ -6,7 +6,7 @@ class StaticAuth(BaseAuth):
     def __init__(self, _conf):
         pass
 
-    def has_permission(kb_id, ki):
+    def has_permission(self, kb_id, ki):
         if 'permitted' in ki:
             if ki['permitted'] != "*":
                 # check whether the requesting kb is in the permitted list                      

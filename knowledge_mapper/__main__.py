@@ -81,9 +81,9 @@ def main():
                 log.error('Cannot use both `authorization_enabled` and `authorization`, as `authorization_enabled=true` is a shorthand for `authorization={type="static"}`.')
                 sys.exit(1)
 
-            if config['auth_enabled'] == True:
+            if config['authorization_enabled'] == True:
                 auth_config = {'type': 'static'}
-            elif config['auth_enabled'] == False:
+            elif config['authorization_enabled'] == False:
                 auth_config = None
             else:
                 log.error('"authorization_enabled" must be either "true" or "false"')
@@ -93,10 +93,13 @@ def main():
         else:
             auth_config = None
 
-        if auth_config['type'] == 'sql':
-            authorization = SqlAuth(auth_config)
-        elif auth_config['type'] == 'static':
-            authorization = StaticAuth(auth_config)
+        if auth_config is not None:
+            if auth_config['type'] == 'sql':
+                authorization = SqlAuth(auth_config)
+            elif auth_config['type'] == 'static':
+                authorization = StaticAuth(auth_config)
+            else:
+                log.error('Unknown authorization type "%s"', auth_config['type'])
         else:
             authorization = None
 

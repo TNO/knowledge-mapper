@@ -7,7 +7,7 @@ class ExampleDataSource(DataSource):
     def test(self):
         print('testing example')
 
-    def handle(self, ki, binding_set):
+    def handle(self, ki, binding_set, requesting_kb):
         result_bindings = []
         binding = dict()
         binding['tree'] = '<http://example.org/maple>'
