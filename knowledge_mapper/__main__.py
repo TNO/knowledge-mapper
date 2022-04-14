@@ -100,6 +100,7 @@ def main():
                 authorization = StaticAuth(auth_config)
             else:
                 log.error('Unknown authorization type "%s"', auth_config['type'])
+                sys.exit(1)
         else:
             authorization = None
 
