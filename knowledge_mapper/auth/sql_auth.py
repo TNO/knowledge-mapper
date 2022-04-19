@@ -1,6 +1,7 @@
 import logging as log
 import mysql.connector
 import time
+from datetime import datetime
 
 from knowledge_mapper.auth.base_auth import BaseAuth
 
@@ -56,6 +57,10 @@ class SqlAuth(BaseAuth):
             log.debug(f'KB {kb_id} has access to KI {ki["id"]}')
         else:
             log.debug(f'KB {kb_id} does not have access to KI {ki["id"]}')
+
+        cursor = self.conn.cursor()
+        cursor.execute('INSERT INTO access_log (knowledge_interaction_id, knowledge_base_id, access_datetime, success) VALUES (%s, %s, %s, %s);', (ki['id'], kb_id, datetime.now(), row.permission))
+        self.conn.commit()
 
         return row.permission
     
