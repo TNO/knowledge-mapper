@@ -33,9 +33,9 @@ class SqlAuth(BaseAuth):
                 success = True
             except Exception as e:
                 attempts += 1
-                if attempts < MAX_CONNECTION_ATTEMPTS:
-                    log.warning(f'SQL connection attempt to {self.database} in {self.host}:{self.port} failed. Retrying in {WAIT_BEFORE_RETRY} s.')
-                    time.sleep(WAIT_BEFORE_RETRY)
+                if attempts < max_attempts:
+                    log.warning(f'SQL connection attempt to {self.database} in {self.host}:{self.port} failed. Retrying in {wait_between_attempts} s.')
+                    time.sleep(wait_between_attempts)
                 else:
                     log.error(f'Failed to establish SQL connection.')
                     raise e
