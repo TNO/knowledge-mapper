@@ -46,7 +46,7 @@ class SqlAuth(BaseAuth):
 
     def has_permission(self, kb_id, ki):
         cursor = self.conn.cursor(named_tuple=True)
-        cursor.execute('SELECT COUNT(*) > 0 AS permission FROM rules WHERE knowledge_interaction_id=%s AND (knowledge_base_id=%s OR knowledge_base_id IS NULL);', (ki['id'], kb_id))
+        cursor.execute('SELECT COUNT(*) > 0 AS permission FROM policies WHERE knowledge_interaction_id=%s AND (knowledge_base_id=%s OR knowledge_base_id IS NULL);', (ki['id'], kb_id))
         row = cursor.fetchone()
         if row is None:
             raise Exception('Expected a row in the result set.')

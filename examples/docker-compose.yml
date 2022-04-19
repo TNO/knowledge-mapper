@@ -59,7 +59,7 @@ services:
 
   # This is a database that is used to demonstrate the dynamic authorization
   # capabilities of the knowledge mapper. Currently, you still have to manually
-  # insert the authorization rules into the database. TODO: Make it easier.
+  # insert the authorization policies into the database.
   auth-db:
     image: mariadb:10.5
     volumes:
@@ -72,7 +72,7 @@ services:
       MARIADB_RANDOM_ROOT_PASSWORD: 1
   
   # UI for the auth database to be able to easily change it. Add a rule here:
-  # http://localhost:8080/?server=auth-db&username=user&db=knowledge_mapper_db&edit=rules
+  # http://localhost:8080/?server=auth-db&username=user&db=knowledge_mapper_db&edit=policies
   adminer:
     image: adminer:4.8.1
     ports:
