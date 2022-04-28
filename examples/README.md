@@ -9,7 +9,7 @@ This is a docker-compose project that demonstrates 3 ways in which you can confi
 
 Apart from these three knowledge mappers, the project also contains the following data sources (mentioned above):
 
-- `mariadb`: An SQL database that contains data about trees. See [this file](./mariadb/seed_data/0-schema.sql) for the schema and [this file](./mariadb/seed_data/1-data.sql) for the seed data.
+- `sql-db`: An SQL database that contains data about trees. See [this file](./sql-db/seed_data/0-schema.sql) for the schema and [this file](./sql-db/seed_data/1-data.sql) for the seed data.
 - `fuseki`: A triple store that is approachable with SPARQL. The data content is in [this file](./fuseki/data/data.ttl)
 
 Then there is a service `tree-printer`, which registers itself as a knowledge base and asks for knowledge about the trees. When receiving this, it prints it.

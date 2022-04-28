@@ -10,8 +10,8 @@ class ExampleDataSource(DataSource):
     def handle(self, ki, binding_set, requesting_kb):
         result_bindings = []
         binding = dict()
-        binding['tree'] = '<http://example.org/maple>'
-        binding['height'] = '"44"^^<http://www.w3.org/2001/XMLSchema#integer>'
-        binding['name'] = '"Maple"'
+        binding['tree'] = '<http://example.org/dynamically-secured-maple>'
+        binding['height'] = '"48"^^<http://www.w3.org/2001/XMLSchema#integer>'
+        binding['name'] = '"Dynamically secured Maple"'
         result_bindings.append(binding)
         return result_bindings

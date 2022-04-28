@@ -7,7 +7,8 @@ import time
 import signal
 
 from knowledge_mapper.knowledge_mapper import KnowledgeMapper
-
+from knowledge_mapper.auth.sql_auth import SqlAuth
+from knowledge_mapper.auth.static_auth import StaticAuth
 from knowledge_mapper.data_source import DataSource
 from knowledge_mapper.sparql_source import SparqlSource
 from knowledge_mapper.sql_source import SqlSource
@@ -21,8 +22,8 @@ def handle_sigterm(*args):
 
 signal.signal(signal.SIGTERM, handle_sigterm)
 
-DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 5
-DATA_SOURCE_WAIT_BEFORE_RETRY = 2
+DATA_SOURCE_MAX_CONNECTION_ATTEMPTS = 10
+DATA_SOURCE_WAIT_BEFORE_RETRY = 3
 
 def test_data_source(data_source: DataSource):
     success = False
@@ -76,13 +77,36 @@ def main():
         test_data_source(data_source)
 
         if 'authorization_enabled' in config:
-            auth_enabled = config['authorization_enabled']
+            if 'authorization' in config:
+                log.error('Cannot use both `authorization_enabled` and `authorization`, as `authorization_enabled=true` is a shorthand for `authorization={type="static"}`.')
+                sys.exit(1)
+
+            if config['authorization_enabled'] == True:
+                auth_config = {'type': 'static'}
+            elif config['authorization_enabled'] == False:
+                auth_config = None
+            else:
+                log.error('"authorization_enabled" must be either "true" or "false"')
+                sys.exit(1)
+        elif 'authorization' in config:
+            auth_config = config['authorization']
         else:
-            auth_enabled = False
-        
+            auth_config = None
+
+        if auth_config is not None:
+            if auth_config['type'] == 'sql':
+                authorization = SqlAuth(auth_config)
+            elif auth_config['type'] == 'static':
+                authorization = StaticAuth(auth_config)
+            else:
+                log.error('Unknown authorization type "%s"', auth_config['type'])
+                sys.exit(1)
+        else:
+            authorization = None
+
         km = KnowledgeMapper(
             data_source,
-            auth_enabled,
+            authorization,
             config['knowledge_engine_endpoint'],
             config['knowledge_base']['id'],
             config['knowledge_base']['name'],

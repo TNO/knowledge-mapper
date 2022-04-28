@@ -30,7 +30,7 @@ class TkeClient:
                 time.sleep(wait_between_attempts)
             elif not success:
                 raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
-        log.info(f'Succesfully connected to {self.ke_url}.')
+        log.info(f'Successfully connected to {self.ke_url}.')
 
 
     def get_knowledge_bases(self) -> list[knowledge_base.KnowledgeBase]:

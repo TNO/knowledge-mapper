@@ -28,7 +28,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - ./mariadb/seed_data:/docker-entrypoint-initdb.d/:ro
+      - ./sql-db/seed_data:/docker-entrypoint-initdb.d/:ro
     environment:
       MARIADB_DATABASE: treedb
       MARIADB_USER: user
@@ -56,3 +56,38 @@ services:
     build:
       context: ..
       dockerfile: ./examples/tree-printer/Dockerfile
+
+  # This is a database that is used to demonstrate the dynamic authorization
+  # capabilities of the knowledge mapper. Currently, you still have to manually
+  # insert the authorization policies into the database.
+  auth-db:
+    image: mariadb:10.5
+    volumes:
+      - ./auth-db/seed_data:/docker-entrypoint-initdb.d/:ro
+      - auth-db-data:/var/lib/mysql
+    environment:
+      MARIADB_DATABASE: knowledge_mapper_db
+      MARIADB_USER: user
+      MARIADB_PASSWORD: password
+      MARIADB_RANDOM_ROOT_PASSWORD: 1
+  
+  # UI for the auth database to be able to easily change it. Add a rule here:
+  # http://localhost:8080/?server=auth-db&username=user&db=knowledge_mapper_db&edit=policies
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - 8080:8080
+    environment:
+      ADMINER_DESIGN: pepa-linha
+      ADMINER_DEFAULT_SERVER: auth-db
+
+  dynamic-auth-mapper:
+    build:
+      context: ..
+      dockerfile: ./examples/dynamic-auth-mapper/Dockerfile
+    environment:
+      SPARQL_USERNAME: user
+      SPARQL_PASSWORD: password
+
+volumes:
+  auth-db-data:

@@ -3,7 +3,7 @@
   "knowledge_engine_endpoint": "http://tke-runtime:8280/rest",
   "knowledge_base": {
     // An URL representing the identity of this knowledge base
-    "id": "https://example.org/a-custom-knowledge-base",
+    "id": "https://example.org/a-custom-knowledge-base-with-dyn-auth",
     // A name for this knowledge base
     "name": "Some knowledge base",
     // A description for this knowledge base
@@ -15,6 +15,19 @@
   "plugin": {
     "class": "your_package.example.ExampleDataSource",
     "args": ["this is an argument that ends up in ExampleDataSource's __init__"]
+  },
+  
+  // This property enables dynamic authorization so that you can permit/block
+  // specific knowledge bases dynamically (in a database).
+  "authorization": {
+    "type": "sql",
+    "sql": {
+      "host": "auth-db",
+      "port": 3306,
+      "database": "knowledge_mapper_db",
+      "user": "user",
+      "password": "password"
+    }
   },
 
   // Several knowledge interaction definitions can be placed here.

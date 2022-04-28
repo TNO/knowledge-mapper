@@ -1,5 +1,6 @@
 from functools import partial
 import logging as log
+from knowledge_mapper.auth.base_auth import BaseAuth
 
 from knowledge_mapper.knowledge_base import KnowledgeBaseRegistrationRequest
 from knowledge_mapper.knowledge_interaction import AnswerKnowledgeInteractionRegistrationRequest, AskKnowledgeInteractionRegistrationRequest, PostKnowledgeInteractionRegistrationRequest, ReactKnowledgeInteractionRegistrationRequest
@@ -10,12 +11,11 @@ from .tke_client import TkeClient
 WAIT_BEFORE_RETRY = 1
 
 class KnowledgeMapper:
-    def __init__(self, data_source: DataSource, auth_enabled: bool, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
+    def __init__(self, data_source: DataSource, authorization: BaseAuth, ke_url: str, kb_id: str, kb_name: str, kb_desc: str):
         self.data_source = data_source
         self.ke_url = ke_url
         self.kb_id = kb_id
         self.kis = dict()
-        self.auth_enabled = auth_enabled
 
         self.tke_client = TkeClient(ke_url)
         self.tke_client.connect()
@@ -23,6 +23,7 @@ class KnowledgeMapper:
         self.kb = self.tke_client.register(KnowledgeBaseRegistrationRequest(id=kb_id, name=kb_name, description=kb_desc))
         self.data_source.set_knowledge_base(self.kb)
 
+        self.authorization = authorization
 
     def start(self):
         self.kb.start_handle_loop()
@@ -33,19 +34,8 @@ class KnowledgeMapper:
     def handle(self, ki, bindings: list[dict], requesting_kb: str):
         # For this implementation we assume that the knowledge mapper is responsible for authorisation
         # Check whether the requesting knowledge base is permitted to request the knowledge interaction
-        permission = False
-        if self.auth_enabled:
-            if 'permitted' in ki:
-                if ki['permitted'] != "*":
-                    # check whether the requesting kb is in the permitted list                      
-                    if requesting_kb in ki['permitted']:
-                        permission = True
-                    else:
-                        log.info('Knowledge base %s is not permitted to do this request!', requesting_kb)
-                else: # permission is set to *, so every one is permitted
-                    permission = True
-            else: # no permission is set, so deny
-                log.info('No permission is set at all for this knowledge interaction %s, so deny!', ki)
+        if self.authorization is not None:
+            permission = self.authorization.has_permission(requesting_kb, ki)
         else: # no authorization is defined so, have the data source handle the request.
             permission = True
             
@@ -71,9 +61,14 @@ class KnowledgeMapper:
         if 'prefixes' in ki:
             req.prefixes = ki['prefixes']
 
-        if 'name' in ki:
-            name = ki['name']
-        else:
-            name = None
+        if 'name' not in ki:
+            ki['name'] = None
+        name = ki['name']
 
-        self.kb.register_knowledge_interaction(req, name=name)
+        registered_ki = self.kb.register_knowledge_interaction(req, name=name)
+        ki['id'] = registered_ki.id
+
+        # The authorization object needs to be made aware of the new knowledge
+        # interaction
+        if self.authorization is not None:
+            self.authorization.add_knowledge_interaction(ki)
