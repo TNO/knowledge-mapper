@@ -1,6 +1,6 @@
 <svelte:head>
-  <title>Knowledge Mapper</title>
+  <title>KM</title>
 </svelte:head>
 
 <h1>Knowledge Mapper config</h1>
-<p>Cool things here...</p>
+<a href="/access-attempts/">Access attempts</a>

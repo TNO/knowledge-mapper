@@ -20,7 +20,9 @@ export async function get() {
     ;`
   );
   return {
-    body: rows
-      .map(row => ({... row, count: Number(row.count)})) // convert bigints to numbers
+    body: {
+      attempts: rows
+        .map(row => ({... row, count: Number(row.count)})) // convert bigints to numbers
+    }
   }
 }
