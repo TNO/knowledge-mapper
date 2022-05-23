@@ -1,8 +1,8 @@
 import { exec } from "$lib/db";
 
 export async function get() {
-  type RowType = { count: bigint, knowledge_base_id: string, knowledge_interaction_id: string, last_attempt: Date };
-  // For each KB/KI combo that we do not have policies on, get the number of
+  type RowType = { count: bigint, knowledge_base_id: string, knowledge_interaction_id: string, last_attempt: string };
+  // For each KB/KI combo that does not pass with a policy, get the number of
   // attempts and the last attempt time.
   const rows: RowType[] = await exec(`
     SELECT
@@ -12,9 +12,9 @@ export async function get() {
         SELECT 1
         FROM policies
         WHERE
-          policies.knowledge_interaction_id = access_log.knowledge_interaction_id
+          (policies.knowledge_interaction_id = access_log.knowledge_interaction_id OR policies.knowledge_interaction_id IS NULL)
           AND
-          policies.knowledge_base_id = access_log.knowledge_base_id
+          (policies.knowledge_base_id = access_log.knowledge_base_id OR policies.knowledge_base_id IS NULL)
       )
       GROUP BY knowledge_interaction_id, knowledge_base_id
     ;`
@@ -22,7 +22,10 @@ export async function get() {
   return {
     body: {
       attempts: rows
-        .map(row => ({... row, count: Number(row.count)})) // convert bigints to numbers
+        .map(row => ({
+          ... row,
+          count: Number(row.count),
+        }))
     }
   }
 }
