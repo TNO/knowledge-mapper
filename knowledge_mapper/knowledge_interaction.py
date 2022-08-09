@@ -41,26 +41,30 @@ class ReactKnowledgeInteractionRegistrationRequest(KnowledgeInteractionRegistrat
     handler: Callable[[list[dict], str], list[dict]]
 
 class KnowledgeInteraction:
-    def __init__(self, id: str, type: str, kb):
+    def __init__(self, id: str, type: str, kb, name=None):
         self.id = id
         self.type = type
         self.kb = kb
+        self.name = name
 
-    def from_req(req: KnowledgeInteractionRegistrationRequest, id: str, kb) -> KnowledgeInteraction:
+    def from_req(req: KnowledgeInteractionRegistrationRequest, id: str, kb, name: str=None) -> KnowledgeInteraction:
         if isinstance(req, AskKnowledgeInteractionRegistrationRequest):
-            return AskKnowledgeInteraction(req, id, kb)
+            return AskKnowledgeInteraction(req, id, kb, name)
         elif isinstance(req, AnswerKnowledgeInteractionRegistrationRequest):
-            return AnswerKnowledgeInteraction(req, id, kb)
+            return AnswerKnowledgeInteraction(req, id, kb, name)
         elif isinstance(req, PostKnowledgeInteractionRegistrationRequest):
-            return PostKnowledgeInteraction(req, id, kb)
+            return PostKnowledgeInteraction(req, id, kb, name)
         elif isinstance(req, ReactKnowledgeInteractionRegistrationRequest):
-            return ReactKnowledgeInteraction(req, id, kb)
+            return ReactKnowledgeInteraction(req, id, kb, name)
         else:
             raise Exception('`req` must be a concrete knowledge interaction object')
+    
+    def __eq__(self, other: object) -> bool:
+        return self.id == other.id and self.type == other.type and self.name == other.name
 
 
 class AskKnowledgeInteraction(KnowledgeInteraction):
-    def __init__(self, req: AskKnowledgeInteractionRegistrationRequest, id: str, kb):
+    def __init__(self, req: AskKnowledgeInteractionRegistrationRequest, id: str, kb, name=None):
         super().__init__(id, req.type, kb)
         self.pattern = req.pattern
         self.prefixes = req.prefixes
@@ -81,7 +85,7 @@ class AskKnowledgeInteraction(KnowledgeInteraction):
 
 
 class AnswerKnowledgeInteraction(KnowledgeInteraction):
-    def __init__(self, req: AnswerKnowledgeInteractionRegistrationRequest, id: str, kb):
+    def __init__(self, req: AnswerKnowledgeInteractionRegistrationRequest, id: str, kb, name=None):
         super().__init__(id, req.type, kb)
         self.pattern = req.pattern
         self.prefixes = req.prefixes
@@ -92,7 +96,7 @@ class AnswerKnowledgeInteraction(KnowledgeInteraction):
 
 
 class PostKnowledgeInteraction(KnowledgeInteraction):
-    def __init__(self, req: PostKnowledgeInteractionRegistrationRequest, id: str, kb):
+    def __init__(self, req: PostKnowledgeInteractionRegistrationRequest, id: str, kb, name=None):
         super().__init__(id, req.type, kb)
         self.argument_pattern = req.argument_pattern
         self.result_pattern = req.result_pattern
@@ -114,7 +118,7 @@ class PostKnowledgeInteraction(KnowledgeInteraction):
 
 
 class ReactKnowledgeInteraction(KnowledgeInteraction):
-    def __init__(self, req: ReactKnowledgeInteractionRegistrationRequest, id: str, kb):
+    def __init__(self, req: ReactKnowledgeInteractionRegistrationRequest, id: str, kb, name=None):
         super().__init__(id, req.type, kb)
         self.argument_pattern = req.argument_pattern
         self.result_pattern = req.result_pattern

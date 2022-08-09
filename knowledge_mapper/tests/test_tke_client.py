@@ -115,3 +115,23 @@ def test_reregister():
 
     # We only have to clean up the final one since it uses the same ID
     kb3.unregister()
+
+def test_reconnect_retains_kis():
+    try:
+        kb_id, kb_name = generate_kb_id_and_name()
+        client1 = tke.TkeClient(ke_runtime_url)
+        client1.connect()
+
+        kb1 = client1.register(tke_kb.KnowledgeBaseRegistrationRequest(id=kb_id, name=kb_name, description="KB that will be reregistered"))
+        kb1.register_knowledge_interaction(tke_ki.AskKnowledgeInteractionRegistrationRequest(prefixes={'ex': 'http://example.org/'}, pattern='?a ex:likes ?b'), 'an-ask-ki')
+        assert kb1 is not None
+
+        client2 = tke.TkeClient(ke_runtime_url)
+        client2.connect()
+        kb1_that_reconnects = client2.get_knowledge_base(kb_id)
+        assert kb1_that_reconnects.id == kb_id
+
+        assert kb1_that_reconnects.kis == kb1.kis
+        assert kb1_that_reconnects.kis_by_name == kb1.kis_by_name
+    finally:
+        kb1_that_reconnects.unregister()
