@@ -25,7 +25,7 @@ class KnowledgeBase:
 
 
     def from_json(kb_json: dict, ke_url: str) -> KnowledgeBase:
-        return KnowledgeBase(
+        kb = KnowledgeBase(
             KnowledgeBaseRegistrationRequest(
                 id=kb_json['knowledgeBaseId'],
                 name=kb_json['knowledgeBaseName'],
@@ -33,6 +33,10 @@ class KnowledgeBase:
             ),
             ke_url=ke_url
         )
+
+        kb.sync_knowledge_interactions()
+
+        return kb
 
 
     def unregister(self):
@@ -85,6 +89,55 @@ class KnowledgeBase:
             self.kis_by_name[name] = registered_ki
 
         return registered_ki
+
+    def sync_knowledge_interactions(self):
+        response = requests.get(
+            f'{self.ke_url}/sc/ki',
+            headers={
+                'Knowledge-Base-Id': self.id
+            }
+        )
+
+        if not response.ok:
+            raise UnexpectedHttpResponseError(response)
+
+        raw_kis = response.json()
+        kis_not_seen_yet = self.kis.copy()
+        kis_by_name_not_seen_yet = self.kis_by_name.copy()
+        for raw_ki in raw_kis:
+            if raw_ki['knowledgeInteractionType'] == 'AskKnowledgeInteraction':
+                req = knowledge_interaction.AskKnowledgeInteractionRegistrationRequest(pattern=raw_ki['graphPattern'])
+            elif raw_ki['knowledgeInteractionType'] == 'AnswerKnowledgeInteraction':
+                req = knowledge_interaction.AnswerKnowledgeInteractionRegistrationRequest(pattern=raw_ki['graphPattern'], handler=None)
+            elif raw_ki['knowledgeInteractionType'] == 'PostKnowledgeInteraction':
+                req = knowledge_interaction.PostKnowledgeInteractionRegistrationRequest(argument_pattern=raw_ki['argumentGraphPattern'], result_pattern=raw_ki['resultGraphPattern'])
+            elif raw_ki['knowledgeInteractionType'] == 'ReactKnowledgeInteraction':
+                req = knowledge_interaction.ReactKnowledgeInteractionRegistrationRequest(argument_pattern=raw_ki['argumentGraphPattern'], result_pattern=raw_ki['resultGraphPattern'], handler=None)
+            else:
+                raise Exception(f"Invalid KI type: {raw_ki['knowledgeInteractionType']}")
+
+            if 'knowledgeInteractionName' in raw_ki:
+                name = raw_ki['knowledgeInteractionName']
+            else:
+                name = None
+
+            ki_id = raw_ki['knowledgeInteractionId']
+
+            ki = knowledge_interaction.KnowledgeInteraction.from_req(req, ki_id, self, name)
+
+            self.kis[ki_id] = ki
+            if ki_id in kis_not_seen_yet:
+                del kis_not_seen_yet[ki_id]
+            if name is not None:
+                self.kis_by_name[name] = ki
+                if name in kis_by_name_not_seen_yet:
+                    del kis_by_name_not_seen_yet[name]
+
+        for no_longer_existing_ki_id in kis_not_seen_yet.keys():
+            del self.kis[no_longer_existing_ki_id]
+
+        for no_longer_existing_ki_name in kis_by_name_not_seen_yet.keys():
+            del self.kis_by_name[no_longer_existing_ki_name]
 
 
     def get_ki(self, name=None, id=None) -> knowledge_interaction.KnowledgeInteraction:
