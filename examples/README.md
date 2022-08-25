@@ -2,9 +2,9 @@
 
 This is a docker-compose project that demonstrates 3 ways in which you can configure a Knowledge Mapper:
 
-- __`sql-mapper`__: This service maps data from the database running in the `mariadb` service. The `mariadb` service has a table with trees, containing their heights and names. The Knowledge Mapper's [configuration](./sql-mapper/config.json) specifies how the data can be queried (with SQL) from the table and translated into terms of an example ontology.
+- __`sql-mapper`__: This service maps data from the database running in the `mariadb` service. The `mariadb` service has a table with trees, containing their heights and names. The Knowledge Mapper's [configuration](./sql-mapper/config.jsonc) specifies how the data can be queried (with SQL) from the table and translated into terms of an example ontology.
 - __`sparql-mapper`__: This service maps data from the triple store in the `fuseki` service.
- The `fuseki` service contains RDF data about trees. The Knowledge Mapper's [configuration](./sparql-mapper/config.json) specifies how to connect to the triple store (with SPARQL) and what data is in there.
+ The `fuseki` service contains RDF data about trees. The Knowledge Mapper's [configuration](./sparql-mapper/config.jsonc) specifies how to connect to the triple store (with SPARQL) and what data is in there.
 - __`custom-mapper`__: This service shows that it is also possible to plug in your own code if you need more flexibility in your Knowledge Mapper. You might want to use this if you want to disclose data from a web API. In this case, it simply returns knowledge about a maple tree.
 
 Apart from these three knowledge mappers, the project also contains the following data sources (mentioned above):

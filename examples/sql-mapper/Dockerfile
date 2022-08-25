@@ -10,6 +10,6 @@ RUN pip install -r requirements.txt
 COPY ./knowledge_mapper ./knowledge_mapper
 
 # Place the configuration in the Docker image
-COPY ./examples/sql-mapper/config.json .
+COPY ./examples/sql-mapper/config.jsonc .
 
-ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./config.json" ]
+ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./config.jsonc" ]

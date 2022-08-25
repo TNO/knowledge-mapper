@@ -26,12 +26,12 @@ The following diagram shows where the Knowledge Mapper operates within the Knowl
 pip install knowledge_mapper
 ```
 
-2. Make a configuration file (e.g. `config.json`) that defines the knowledge interactions and mappings from your data source. (See [the examples linked here](./examples/README.md).)
+2. Make a configuration file (e.g. `config.jsonc`) that defines the knowledge interactions and mappings from your data source. (See [the examples linked here](./examples/README.md).)
 
 3. Start your Knowledge Mapper:
 
 ```bash
-python -m knowledge_mapper config.json
+python -m knowledge_mapper config.jsonc
 ```
 
 ## Configuration
@@ -107,10 +107,10 @@ Notice the similarity between this SQL-query and the graph pattern defined in th
 The knowledge mapper maps the variables in the SQL results to graph pattern variables in the knowledge interaction.
 For example, SQL variable **height** becomes **?height** in the graph pattern (i.e., objects for predicate <https://example.org/hasHeight>).
 
-With this configuration (see [here](examples/sql-mapper/config.json) for the entire file) we can start the Knowledge Mapper:
+With this configuration (see [here](examples/sql-mapper/config.jsonc) for the entire file) we can start the Knowledge Mapper:
 
 ```
-python -m knowledge_mapper examples/sql-mapper/config.json
+python -m knowledge_mapper examples/sql-mapper/config.jsonc
 ```
 
 The Knowledge Mapper will now continuously listen for incoming knowledge requests, and answer them by using the given SQL query and mapping them to bindings for the graph pattern.
@@ -133,15 +133,15 @@ The configuration file below gives an example of authorization enabled and a kno
 
 ### SQL
 
-See [the example config for SQL data sources](examples/sql-mapper/config.json).
+See [the example config for SQL data sources](examples/sql-mapper/config.jsonc).
 
 ### SPARQL
 
-See [the example config for SPARQL data sources](examples/sparql-mapper/config.json).
+See [the example config for SPARQL data sources](examples/sparql-mapper/config.jsonc).
 
 ### Custom data source
 
-See [the example config for a custom data source](custom-conf/config.json).
+See [the example config for a custom data source](custom-conf/config.jsonc).
 
 # Development instructions
 
