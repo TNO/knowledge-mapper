@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging as log
 import pyjson5
@@ -123,10 +124,19 @@ def main():
         else:
             authorization = None
 
+        if "KE_ENDPOINT" in os.environ:
+            ke_endpoint = os.environ.get("KE_ENDPOINT")
+            if "knowledge_engine_endpoint" in config:
+                log.warning(
+                    'Using "KE_ENDPOINT" environment variable, but also found "knowledge_engine_endpoint" property in configuration file.'
+                )
+        else:
+            ke_endpoint = config["knowledge_engine_endpoint"]
+
         km = KnowledgeMapper(
             data_source,
             authorization,
-            config["knowledge_engine_endpoint"],
+            ke_endpoint,
             config["knowledge_base"]["id"],
             config["knowledge_base"]["name"],
             config["knowledge_base"]["description"],
