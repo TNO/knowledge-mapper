@@ -10,8 +10,8 @@ RUN pip install -r requirements.txt
 COPY ./knowledge_mapper ./knowledge_mapper
 
 # Place the configuration in the Docker image
-COPY ./examples/custom-mapper/config.json .
+COPY ./examples/custom-mapper/config.jsonc .
 
 COPY ./examples/custom-mapper/example.py ./your_package/
 
-ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./config.json" ]
+ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./config.jsonc" ]

@@ -23,6 +23,6 @@ COPY --from=builder /usr/src/app/dist/*.whl .
 RUN ls
 RUN pip install ./*.whl
 
-COPY  ./examples/sparql-mapper/config.json ./conf/config.json
+COPY  ./examples/sparql-mapper/config.jsonc ./conf/config.jsonc
 
-ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./conf/config.json" ]
+ENTRYPOINT [ "python", "-m", "knowledge_mapper", "./conf/config.jsonc" ]
