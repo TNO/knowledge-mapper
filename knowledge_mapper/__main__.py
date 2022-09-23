@@ -1,7 +1,7 @@
 import os
 import argparse
 import logging as log
-import pyjson5
+import json5
 import sys
 import importlib
 import time
@@ -58,7 +58,7 @@ def main():
     parser.add_argument("config")
     args = parser.parse_args()
     with open(args.config) as config_file:
-        config = pyjson5.load(config_file)
+        config = json5.load(config_file)
 
         if "sparql" in config:
             endpoint = config["sparql"]["endpoint"]
