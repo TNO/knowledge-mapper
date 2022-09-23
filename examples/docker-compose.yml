@@ -1,17 +1,19 @@
 services:
   # This service is the TNO Knowledge Engine runtime where all interoperability is interoperated.
   tke-runtime:
-    image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.2
+    image: ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.3
     ports:
       - 8280:8280
   
   # Data source 1: A triple store with a SPARQL endpoint.
   triple-store:
-    image: stain/jena-fuseki
+    image: oxigraph/oxigraph
+    ports:
+      - 7878:7878
     volumes:
-      - ./fuseki/config.ttl:/fuseki/config.ttl
-      - ./fuseki/data.ttl:/fuseki/data.ttl
-      - ./fuseki/shiro.ini:/fuseki/shiro.ini
+      - ./triple-store/data.ttl:/seed-data/data.ttl
+      - ./triple-store/start.sh:/start.sh
+    entrypoint: /start.sh
 
   # Knowledge mapper for the SPARQL endpoint
   sparql-mapper:

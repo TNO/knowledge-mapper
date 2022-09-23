@@ -13,7 +13,7 @@
   // This property tells the Knowledge Mapper to use a SPARQL endpoint as
   // its data source.
   "sparql": {
-    "endpoint": "http://triple-store:3030/example",
+    "endpoint": "http://triple-store:7878",
     "username_environment_var": "SPARQL_USERNAME",
     "password_environment_var": "SPARQL_PASSWORD"
   },
