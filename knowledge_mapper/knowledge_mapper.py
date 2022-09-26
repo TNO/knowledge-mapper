@@ -70,7 +70,13 @@ class KnowledgeMapper:
 
         # if permitted, then handle the request
         if permission:
-            result = self.data_source.handle(ki, bindings, requesting_kb)
+            try:
+                result = self.data_source.handle(ki, bindings, requesting_kb)
+            except Exception:
+                log.exception(
+                    "an exception occurred while the data source was handling a knowledge request"
+                )
+                result = []
         else:
             result = []
         return result
