@@ -5,7 +5,7 @@ test:
   stage: test
   needs: []
   services:
-    - name: $CI_REGISTRY/tke/knowledge-engine/smart-connector-rest-dist:1.1.2
+    - name: ghcr.io/tno/knowledge-engine/smart-connector:1.1.3
       alias: tke-runtime
   image:
     name: python:3.10
