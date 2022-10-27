@@ -13,5 +13,6 @@ test:
   variables:
     KE_RUNTIME_URL: http://tke-runtime:8280/rest
   script:
+    - cd ./mapper
     - pip install -r ./dev-requirements.txt
     - pytest
