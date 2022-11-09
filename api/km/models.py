@@ -4,6 +4,6 @@ from django.db import models
 
 
 class KnowledgeBase(models.Model):
-    kb_id = models.CharField(max_length=512)
+    kb_id = models.CharField(max_length=512, unique=True)
     name = models.CharField(max_length=512)
     description = models.CharField(max_length=512)
