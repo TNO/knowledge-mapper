@@ -140,8 +140,7 @@ See [the example config for SQL data sources](examples/sql-mapper/config.jsonc).
 See [the example config for SPARQL data sources](examples/sparql-mapper/config.jsonc).
 
 ### Custom data source
-
-See [the example config for a custom data source](custom-conf/config.jsonc).
+See [the example config for a custom data source](custom-mapper/config.jsonc).
 
 # Development instructions
 
