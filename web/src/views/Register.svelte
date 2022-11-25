@@ -1,0 +1,1 @@
+<h1>Register your Knowledge Base</h1>
