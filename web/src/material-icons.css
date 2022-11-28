@@ -1,10 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-h1 {
-  font-size: large;
-}
+/* css for getting material icons to work from
+https://developers.google.com/fonts/docs/material_icons#setup_method_2_self_hosting,
+slightly tweaked.  */
 
 @font-face {
   font-family: 'Material Icons';
@@ -28,7 +24,7 @@ h1 {
   white-space: nowrap;
   direction: ltr;
 
-  vertical-align:middle;
+  vertical-align: middle; /* Han added this to make it align better */
 
   /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;

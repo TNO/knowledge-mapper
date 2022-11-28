@@ -1,5 +1,6 @@
 <script>
   import { connectionErrors, resetKnowledgeMapperApiUrl, knowledgeMapperApiUrl, syncKnowledgeBases } from "../stores.js";
+  import Button from "../lib/Button.svelte";
 
   function onClickReset() {
     resetKnowledgeMapperApiUrl();
@@ -7,13 +8,13 @@
   }
 </script>
 
-<h1>Connect</h1>
+<h1 class="text-3xl">Connect</h1>
 
 <div>
-  Using Knowledge Mapper endpoint: <span class="p-1 font-mono bg-black">{$knowledgeMapperApiUrl}</span>
-  <button type="button" class="rounded p-1 bg-slate-500" on:click={onClickReset}>
+  Using Knowledge Mapper endpoint: <span class="quote">{$knowledgeMapperApiUrl}</span>
+  <Button on:click={onClickReset}>
     Reset <span class="material-icons">lock_reset</span>
-  </button>
+  </Button>
 </div>
 
 

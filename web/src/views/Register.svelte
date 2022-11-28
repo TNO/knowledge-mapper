@@ -1,1 +1,51 @@
-<h1>Register your Knowledge Base</h1>
+<h1 class="text-3xl mb-6">Register your Knowledge Base</h1>
+
+{#if registeredKb != undefined}
+  <div class="error">
+    Currently, only one Knowledge Base can be registered.
+    A Knowledge Base called <span class="quote">{registeredKb.name}</span> already exists.
+  </div>
+{:else}
+  <form class="flex flex-col gap-5" on:submit|preventDefault={submit}>
+    {#each Object.values(formItems) as item}
+    <label class="block">
+      <span>{item.label}</span>
+      <input required bind:value={item.value} class="block w-full text-black" type="text" placeholder={item.label}>
+    </label>
+    {/each}
+    <Button disabled={success} type="submit">Submit</Button>
+  </form>
+{/if}
+
+<script lang="ts">
+  import Button from "../lib/Button.svelte";
+  import { register } from "../api";
+  import { onMount } from "svelte";
+  import { syncKnowledgeBases, knowledgeBases } from "../stores";
+
+  let formItems = {
+    id: {label: "ID", value: ""},
+    name: {label: "Name", value: ""},
+    description: {label: "Description", value: ""},
+  }
+
+  let registeredKb = undefined;
+
+  onMount(async () => {
+    await syncKnowledgeBases();
+    if ($knowledgeBases.length > 0) {
+      registeredKb = $knowledgeBases[0];
+    }
+  })
+
+  let success = false;
+
+  async function submit() {
+    try {
+      await register(formItems.id.value, formItems.name.value, formItems.description.value);
+      success = true;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+</script>
