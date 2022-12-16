@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 
-const DEFAULT_KM_API_URL = '/km/aaa';
+const DEFAULT_KM_API_URL = '/km/';
 export const knowledgeMapperApiUrl = writable(localStorage.knowledgeMapperApiUrl || DEFAULT_KM_API_URL);
 
 export const resetKnowledgeMapperApiUrl = () => {
