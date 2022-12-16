@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="knowledge_mapper",
-    version="0.0.19",
+    version="0.0.20",
     packages=find_packages(),
     install_requires=["requests", "mysql-connector-python", "json5"],
     entry_points={
