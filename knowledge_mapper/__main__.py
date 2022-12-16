@@ -1,4 +1,3 @@
-from http.client import RemoteDisconnected
 import os
 import argparse
 import logging as log
@@ -7,6 +6,7 @@ import sys
 import importlib
 import time
 import signal
+import requests.exceptions
 from knowledge_mapper.knowledge_base import KnowledgeBaseUnregistered
 
 from knowledge_mapper.knowledge_mapper import KnowledgeMapper
@@ -159,7 +159,7 @@ def main():
                     km.reregister()
                     for ki in config["knowledge_interactions"]:
                         km.add_knowledge_interaction(ki)
-                except RemoteDisconnected:
+                except requests.exceptions.ConnectionError:
                     log.warning(
                         f"Knowledge Engine runtime disappeared. Will re-enter handle loop in {KE_DISAPPEARED_COOLDOWN} seconds..."
                     )
