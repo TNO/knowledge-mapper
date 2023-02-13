@@ -56,7 +56,13 @@ def main():
         description="Expose an endpoint to a knowledge network."
     )
     parser.add_argument("config")
+    parser.add_argument("--wizard", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
+    if args.wizard:
+        from . import wizard_mapper
+
+        wizard_mapper.start()
+
     with open(args.config) as config_file:
         config = json5.load(config_file)
 

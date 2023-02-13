@@ -1,6 +1,6 @@
 <h1 class="text-3xl mb-6">Register your Knowledge Base</h1>
 
-{#if registeredKb != undefined}
+{#if alreadyRegistered}
   <div class="error">
     Currently, only one Knowledge Base can be registered.
     A Knowledge Base called <span class="quote">{registeredKb.name}</span> already exists.
@@ -29,12 +29,16 @@
     description: {label: "Description", value: ""},
   }
 
+  let alreadyRegistered;
   let registeredKb = undefined;
 
   onMount(async () => {
     await syncKnowledgeBases();
     if ($knowledgeBases.length > 0) {
       registeredKb = $knowledgeBases[0];
+      alreadyRegistered = true;
+    } else {
+      alreadyRegistered = false;
     }
   })
 
@@ -44,6 +48,8 @@
     try {
       await register(formItems.id.value, formItems.name.value, formItems.description.value);
       success = true;
+      await syncKnowledgeBases();
+      registeredKb = $knowledgeBases[0];
     } catch (e) {
       console.error(e);
     }

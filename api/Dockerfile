@@ -1,0 +1,21 @@
+FROM python:3.11.1-alpine
+
+# Create and enable venv
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install --upgrade pip
+
+WORKDIR /app/
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY manage.py .
+COPY km_backend ./km_backend
+COPY km ./km
+
+EXPOSE 8000
+
+COPY ./start.sh .
+CMD ["./start.sh"]

@@ -1,7 +1,9 @@
+*.env
+!*.default.env
+
 web-app/node_modules
 web-app/.svelte-kit
 web-app/.env
-
 .vscode
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
