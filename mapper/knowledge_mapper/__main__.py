@@ -62,7 +62,7 @@ def main():
         from . import wizard_mapper
 
         wizard_mapper.start()
-
+        exit()
     with open(args.config) as config_file:
         config = json5.load(config_file)
 

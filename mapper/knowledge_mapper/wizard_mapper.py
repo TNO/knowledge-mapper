@@ -1,19 +1,32 @@
 import logging
-import asyncio
-from websockets import serve
+import time
+import os
+import requests
 
 logger = logging.getLogger(__name__)
-
-
-async def handle(ws):
-    async for message in ws:
-        await ws.send(message)
-
-
-async def start_serve():
-    async with serve(handle, "0.0.0.0", 8080):
-        await asyncio.Future()
+logger.setLevel(logging.DEBUG)
 
 
 def start():
-    asyncio.run(start_serve())
+    time.sleep(5)
+    km_api = os.environ.get("KM_API")
+    if km_api is None:
+        logger.error("environment variable KM_API is required when using --wizard")
+        exit(1)
+    else:
+        logger.info(f"using KM_API {km_api}")
+
+    have_kb = False
+    kb = None
+    while kb is None:
+        resp = requests.get(f"{km_api}/knowledge-bases")
+        assert resp.ok
+        kbs = resp.json()["data"]
+        assert len(kbs) <= 2
+        logger.debug(kbs)
+        if kbs:
+            kb = kbs[0]
+        else:
+            logger.info(f"waiting for user to register knowledge base")
+            time.sleep(2)
+    logger.info(f"found knowledge base with ID {kb['id_url']}")

@@ -7,13 +7,16 @@ services:
     build: ./mapper
     entrypoint: [ "python", "-m", "knowledge_mapper", "ignored", "--wizard" ]
     environment:
-      - KM_API=http://km-api/
+      - KM_API=http://km-api:8000/km
+    depends_on:
+      - km-api
   km-api:
     build: ./api
     env_file:
       - km-api.env
     environment:
       KE_ENDPOINT: http://knowledge-engine:8280/rest
+    # TODO: Persist data in volume
     depends_on:
       - knowledge-engine
   web:
