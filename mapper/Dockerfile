@@ -1,4 +1,4 @@
-FROM python:3.10 AS builder
+FROM python:3.11.1-alpine AS builder
 
 WORKDIR /usr/src/app/
 
@@ -15,7 +15,7 @@ COPY ./README.md .
 
 RUN python setup.py sdist bdist_wheel
 
-FROM python:3.10
+FROM python:3.11.1-alpine
 
 WORKDIR /usr/src/app/
 

@@ -1,3 +1,4 @@
+import os
 import requests
 import logging as log
 import time
@@ -9,12 +10,21 @@ from knowledge_mapper.tke_exceptions import UnexpectedHttpResponseError
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1
 
+if "ENABLE_REASONER" in os.environ:
+    REASONER_ENABLED = os.environ.get("ENABLE_REASONER").lower() in ["true", "1"]
+else:
+    REASONER_ENABLED = False
+
+
 class TkeClient:
     def __init__(self, ke_url: str):
         self.ke_url = ke_url
 
-
-    def connect(self, max_attempts=MAX_CONNECTION_ATTEMPTS, wait_between_attempts=WAIT_BEFORE_RETRY):
+    def connect(
+        self,
+        max_attempts=MAX_CONNECTION_ATTEMPTS,
+        wait_between_attempts=WAIT_BEFORE_RETRY,
+    ):
         attempts = 0
         success = False
         while not success:
@@ -23,30 +33,33 @@ class TkeClient:
                 self.get_knowledge_bases()
                 success = True
             except requests.exceptions.ConnectionError:
-                log.warning(f'Connecting to {self.ke_url} failed.')
+                log.warning(f"Connecting to {self.ke_url} failed.")
 
             if not success and (max_attempts is None or attempts < max_attempts):
-                log.warning(f'Request to {self.ke_url} failed after attempt {attempts}. Retrying in {wait_between_attempts} s.')
+                log.warning(
+                    f"Request to {self.ke_url} failed after attempt {attempts}. Retrying in {wait_between_attempts} s."
+                )
                 time.sleep(wait_between_attempts)
             elif not success:
-                raise Exception(f'Request to {self.ke_url} failed. Gave up after {attempts} attempts.')
-        log.info(f'Successfully connected to {self.ke_url}.')
-
+                raise Exception(
+                    f"Request to {self.ke_url} failed. Gave up after {attempts} attempts."
+                )
+        log.info(f"Successfully connected to {self.ke_url}.")
 
     def get_knowledge_bases(self) -> list[knowledge_base.KnowledgeBase]:
-        response = requests.get(f'{self.ke_url}/sc')
+        response = requests.get(f"{self.ke_url}/sc")
 
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
 
-        return [knowledge_base.KnowledgeBase.from_json(kb_data, self.ke_url) for kb_data in response.json()]
+        return [
+            knowledge_base.KnowledgeBase.from_json(kb_data, self.ke_url)
+            for kb_data in response.json()
+        ]
 
     def get_knowledge_base(self, kb_id: str) -> knowledge_base.KnowledgeBase | None:
         response = requests.get(
-            f'{self.ke_url}/sc',
-            headers={
-                'Knowledge-Base-Id': kb_id
-            }
+            f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": kb_id}
         )
 
         if response.status_code == 404:
@@ -56,8 +69,9 @@ class TkeClient:
 
         return knowledge_base.KnowledgeBase.from_json(response.json()[0], self.ke_url)
 
-
-    def register(self, req: knowledge_base.KnowledgeBaseRegistrationRequest, reregister=True) -> knowledge_base.KnowledgeBase | None:
+    def register(
+        self, req: knowledge_base.KnowledgeBaseRegistrationRequest, reregister=True
+    ) -> knowledge_base.KnowledgeBase | None:
         already_existing = self.get_knowledge_base(req.id)
         if already_existing is not None:
             if reregister:
@@ -65,13 +79,18 @@ class TkeClient:
             else:
                 return None
 
+        body = {
+            "knowledgeBaseId": req.id,
+            "knowledgeBaseName": req.name,
+            "knowledgeBaseDescription": req.description,
+        }
+
+        if REASONER_ENABLED:
+            body["reasonerEnabled"] = True
+
         response = requests.post(
-            f'{self.ke_url}/sc',
-            json={
-                'knowledgeBaseId': req.id,
-                'knowledgeBaseName': req.name,
-                'knowledgeBaseDescription': req.description
-            }
+            f"{self.ke_url}/sc",
+            json=body,
         )
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
