@@ -12,6 +12,10 @@ class KnowledgeBaseUnregistered(Exception):
     pass
 
 
+class KnowledgeEngineTerminated(Exception):
+    pass
+
+
 @dataclass(kw_only=True)
 class KnowledgeBaseRegistrationRequest:
     """Class with necessary data itemsfor registering a new knowledge base."""
