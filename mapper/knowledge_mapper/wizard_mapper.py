@@ -48,21 +48,21 @@ def wait_for_knowledge_request(kb_id):
         response = requests.get(
             f"{ke_api}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
         )
-        if response.status_code == 202:
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 202:
             logger.debug("repolling...")
             continue
+        elif response.status_code == 404:
+            logger.warning("Our Knowledge Base has been unregistered!")
+            raise KnowledgeBaseUnregistered()
+        elif response.status_code == 410:
+            logger.warning("The Knowledge Engine REST server terminated!")
+            raise KnowledgeEngineTerminated()
         elif response.status_code == 500:
             logger.error(response.text)
             logger.error("TKE had an internal server error. Reinitiating long poll.")
             continue
-        elif response.status_code == 410:
-            logger.warning("The Knowledge Engine REST server terminated!")
-            raise KnowledgeEngineTerminated()
-        elif response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            logger.warning("Our Knowledge Base has been unregistered!")
-            raise KnowledgeBaseUnregistered()
         else:
             logger.warning(
                 f"long_poll received unexpected status {response.status_code}"

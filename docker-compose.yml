@@ -18,17 +18,35 @@ services:
     # TODO: Persist data in volume
     depends_on:
       - knowledge-engine
-  data-user-1:
-    build: ./data-user
+  data-sink-1:
+    build: ./data-sink
     environment:
       KE_API: http://knowledge-engine:8280/rest
-      KB_ID: http://example.org/data-user-1
-      KB_NAME: Data User 1
-      KB_DESCRIPTION: Example KB that wants to use data (1)
+      KB_ID: http://example.org/data-sink-1
+      KB_NAME: Data Sink 1
+      KB_DESCRIPTION: Example KB that uses data (1)
       GRAPH_PATTERN_PREFIXES: |
         { "ex": "http://example.org/" }
       GRAPH_PATTERN: |
         ?a ex:predicate-1 ?b .
+  data-source-1:
+    build: ./data-source
+    environment:
+      KE_API: http://knowledge-engine:8280/rest
+      KB_ID: http://example.org/data-source-1
+      KB_NAME: Data Source 1
+      KB_DESCRIPTION: Example KB that has data available (1)
+      GRAPH_PATTERN_PREFIXES: |
+        { "ex": "http://example.org/" }
+      GRAPH_PATTERN: |
+        ?a ex:predicate-1 ?b .
+      SOURCE_JSON_DATA: |
+        [
+          {"a": "<http://example.org/subject-1>", "b": "<http://example.org/object-1>"},
+          {"a": "<http://example.org/subject-2>", "b": "<http://example.org/object-2>"},
+          {"a": "<http://example.org/subject-3>", "b": "<http://example.org/object-3>"},
+          {"a": "<http://example.org/subject-4>", "b": "<http://example.org/object-4>"}
+        ]
   web:
     build: ./web
     ports:

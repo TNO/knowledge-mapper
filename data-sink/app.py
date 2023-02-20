@@ -8,11 +8,6 @@ from knowledge_mapper.knowledge_interaction import (
 from knowledge_mapper.tke_client import TkeClient
 from knowledge_mapper.knowledge_base import KnowledgeBaseRegistrationRequest
 
-
-def print_tree(tree):
-    print(f'\t - Tree {tree["name"]} has height {tree["height"]}', flush=True)
-
-
 KE_API = os.environ.get("KE_API")
 KB_ID = os.environ.get("KB_ID")
 KB_NAME = os.environ.get("KB_NAME")
@@ -38,13 +33,14 @@ if __name__ == "__main__":
         )
     )
 
-    while True:
-        print("Asking for all data...", flush=True)
-        bindings = ki.ask([])["bindingSet"]
+    try:
+        while True:
+            print("Asking for all bindings...", flush=True)
+            bindings = ki.ask([])["bindingSet"]
 
-        print(f"There are {len(bindings)} trees:")
-        for tree in bindings:
-            print_tree(tree)
-        sleep(4)
-
-    kb.unregister()
+            print(f"There are {len(bindings)} bindings:")
+            for binding in bindings:
+                print(binding, flush=True)
+            sleep(4)
+    finally:
+        kb.unregister()
