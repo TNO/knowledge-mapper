@@ -42,11 +42,11 @@ def start():
 
 
 def wait_for_knowledge_request(kb_id):
-    ke_api = os.environ.get("KE_API")
+    ke_endpoint = os.environ.get("KE_ENDPOINT")
 
     while True:
         response = requests.get(
-            f"{ke_api}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
+            f"{ke_endpoint}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
         )
         if response.status_code == 200:
             return response.json()

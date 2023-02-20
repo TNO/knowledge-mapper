@@ -12,7 +12,7 @@ from knowledge_mapper.knowledge_base import KnowledgeBaseRegistrationRequest
 
 logger = logging.getLogger(__name__)
 
-KE_API = os.environ.get("KE_API")
+KE_ENDPOINT = os.environ.get("KE_ENDPOINT")
 KB_ID = os.environ.get("KB_ID")
 KB_NAME = os.environ.get("KB_NAME")
 KB_DESCRIPTION = os.environ.get("KB_DESCRIPTION")
@@ -22,7 +22,7 @@ SOURCE_DATA = json.loads(os.environ.get("SOURCE_JSON_DATA"))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    client = TkeClient(KE_API)
+    client = TkeClient(KE_ENDPOINT)
     logger.info(f"going to register knowledge base")
     client.connect()
 
