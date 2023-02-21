@@ -1,10 +1,12 @@
 <script>
-  import { Router, Link, Route, link } from "svelte-navigator";
+  import { Router, Link, Route } from "svelte-navigator";
   import Register from "./views/Register.svelte";
   import Connect from "./views/Connect.svelte";
-  import { connectionErrors, knowledgeBases, syncKnowledgeBases } from "./stores";
+  import { connectionErrors, syncKnowledgeBases } from "./stores";
   import { onMount } from "svelte";
-    import { subscribe } from "svelte/internal";
+  import { subscribe } from "svelte/internal";
+  import RegisterKnowledgeInteraction from "./views/RegisterKnowledgeInteraction.svelte";
+  import TestView from "./views/TestView.svelte";
 
   let navLinks = [
     {to: "/", text: "Home", icon: "home"},
@@ -45,11 +47,17 @@
       <Route path="/">
         <h1>Welcome</h1>
       </Route>
+      <Route path="/connect">
+        <Connect></Connect>
+      </Route>
       <Route path="/register">
         <Register></Register>
       </Route>
-      <Route path="/connect">
-        <Connect></Connect>
+      <Route path="/register-knowledge-interaction">
+        <RegisterKnowledgeInteraction></RegisterKnowledgeInteraction>
+      </Route>
+      <Route path="/test">
+        <TestView></TestView>
       </Route>
     </div>
   </Router>

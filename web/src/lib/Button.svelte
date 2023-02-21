@@ -10,7 +10,7 @@
   <slot/>
 </button>
 
-<script>
+<script lang="ts">
   export let disabled = false;
-  export let type = "button";
+  export let type = "button" as const;
 </script>

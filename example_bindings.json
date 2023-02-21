@@ -1,0 +1,6 @@
+[
+  {"a": "<http://example.org/subject-1>", "b": "<http://example.org/object-1>"},
+  {"a": "<http://example.org/subject-2>", "b": "<http://example.org/object-2>"},
+  {"a": "<http://example.org/subject-3>", "b": "<http://example.org/object-3>"},
+  {"a": "<http://example.org/subject-4>", "b": "<http://example.org/object-4>"}
+]
