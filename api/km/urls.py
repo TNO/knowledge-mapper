@@ -14,8 +14,8 @@ urlpatterns = [
         name="knowledge-base-detail",
     ),
     path(
-        "knowledge-bases/<int:kb_id>/knowledge-interactions/",
-        views.KnowledgeInteractionListView.as_view(),
-        name="knowledge-interaction-list",
+        "knowledge-bases/<int:kb_id>/data-sources/",
+        views.DataSourceListView.as_view(),
+        name="data-source-list",
     ),
 ]

@@ -5,7 +5,7 @@ from django.forms import model_to_dict
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views import View
 
-from km.models import KnowledgeBase, KnowledgeInteraction, KI_TYPES
+from km.models import KnowledgeBase, DataSource, KI_TYPES
 from knowledge_mapper.tke_client import TkeClient
 from knowledge_mapper.knowledge_base import KnowledgeBaseRegistrationRequest
 from knowledge_mapper.knowledge_interaction import (
@@ -93,7 +93,7 @@ class KnowledgeBaseDetailView(View):
         return HttpResponse(status=200)
 
 
-class KnowledgeInteractionListView(View):
+class DataSourceListView(View):
     def get(self, request: HttpRequest, kb_id: int = -1):
         if kb_id == -1:
             return BadRequestResponse("Knowledge Base not found.", status=404)
@@ -189,7 +189,7 @@ class KnowledgeInteractionListView(View):
 
         # TODO: catch exceptions in the above registrations
 
-        ki_instance = KnowledgeInteraction.objects.create(
+        ki_instance = DataSource.objects.create(
             id_url=ki.id,
             kb=kb_instance,
             type=type,
