@@ -1,7 +1,7 @@
 stages:
   - test
 
-test:
+test-mapper:
   stage: test
   needs: []
   services:
@@ -15,4 +15,20 @@ test:
   script:
     - cd ./mapper
     - pip install -r ./dev-requirements.txt
+    - pytest
+
+test-api:
+  stage: test
+  needs: []
+  services:
+    - name: ghcr.io/tno/knowledge-engine/smart-connector:1.1.3
+      alias: tke-runtime
+  image:
+    name: python:3.11.1-alpine
+    entrypoint: [""]
+  variables:
+    KE_ENDPOINT: http://tke-runtime:8280/rest
+  script:
+    - cd ./api
+    - pip install -r ./requirements.txt
     - pytest
