@@ -4,6 +4,7 @@ import os
 from django.forms import model_to_dict
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views import View
+from km.models import MAPPING_TYPES, MappingRule
 
 from km.models import KnowledgeBase, DataSource, KI_TYPES
 from knowledge_mapper.tke_client import TkeClient
@@ -103,10 +104,13 @@ class DataSourceListView(View):
         except KnowledgeBase.DoesNotExist:
             return BadRequestResponse("Knowledge Base not found.", status=404)
 
-        kis = kb_instance.knowledgeinteraction_set.all()
+        qs = DataSource.objects.filter(kb_id=kb_instance.id)
+        if "knowledgeInteractionId" in request.GET:
+            qs = qs.filter(ki_id=request.GET["knowledgeInteractionId"])
+
         return JsonResponse(
             {
-                "data": [model_to_dict(ki) for ki in kis],
+                "data": [model_to_dict(ki) for ki in qs],
             }
         )
 
@@ -141,7 +145,24 @@ class DataSourceListView(View):
             try:
                 prefixes = json_body["prefixes"]
             except KeyError:
-                prefixes = None
+                prefixes = dict()
+
+            try:
+                mapping = json_body["mapping"]
+                mapping_type = mapping["type"]
+                mapping_data = mapping["data"]
+                if mapping_type not in [choice[0] for choice in MAPPING_TYPES]:
+                    return BadRequestResponse(
+                        f"`mapping.type`, should be in {[choice[0] for choice in MAPPING_TYPES]}."
+                    )
+                if mapping_type == "StaticTable" and not isinstance(mapping_data, list):
+                    return BadRequestResponse(
+                        f'`mapping.data`, should be a list if mapping.type is "StaticTable".'
+                    )
+            except KeyError:
+                return BadRequestResponse(
+                    "`mapping` with `typ` and `data` is required."
+                )
         except KeyError:
             return BadRequestResponse("`type`, and `pattern_1` are required.")
         except json.JSONDecodeError:
@@ -189,14 +210,19 @@ class DataSourceListView(View):
 
         # TODO: catch exceptions in the above registrations
 
+        mapping_rule = MappingRule.objects.create(
+            type=mapping["type"], data=mapping["data"]
+        )
+
         ki_instance = DataSource.objects.create(
-            id_url=ki.id,
+            ki_id=ki.id,
             kb=kb_instance,
-            type=type,
+            ki_type=type,
             name=name,
             prefixes=prefixes,
             pattern_1=pattern_1,
             pattern_2=pattern_2,
+            mapping_rule=mapping_rule,
         )
 
         return JsonResponse(

@@ -1,6 +1,6 @@
 [
-  {"a": "<http://example.org/subject-1>", "b": "<http://example.org/object-1>"},
-  {"a": "<http://example.org/subject-2>", "b": "<http://example.org/object-2>"},
-  {"a": "<http://example.org/subject-3>", "b": "<http://example.org/object-3>"},
-  {"a": "<http://example.org/subject-4>", "b": "<http://example.org/object-4>"}
+  {"a": "<http://example.org/subject-from-mapper-1>", "b": "<http://example.org/object-from-mapper-1>"},
+  {"a": "<http://example.org/subject-from-mapper-2>", "b": "<http://example.org/object-from-mapper-2>"},
+  {"a": "<http://example.org/subject-from-mapper-3>", "b": "<http://example.org/object-from-mapper-3>"},
+  {"a": "<http://example.org/subject-from-mapper-4>", "b": "<http://example.org/object-from-mapper-4>"}
 ]

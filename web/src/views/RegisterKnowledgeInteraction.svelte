@@ -4,8 +4,16 @@ Example graph pattern:
 -->
 
 <script lang="ts">
-    import Form from "../lib/Form.svelte";
-
+  import { registerDataSource } from "../api";
+  import Form from "../lib/Form.svelte";
+  
+  function getKiTypeForDataSourceType(dataSourceType) {
+    if (dataSourceType == "JsonData") {
+      return "ANSWER";
+    } else {
+      throw new Error(`Invalid data source type ${dataSourceType}`);
+    }
+  }
     function numberOfGraphPatternsForDataSourceType(dataSourceType: "JsonData") {
       if (dataSourceType == "JsonData") {
         return 1;
@@ -79,7 +87,7 @@ Example graph pattern:
         throw new Error("Data source types other than 'JsonData' are not supported yet.");
       }
     }
-    function onStep3Submit({ detail }) {
+    async function onStep3Submit({ detail }) {
       Object.keys(step3Values).forEach(k => {
         step3Values[k] = detail[k];
       });
@@ -91,12 +99,15 @@ Example graph pattern:
 
       const sendToApi = {
         name: step1Values.name,
-        type: step1Values.type,
-        graphPattern1: step2Values.graphPattern1,
-        graphPattern2: step2Values.graphPattern2,
-        bindings: step3Values.bindings,
+        type: getKiTypeForDataSourceType(step1Values.type),
+        pattern_1: step2Values.graphPattern1,
+        pattern_2: step2Values.graphPattern2,
+        mapping: {
+          type: "StaticTable",
+          data: step3Values.bindings,
+        },
       };
-      console.log(sendToApi);
+      await registerDataSource(sendToApi);
     }
 </script>
 
