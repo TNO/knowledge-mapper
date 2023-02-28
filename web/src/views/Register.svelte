@@ -23,10 +23,13 @@
   import { onMount } from "svelte";
   import { syncKnowledgeBases, knowledgeBases } from "../stores";
 
+  // set to true for quicker testing
+  let dev = false;
+
   let formItems = {
-    id: {label: "ID", value: ""},
-    name: {label: "Name", value: ""},
-    description: {label: "Description", value: ""},
+    id: {label: "ID", value: dev ? "http://example.org/kb1" : ""},
+    name: {label: "Name", value: dev ? "KB1" : ""},
+    description: {label: "Description", value: dev ? "Knowledge Base 1" : ""},
   }
 
   let alreadyRegistered;

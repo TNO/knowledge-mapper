@@ -105,12 +105,22 @@ class DataSourceListView(View):
             return BadRequestResponse("Knowledge Base not found.", status=404)
 
         qs = DataSource.objects.filter(kb_id=kb_instance.id)
+
         if "knowledgeInteractionId" in request.GET:
             qs = qs.filter(ki_id=request.GET["knowledgeInteractionId"])
 
+        if "includeMapping" in request.GET:
+            data_sources = []
+            for ki in qs:
+                data_source = model_to_dict(ki)
+                data_source["mapping_rule"] = model_to_dict(ki.mapping_rule)
+                data_sources += [data_source]
+        else:
+            data_sources = [model_to_dict(ki) for ki in qs]
+
         return JsonResponse(
             {
-                "data": [model_to_dict(ki) for ki in qs],
+                "data": data_sources,
             }
         )
 
