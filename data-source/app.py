@@ -52,3 +52,11 @@ if __name__ == "__main__":
     )
 
     kb.start_handle_loop()
+
+# This function is called when a SIGTERM signal is received. This makes it so
+# that the KB can be gracefully killed by Docker.
+def handle_sigterm(*args):
+    raise KeyboardInterrupt()
+
+
+signal.signal(signal.SIGTERM, handle_sigterm)

@@ -18,6 +18,7 @@ docker compose up --build --force-recreate -d knowledge-engine data-sink-1 data-
 Start the Knowledge Mapper configuration API:
 ```bash
 cd ./api
+python manage.py migrate
 KE_ENDPOINT=http://localhost:8280/rest python manage.py runserver
 ```
 
