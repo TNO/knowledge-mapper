@@ -4,7 +4,6 @@ import os
 import requests
 
 from knowledge_mapper.knowledge_base import (
-    KnowledgeBaseUnregistered,
     KnowledgeEngineTerminated,
 )
 from knowledge_mapper.utils import match_bindings
@@ -13,7 +12,16 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+class KnowledgeBaseNotFoundInApi(Exception):
+    pass
+
+
+class ApiNotReachable(Exception):
+    pass
+
+
 def start():
+    ke_endpoint = os.environ.get("KE_ENDPOINT")
     time.sleep(5)
     km_api = os.environ.get("KM_API")
     if km_api is None:
@@ -24,31 +32,52 @@ def start():
 
     have_kb = False
     kb = None
-    while kb is None:
-        resp = requests.get(f"{km_api}/knowledge-bases")
-        assert resp.ok
-        kbs = resp.json()["data"]
-        assert len(kbs) <= 2
-        if kbs:
-            kb = kbs[0]
-        else:
-            logger.info(f"waiting for user to register knowledge base")
-            time.sleep(2)
-    logger.info(f"found knowledge base with ID {kb['id']}")
-
     while True:
-        k_req = wait_for_knowledge_request(kb["id_url"])
-        logger.debug(f"received knowledge request: {k_req}")
-        ki_id = k_req["knowledgeInteractionId"]
-        handle_id = k_req["handleRequestId"]
-        binding_set = k_req["bindingSet"]
-        requesting_kb_id = k_req["requestingKnowledgeBaseId"]
+        while kb is None:
+            try:
+                resp = requests.get(f"{km_api}/knowledge-bases")
+            except:
+                logger.warning(f"KM API cannot be reached. Retrying in 2 seconds.")
+                time.sleep(2)
+                continue
+            assert resp.ok
+            kbs = resp.json()["data"]
+            assert len(kbs) <= 2
+            if kbs:
+                kb = kbs[0]
+            else:
+                logger.info(f"waiting for user to register knowledge base")
+                time.sleep(2)
+        logger.info(f"found knowledge base with ID {kb['id']}")
 
-        result_binding_set = map_knowledge_request(
-            kb["id"], ki_id, binding_set, requesting_kb_id
-        )
+        kb_disappeared_from_api = False
+        while not kb_disappeared_from_api:
+            k_req = wait_for_knowledge_request(kb["id_url"])
+            logger.debug(f"received knowledge request: {k_req}")
+            ki_id = k_req["knowledgeInteractionId"]
+            handle_id = k_req["handleRequestId"]
+            binding_set = k_req["bindingSet"]
+            requesting_kb_id = k_req["requestingKnowledgeBaseId"]
 
-        post_response(kb["id_url"], ki_id, handle_id, result_binding_set)
+            try:
+                result_binding_set = map_knowledge_request(
+                    kb["id"], ki_id, binding_set, requesting_kb_id
+                )
+            except KnowledgeBaseNotFoundInApi:
+                result_binding_set = []
+                kb_disappeared_from_api = True
+            except:
+                logger.exception("something went wrong while mapping knowledge request")
+                result_binding_set = []
+
+            post_response(kb["id_url"], ki_id, handle_id, result_binding_set)
+
+        if kb_disappeared_from_api:
+            response = requests.delete(
+                f"{ke_endpoint}/sc", headers={"Knowledge-Base-Id": kb["id_url"]}
+            )
+            assert response.ok
+            kb = None
 
 
 def wait_for_knowledge_request(kb_id):
@@ -65,7 +94,7 @@ def wait_for_knowledge_request(kb_id):
             continue
         elif response.status_code == 404:
             logger.warning("Our Knowledge Base has been unregistered!")
-            raise KnowledgeBaseUnregistered()
+            raise KnowledgeBaseNotFoundInApi()
         elif response.status_code == 410:
             logger.warning("The Knowledge Engine REST server terminated!")
             raise KnowledgeEngineTerminated()
@@ -94,21 +123,22 @@ def post_response(kb_id, ki_id, handle_request_id, binding_set):
 
 
 def map_knowledge_request(my_kb_id, ki_id, binding_set, requesting_kb_id):
-    try:
-        mapping_rule = get_mapping_rule(my_kb_id, ki_id)
-        return map(mapping_rule, binding_set)
-    except:
-        logger.exception("something went wrong while mapping knowledge request")
-        return []
+    mapping_rule = get_mapping_rule(my_kb_id, ki_id)
+    return map(mapping_rule, binding_set)
 
 
 def get_mapping_rule(my_kb_id, ki_id):
     km_api = os.environ.get("KM_API")
-    response = requests.get(
-        f"{km_api}/knowledge-bases/{my_kb_id}/data-sources/",
-        params={"knowledgeInteractionId": ki_id, "includeMapping": True},
-    )
+    try:
+        response = requests.get(
+            f"{km_api}/knowledge-bases/{my_kb_id}/data-sources/",
+            params={"knowledgeInteractionId": ki_id, "includeMapping": True},
+        )
+    except:
+        raise ApiNotReachable()
     if not response.ok:
+        if response.status_code == 404:
+            raise KnowledgeBaseNotFoundInApi()
         logger.error(response.status_code)
         logger.error(response.text)
         raise Exception("Request failed!")
