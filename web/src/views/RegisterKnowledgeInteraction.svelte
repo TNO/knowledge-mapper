@@ -14,13 +14,15 @@ Example graph pattern:
       throw new Error(`Invalid data source type ${dataSourceType}`);
     }
   }
-    function numberOfGraphPatternsForDataSourceType(dataSourceType: "JsonData") {
-      if (dataSourceType == "JsonData") {
-        return 1;
-      } else {
-        throw new Error(`Invalid data source type ${dataSourceType}`);
-      }
+  function numberOfGraphPatternsForDataSourceType(dataSourceType: "JsonData") {
+    if (dataSourceType == "JsonData") {
+      return 1;
+    } else {
+      throw new Error(`Invalid data source type ${dataSourceType}`);
     }
+  }
+
+  let success = false;
 
     let step = 1;
 
@@ -108,6 +110,8 @@ Example graph pattern:
         },
       };
       await registerDataSource(sendToApi);
+      step = undefined;
+      success = true;
     }
 </script>
 
@@ -119,4 +123,6 @@ Example graph pattern:
   <Form fields={step2Fields()} submitLabel="Next" on:submit={onStep2Submit}></Form>
 {:else if step == 3}
   <Form fields={step3Fields()} submitLabel="Submit" on:submit={onStep3Submit}></Form>
+{:else if success}
+  <div>Data source <span class="quote">{step1Values.name}</span> has been registered! 🎉</div>
 {/if}

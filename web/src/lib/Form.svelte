@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
+  import Button from "./Button.svelte";
 
   export let fields: {[key: string]: { type: "text" | "date" | "select" | "textarea" | "JsonFile", label: string, placeholder?: string, options?: {value: string, label: string, disabled?: boolean}[]}}
 
@@ -46,5 +47,5 @@
       {/if}
     </div>
   {/each}
-  <button type="submit">{submitLabel}</button>
+  <Button type="submit">{submitLabel}</Button>
 </form>

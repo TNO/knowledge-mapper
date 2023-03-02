@@ -2,7 +2,6 @@
 
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
 
 div.error {
   @apply rounded bg-red-700 border-2 border-red-300 p-2;
@@ -11,3 +10,14 @@ div.error {
 span.quote {
   @apply p-1 font-mono bg-black
 }
+
+input, select, textarea {
+  color: black;
+}
+
+input[type="file"] {
+  color: white;
+}
+
+
+@tailwind utilities;

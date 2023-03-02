@@ -5,6 +5,8 @@
     Currently, only one Knowledge Base can be registered.
     A Knowledge Base called <span class="quote">{registeredKb.name}</span> already exists.
   </div>
+{:else if success && registeredKb != undefined}
+  <div><span class="quote">{registeredKb.name}</span> has been registered! 🎉 </div>
 {:else}
   <form class="flex flex-col gap-5" on:submit|preventDefault={submit}>
     {#each Object.values(formItems) as item}
@@ -24,7 +26,7 @@
   import { syncKnowledgeBases, knowledgeBases } from "../stores";
 
   // set to true for quicker testing
-  let dev = false;
+  let dev = true;
 
   let formItems = {
     id: {label: "ID", value: dev ? "http://example.org/kb1" : ""},

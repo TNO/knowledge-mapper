@@ -12,5 +12,5 @@
 
 <script lang="ts">
   export let disabled = false;
-  export let type = "button" as const;
+  export let type: "button" | "submit" = "button" as const;
 </script>
