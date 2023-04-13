@@ -1,7 +1,7 @@
 from functools import partial
 import logging as log
 from knowledge_mapper.auth.base_auth import BaseAuth
-
+from knowledge_mapper.utils import extract_variables
 from knowledge_mapper.knowledge_base import (
     KnowledgeBaseRegistrationRequest,
 )
@@ -82,28 +82,44 @@ class KnowledgeMapper:
         return result
 
     def add_knowledge_interaction(self, ki):
+        if "prefixes" in ki:
+            prefixes = ki["prefixes"]
+        else:
+            prefixes = dict()
+
         if ki["type"] == "ask":
             req = AskKnowledgeInteractionRegistrationRequest(pattern=ki["pattern"])
+            if "vars" not in ki:
+                ki["vars"] = extract_variables(ki["pattern"], prefixes=prefixes)
         elif ki["type"] == "answer":
             req = AnswerKnowledgeInteractionRegistrationRequest(
                 pattern=ki["pattern"], handler=partial(self.handle, ki)
             )
+            if "vars" not in ki:
+                ki["vars"] = extract_variables(ki["pattern"], prefixes=prefixes)
         elif ki["type"] == "post":
             req = PostKnowledgeInteractionRegistrationRequest(
                 argument_pattern=ki["argument_pattern"],
                 result_pattern=ki["result_pattern"],
             )
+            if "vars" not in ki:
+                ki["vars"] = extract_variables(
+                    ki["argument_pattern"], prefixes=prefixes
+                )
         elif ki["type"] == "react":
             req = ReactKnowledgeInteractionRegistrationRequest(
                 argument_pattern=ki["argument_pattern"],
                 result_pattern=ki["result_pattern"],
                 handler=partial(self.handle, ki),
             )
+            if "vars" not in ki:
+                ki["vars"] = extract_variables(
+                    ki["argument_pattern"], prefixes=prefixes
+                )
         else:
             raise Exception(f"Invalid KI type: {ki['type']}")
 
-        if "prefixes" in ki:
-            req.prefixes = ki["prefixes"]
+        req.prefixes = prefixes
 
         if "name" not in ki:
             ki["name"] = None

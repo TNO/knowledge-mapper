@@ -8,6 +8,7 @@ services:
   # Data source 1: A triple store with a SPARQL endpoint.
   triple-store:
     image: oxigraph/oxigraph
+    platform: linux/amd64
     ports:
       - 7878:7878
     volumes:

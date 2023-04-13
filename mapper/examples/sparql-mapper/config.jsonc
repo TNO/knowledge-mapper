@@ -30,8 +30,6 @@
       "type": "answer",
       // The graph pattern that expresses the 'shape' of our knowledge.
       "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"],
       // A list of id's of knowledge bases that are permitted to use this interaction.
       "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"],
       // An optional name of this knowledge interaction.
@@ -45,8 +43,6 @@
       "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
       // The graph pattern that expresses the 'shape' of the knowledge that we send as a response.
       "result_pattern": null,
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"],
       // A list of id's of knowledge bases that are permitted to use this interaction.
       "permitted": ["https://example.org/another-knowledge-base", "https://example.org/tree-printer"],
       // An optional name of this knowledge interaction.

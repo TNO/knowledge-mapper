@@ -16,14 +16,14 @@ def match_bindings(query: list[dict], source: list[dict]) -> list:
     return matches
 
 
-def extract_variables(graph_pattern):
+def extract_variables(graph_pattern, prefixes=dict()):
     """Given a graph pattern, returns a set with the variables (strings) that
     are used in the graph pattern"""
     g = Graph()
     # Wrap the graph pattern in a SELECT query
     query = f"SELECT * WHERE {{ {graph_pattern} }}"
     # Parse the query into an RDFLib query object
-    q = g.query(query)
+    q = g.query(query, initNs=prefixes)
     # Extract the variables from the query
     variables = set()
     for var in q.vars:
