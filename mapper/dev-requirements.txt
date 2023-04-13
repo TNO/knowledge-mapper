@@ -37,3 +37,4 @@ twine==4.0.1
 urllib3==1.26.7
 webencodings==0.5.1
 zipp==3.8.1
+rdflib==6.3.2
