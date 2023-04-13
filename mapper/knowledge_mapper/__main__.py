@@ -151,6 +151,10 @@ def main():
             config["knowledge_base"]["description"],
         )
         for ki in config["knowledge_interactions"]:
+            if "vars" in ki:
+                log.warning(
+                    'config file provided "vars" property in a knowledge interaction, but they can also be inferred'
+                )
             km.add_knowledge_interaction(ki)
 
         try:

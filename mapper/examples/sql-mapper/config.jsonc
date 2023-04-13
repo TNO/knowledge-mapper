@@ -27,8 +27,6 @@
       "type": "answer",
       // The graph pattern that expresses the 'shape' of our knowledge.
       "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"],
       // SQL query to query data to be used to fill bindings for the graph pattern.
       // Note that the column names in the result set "tree" and "height" must 
       // correspond with the variable names in the graph pattern.
@@ -51,8 +49,6 @@
       "argument_pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
       // The graph pattern that expresses the 'shape' of the knowledge that we send as a response.
       "result_pattern": null,
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"],
       // A list of SQL queries to be fired when new knowledge arrives.
       // In this case, we simply insert the bindings into the table.
       "sql_query": [

@@ -69,9 +69,7 @@ Let's add a knowledge interaction that expresses that we have knowledge availabl
       // available that is requestable, the type should be "answer".
       "type": "answer",
       // The graph pattern that expresses the 'shape' of our knowledge.
-      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name .",
-      // A list of variables used in the pattern above. (This is redundant and will be removed in a future version.)
-      "vars": ["tree", "height", "name"]
+      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name ."
     },
   ]
 }
