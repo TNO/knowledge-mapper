@@ -9,7 +9,7 @@ gunicorn==20.1.0
 idna==3.4
 iniconfig==2.0.0
 json5==0.9.10
-knowledge-mapper==0.0.19
+knowledge-mapper==0.0.23
 mypy-extensions==0.4.3
 mysql-connector-python==8.0.31
 packaging==23.0
