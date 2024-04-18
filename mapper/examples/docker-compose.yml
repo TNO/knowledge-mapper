@@ -28,8 +28,6 @@ services:
   # Data source 2: An SQL database
   sql-db:
     image: mariadb:10.5
-    ports:
-      - 3306:3306
     volumes:
       - ./sql-db/seed_data:/docker-entrypoint-initdb.d/:ro
     environment:
@@ -68,6 +66,8 @@ services:
     volumes:
       - ./auth-db/seed_data:/docker-entrypoint-initdb.d/:ro
       - auth-db-data:/var/lib/mysql
+    ports:
+      - 3306:3306
     environment:
       MARIADB_DATABASE: knowledge_mapper_db
       MARIADB_USER: user
