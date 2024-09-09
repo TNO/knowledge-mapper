@@ -16,7 +16,7 @@ Use the following graph pattern:
 ?a <http://example.org/predicate-1> ?b .
 ```
 
-And the following json data in a file (see example_bindings.json above):
+And the following json data in a file (see `example_bindings.json` above):
 
 ```
 [
