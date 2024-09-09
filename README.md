@@ -6,7 +6,7 @@
 docker compose up --build --force-recreate --scale data-source-1=0
 ```
 
-Note the --scale data-source-1=0 to exclude the test data source, because we want to add it via the wizard.
+Note the `--scale data-source-1=0` to exclude the test data source, because we want to add it via the wizard.
 
 And then visit `http://localhost` in your browser.
 
