@@ -113,6 +113,9 @@ python -m knowledge_mapper examples/sql-mapper/config.jsonc
 
 The Knowledge Mapper will now continuously listen for incoming knowledge requests, and answer them by using the given SQL query and mapping them to bindings for the graph pattern.
 
+
+## Additional features
+
 ### Authorization with deny-unless-permit policy
 
 In order for another knowledge base to request a knowledge interaction, authorization can be set using the boolean configuration property `authorization_enabled`. This is an optional setting which means that if the property is absent no authorization is being applied and all knowledge interactions are permitted.
@@ -127,7 +130,16 @@ For all other cases, the `permitted` list contains the ids of the knowledge base
 
 The configuration file below gives an example of authorization enabled and a knowledge interaction with a permitted list with a single other knowledge base. 
 
+### Knowledge gaps
+
+The knowledge mapper code also contains operations to register ASK knowledge interactions with an additional option or flag to receive knowledge gaps as part of the result of the ASK to the knowledge network. A knowledge gap exists when the pattern in the ASK knowledge interaction can not be matched to the complete set of knowledge interactions in the network. As a result, the knowledge network returns an empty binding set and a set of triple patterns that need to be solved in order to close the gap.
+
+To use this feature, the ASK knowledge interaction should be registered with the option `knowledge_gaps_enabled` set to true and the knowledge base should be registered with `enable_reasoner` set to true as well. Please look at the `register` operation in `tke_client.py` and the `register_knowledge_interaction` in `knowledge_base.py` how to use this feature.
+
+
 ## Configuration
+
+There are multiple possibilities for configuration of the knowledge mapper depending on the type of knowledge base.
 
 ### SQL
 
