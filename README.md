@@ -3,10 +3,29 @@
 ## Demoing
 
 ```
-docker compose up --build --force-recreate
+docker compose up --build --force-recreate --scale data-source-1=0
 ```
 
+Note the `--scale data-source-1=0` to exclude the test data source, because we want to add it via the wizard.
+
 And then visit `http://localhost` in your browser.
+
+Use the following graph pattern:
+
+```
+?a <http://example.org/predicate-1> ?b .
+```
+
+And the following json data in a file (see `example_bindings.json` above):
+
+```
+[
+  {"a": "<http://example.org/subject-from-mapper-1>", "b": "<http://example.org/object-from-mapper-1>"},
+  {"a": "<http://example.org/subject-from-mapper-2>", "b": "<http://example.org/object-from-mapper-2>"},
+  {"a": "<http://example.org/subject-from-mapper-3>", "b": "<http://example.org/object-from-mapper-3>"},
+  {"a": "<http://example.org/subject-from-mapper-4>", "b": "<http://example.org/object-from-mapper-4>"}
+]
+```
 
 ## Development
 
