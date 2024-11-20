@@ -77,6 +77,7 @@ class KnowledgeBase:
             | knowledge_interaction.AnswerKnowledgeInteractionRegistrationRequest,
         ):
             body["graphPattern"] = ki.pattern
+            body["knowledgeGapsEnabled"] = ki.knowledge_gaps_enabled
         elif isinstance(
             ki,
             knowledge_interaction.PostKnowledgeInteractionRegistrationRequest

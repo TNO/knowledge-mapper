@@ -15,6 +15,7 @@ REACT = 'ReactKnowledgeInteraction'
 class KnowledgeInteractionRegistrationRequest:
     prefixes: dict = field(default_factory=dict)
     type: str = None # This is defined in the concrete child classes.
+    knowledge_gaps_enabled: bool = None
 
 @dataclass(kw_only=True)
 class AskKnowledgeInteractionRegistrationRequest(KnowledgeInteractionRegistrationRequest):
@@ -41,9 +42,10 @@ class ReactKnowledgeInteractionRegistrationRequest(KnowledgeInteractionRegistrat
     handler: Callable[[list[dict], str], list[dict]]
 
 class KnowledgeInteraction:
-    def __init__(self, id: str, type: str, kb, name=None):
+    def __init__(self, id: str, type: str, kb, kge=False, name=None):
         self.id = id
         self.type = type
+        self.knowledge_gaps_enabled = kge
         self.kb = kb
         self.name = name
 
@@ -65,7 +67,7 @@ class KnowledgeInteraction:
 
 class AskKnowledgeInteraction(KnowledgeInteraction):
     def __init__(self, req: AskKnowledgeInteractionRegistrationRequest, id: str, kb, name=None):
-        super().__init__(id, req.type, kb)
+        super().__init__(id, req.type, kb, req.knowledge_gaps_enabled)
         self.pattern = req.pattern
         self.prefixes = req.prefixes
 
