@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="knowledge_mapper",
-    version="0.0.23",
+    version="0.0.24",
     packages=find_packages(),
     install_requires=[
         "requests",
