@@ -36,3 +36,5 @@ docker-compose down
 
 You will see that the `tree-printer` receives knowledge about trees coming from the 3 different Knowledge Mappers.
 This shows that Knowledge Mappers can be used with relative ease to disclose different data sources into a unified model.
+
+Note: to receive all 5 expected trees you need to give the `tree-printer` access to the data from `dynamic-auth`. You can use `adminer` to add the knowledge base id `https://example.org/tree-printer` and knowledge interaction id `https://example.org/a-custom-knowledge-base-with-dyn-auth/interaction/answer-trees-with-heights-and-names` to the database by going to the following URL: `http://localhost:8080/?server=auth-db&username=user&db=knowledge_mapper_db&edit=policies`.
