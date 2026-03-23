@@ -1,11 +1,11 @@
 from functools import partial
 import logging as log
-from knowledge_mapper.auth.base_auth import BaseAuth
-from knowledge_mapper.utils import extract_variables
-from knowledge_mapper.knowledge_base import (
+from src.auth.base_auth import BaseAuth
+from src.utils import extract_variables
+from src.knowledge_base import (
     KnowledgeBaseRegistrationRequest,
 )
-from knowledge_mapper.knowledge_interaction import (
+from src.knowledge_interaction import (
     AnswerKnowledgeInteractionRegistrationRequest,
     AskKnowledgeInteractionRegistrationRequest,
     PostKnowledgeInteractionRegistrationRequest,

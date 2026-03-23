@@ -1,4 +1,4 @@
-from knowledge_mapper.knowledge_base import KnowledgeBase
+from src.knowledge_base import KnowledgeBase
 
 class DataSource:
     def test(self):

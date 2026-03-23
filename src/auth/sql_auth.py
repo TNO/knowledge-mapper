@@ -3,7 +3,7 @@ import mysql.connector
 import time
 from datetime import datetime
 
-from knowledge_mapper.auth.base_auth import BaseAuth
+from src.auth.base_auth import BaseAuth
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 2

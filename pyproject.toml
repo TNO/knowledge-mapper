@@ -5,3 +5,53 @@ description = "The Knowledge Mapper makes it easier to share your data in a know
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+# TOOLS - pytest
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "--import-mode=importlib",
+    "-ra",
+    "-q",
+]
+
+
+# TOOLS - ruff
+
+[tool.ruff]
+exclude = [
+    ".pytest_cache",
+    ".venv",
+    "local",
+]
+line-length = 88
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+
+[tool.ruff.format]
+quote-style = "double"

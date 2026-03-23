@@ -3,10 +3,10 @@ import time
 import os
 import requests
 
-from knowledge_mapper.knowledge_base import (
+from src.knowledge_base import (
     KnowledgeEngineTerminated,
 )
-from knowledge_mapper.utils import match_bindings
+from src.utils import match_bindings
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

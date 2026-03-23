@@ -1,7 +1,7 @@
 from time import sleep
-from knowledge_mapper.knowledge_interaction import AskKnowledgeInteraction, AskKnowledgeInteractionRegistrationRequest
-from knowledge_mapper.tke_client import TkeClient
-from knowledge_mapper.knowledge_base import KnowledgeBaseRegistrationRequest
+from src.knowledge_interaction import AskKnowledgeInteraction, AskKnowledgeInteractionRegistrationRequest
+from src.tke_client import TkeClient
+from src.knowledge_base import KnowledgeBaseRegistrationRequest
 
 def print_tree(tree):
     print(f'\t - Tree {tree["name"]} has height {tree["height"]}', flush=True)

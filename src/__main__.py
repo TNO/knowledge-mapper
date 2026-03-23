@@ -7,14 +7,14 @@ import importlib
 import time
 import signal
 import requests.exceptions
-from knowledge_mapper.knowledge_base import KnowledgeBaseUnregistered
+from src.knowledge_base import KnowledgeBaseUnregistered
 
-from knowledge_mapper.knowledge_mapper import KnowledgeMapper
-from knowledge_mapper.auth.sql_auth import SqlAuth
-from knowledge_mapper.auth.static_auth import StaticAuth
-from knowledge_mapper.data_source import DataSource
-from knowledge_mapper.sparql_source import SparqlSource
-from knowledge_mapper.sql_source import SqlSource
+from src.knowledge_mapper import KnowledgeMapper
+from src.auth.sql_auth import SqlAuth
+from src.auth.static_auth import StaticAuth
+from src.data_source import DataSource
+from src.sparql_source import SparqlSource
+from src.sql_source import SqlSource
 
 log.basicConfig(level=log.INFO)
 

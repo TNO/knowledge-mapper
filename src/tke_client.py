@@ -3,9 +3,9 @@ import requests
 import logging as log
 import time
 
-import knowledge_mapper.knowledge_base as knowledge_base
+import src.knowledge_base as knowledge_base
 
-from knowledge_mapper.tke_exceptions import UnexpectedHttpResponseError
+from src.tke_exceptions import UnexpectedHttpResponseError
 
 MAX_CONNECTION_ATTEMPTS = 10
 WAIT_BEFORE_RETRY = 1

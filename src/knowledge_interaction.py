@@ -4,7 +4,7 @@ from typing import Callable
 
 import requests
 
-from knowledge_mapper.tke_exceptions import UnexpectedHttpResponseError
+from src.tke_exceptions import UnexpectedHttpResponseError
 
 ASK = 'AskKnowledgeInteraction'
 ANSWER = 'AnswerKnowledgeInteraction'

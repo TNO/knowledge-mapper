@@ -3,9 +3,9 @@ from dataclasses import dataclass
 import logging as log
 import requests
 
-import knowledge_mapper.knowledge_interaction as knowledge_interaction
+import src.knowledge_interaction as knowledge_interaction
 
-from knowledge_mapper.tke_exceptions import UnexpectedHttpResponseError
+from src.tke_exceptions import UnexpectedHttpResponseError
 
 
 class KnowledgeBaseUnregistered(Exception):

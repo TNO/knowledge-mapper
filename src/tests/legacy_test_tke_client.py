@@ -1,6 +1,6 @@
-import knowledge_mapper.knowledge_base as tke_kb
-import knowledge_mapper.knowledge_interaction as tke_ki
-import knowledge_mapper.tke_client as tke
+import src.knowledge_base as tke_kb
+import src.knowledge_interaction as tke_ki
+import src.tke_client as tke
 import pytest
 import asyncio
 import requests

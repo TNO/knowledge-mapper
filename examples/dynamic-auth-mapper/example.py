@@ -1,4 +1,4 @@
-from knowledge_mapper.data_source import DataSource
+from src.data_source import DataSource
 
 class ExampleDataSource(DataSource):
     def __init__(self, argument):

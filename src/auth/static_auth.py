@@ -1,6 +1,6 @@
 import logging as log
 
-from knowledge_mapper.auth.base_auth import BaseAuth
+from src.auth.base_auth import BaseAuth
 
 class StaticAuth(BaseAuth):
     def __init__(self, _conf):
