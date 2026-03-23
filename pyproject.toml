@@ -9,6 +9,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "setuptools>=82.0.1",
 ]
 
 # TOOLS - pytest
@@ -29,6 +30,8 @@ exclude = [
     ".pytest_cache",
     ".venv",
     "local",
+    "./src/legacy",
+    "./examples/legacy",
 ]
 line-length = 88
 indent-width = 4
