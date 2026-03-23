@@ -8,6 +8,10 @@ The mapper also helps if you use other programming and query languages.
 It provides functions that allow you to easily share data to a TKE network.
 The mapper takes care of connecting to the TKE network and helps in registering your knowledge base and knowledge interactions.
 
+## Current status
+
+The Knowledge mapper is currently undergoing heavy development and an overhaul of its architecture. Expect new versions to be incompatible with projects developed using older versions (<= 0.0.24). The old legacy code can be found at git tag `mapper-legacy`.
+
 ## Where does it operate?
 
 Given the configuration of your mappings, it talks to the knowledge engine's REST API to register the relevant knowledge interactions.
