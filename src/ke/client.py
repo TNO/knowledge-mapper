@@ -1,11 +1,15 @@
 import logging
+from enum import StrEnum
 from typing import Protocol
 
 import requests
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 from .errors import SmartConnectorNotFoundError, UnexpectedHttpResponseError
 from .models import (
     AskAnswerInteractionInfo,
+    BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,
@@ -13,6 +17,23 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class PollResult(StrEnum):
+    HANDLE = "handle"
+    REPOLL = "repoll"
+    EXIT = "exit"
+
+
+class HandleRequest(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True
+    )
+
+    knowledge_interaction_id: str
+    handle_request_id: str
+    binding_set: list[dict[str, str]]
+    requesting_knowledge_base_id: str
 
 
 class ClientProtocol(Protocol):
@@ -28,6 +49,7 @@ class ClientProtocol(Protocol):
     def register_ki(
         self, kb_id: str, ki: KnowledgeInteractionInfo
     ) -> KnowledgeInteractionInfo: ...
+    def poll_ki_call(self, kb_id: str) -> PollResult: ...
 
 
 class Client:
@@ -133,3 +155,48 @@ class Client:
             update={"id": response.json()["knowledgeInteractionId"]}
         )
         return registered_ki
+
+    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+        logger.debug("Polling for KI calls...")
+        response = requests.get(
+            f"{self.ke_url}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
+        )
+
+        if response.status_code == 200:
+            logger.debug("Received 200 response, handling KI call.")
+            return PollResult.HANDLE, HandleRequest.model_validate(response.json())
+        elif response.status_code == 202:
+            logger.debug("Received 202 response, no handling.")
+            return PollResult.REPOLL, None
+        elif response.status_code == 404:
+            raise SmartConnectorNotFoundError(kb_id, self.ke_url)
+        elif response.status_code == 410:
+            logger.debug("Received 410 response, need to stop polling.")
+            return PollResult.EXIT, None
+        elif response.status_code == 500:
+            logger.error(
+                "Received 500 response from KE, indicating an internal server error. "
+                "Will re-poll."
+            )
+            return PollResult.REPOLL, None
+        else:
+            raise UnexpectedHttpResponseError(response)
+
+    def post_handle_response(
+        self, kb_id: str, ki_id: str, handle_request_id: str, binding_set: BindingSet
+    ) -> None:
+        logger.debug("Posting handle response for KI call.")
+        response = requests.post(
+            f"{self.ke_url}/sc/handle",
+            json={
+                "handleRequestId": handle_request_id,
+                "bindingSet": binding_set,
+            },
+            headers={
+                "Knowledge-Base-Id": kb_id,
+                "Knowledge-Interaction-Id": ki_id,
+            },
+        )
+
+        if not response.ok:
+            raise UnexpectedHttpResponseError(response)

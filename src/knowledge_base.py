@@ -3,6 +3,7 @@ from collections.abc import Callable
 from functools import wraps
 
 from .ke import Client
+from .ke.client import PollResult
 from .ke.errors import KnowledgeEngineNotAvailableError
 from .ke.models import (
     AskAnswerInteractionInfo,
@@ -161,10 +162,34 @@ class KnowledgeBase:
             defer_registration=defer_registration,
         )
 
-    def call(self, binding_set: BindingSet, ki: KnowledgeInteractionInfo) -> BindingSet:
-        if ki.id not in self.ki_registry:
-            raise ValueError(f"Knowledge Interaction '{ki.name}' is not registered.")
+    def call(self, binding_set: BindingSet, ki_id: str) -> BindingSet:
+        if ki_id not in self.ki_registry:
+            raise ValueError(f"Knowledge Interaction '{ki_id}' is not registered.")
 
-        ki_ctx = self.ki_registry[ki.id]
+        ki_ctx = self.ki_registry[ki_id]
         result = ki_ctx.handler(binding_set)
         return result
+
+    def start_handling_loop(self, loops: int = None) -> None:
+        loops_done = 0
+        while loops is None or loops_done < loops:
+            loops_done += 1
+            poll_result, maybe_handle_request = self.client.poll_ki_call(
+                kb_id=self.info.id
+            )
+            match poll_result, maybe_handle_request:
+                case PollResult.HANDLE, _:
+                    self.call(
+                        maybe_handle_request.binding_set,
+                        maybe_handle_request.knowledge_interaction_id,
+                    )
+                case PollResult.REPOLL, None:
+                    continue
+                case PollResult.EXIT, None:
+                    logger.info("Received exit signal from KE, stopping handling loop.")
+                    return
+                case _:
+                    raise Exception(
+                        f"Unexpected poll result: {poll_result} or request:"
+                        f"{maybe_handle_request}"
+                    )

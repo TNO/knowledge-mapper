@@ -1,5 +1,6 @@
 """In-memory FakeClient that satisfies ClientProtocol for use in tests."""
 
+from src.ke.client import PollResult
 from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
 
 
@@ -48,3 +49,8 @@ class FakeClient:
         self._next_ki_id += 1
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
+
+    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, None]:
+        # This fake client never returns any KI calls to handle, but always asks to 
+        # repoll.
+        return (PollResult.REPOLL, None)
