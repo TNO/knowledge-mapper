@@ -4,7 +4,11 @@ version = "0.1.0a0"
 description = "The Knowledge Mapper makes it easier to share your data in a knowledge base to the TNO Knowledge Engine (TKE) network."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.13.1",
+    "requests>=2.32.5",
+]
 
 [dependency-groups]
 dev = [
@@ -58,3 +62,7 @@ select = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"

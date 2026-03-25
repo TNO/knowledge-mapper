@@ -1,0 +1,9 @@
+services:
+  ker-examples:
+    image: ghcr.io/tno/knowledge-engine/smart-connector:1.3.2
+    ports:
+      - 8081:8081
+      - 8280:8280
+    environment: 
+      KE_RUNTIME_EXPOSED_URL: http://ker-examples:8081
+      KE_RUNTIME_PORT: 8081
