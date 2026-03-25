@@ -3,6 +3,12 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+type BindingSet = list[dict[str, str]]
+
+
+class BindingModel(BaseModel):
+    pass
+
 
 class KnowledgeBaseInfo(BaseModel):
     model_config = ConfigDict(extra="allow", frozen=True, populate_by_name=True)
@@ -18,7 +24,7 @@ class KiTypes(StrEnum):
     POST = "PostKnowledgeInteraction"
     REACT = "ReactKnowledgeInteraction"
 
-    
+
 class KnowledgeInteractionInfo(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True

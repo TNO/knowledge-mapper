@@ -33,7 +33,6 @@ addopts = [
 exclude = [
     ".pytest_cache",
     ".venv",
-    "local",
     "./src/legacy",
     "./examples/legacy",
 ]

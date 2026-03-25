@@ -1,40 +1,27 @@
 import logging
 from collections.abc import Callable
 from functools import wraps
-from typing import Concatenate
-
-from pydantic import BaseModel
 
 from .ke import Client
 from .ke.errors import KnowledgeEngineNotAvailableError
 from .ke.models import (
     AskAnswerInteractionInfo,
+    BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
 )
+from .knowledge_interaction import Handler, KnowledgeInteractionContext
 
 logger = logging.getLogger(__name__)
-
-
-type BindingSet = list[dict[str, str]]
-
-
-class BindingModel(BaseModel):
-    pass
-
-
-type Handler = Callable[
-    Concatenate[list[BindingModel], KnowledgeInteractionInfo, ...], list[BindingModel]
-]
 
 
 class KnowledgeBase:
     def __init__(self, id: str, name: str, description: str, ke_url: str):
         self.registered = False
-        self.deferred_kis: list[KnowledgeInteractionInfo] = []
-        self.ki_registry: dict[str, KnowledgeInteractionInfo] = {}
+        self.deferred_kis: list[KnowledgeInteractionContext] = []
+        self.ki_registry: dict[str, KnowledgeInteractionContext] = {}
         self.client = Client(ke_url)
         self.info = KnowledgeBaseInfo(
             id=id,
@@ -66,17 +53,18 @@ class KnowledgeBase:
         return
 
     def register_ki(
-        self, ki_info: KnowledgeInteractionInfo, defer_registration: bool = False
+        self, ki_ctx: KnowledgeInteractionContext, defer_registration: bool = False
     ) -> KnowledgeInteractionInfo:
         if defer_registration:
-            self.deferred_kis.append(ki_info)
-            return ki_info
+            self.deferred_kis.append(ki_ctx)
+            return ki_ctx.info
         else:
             registered_ki = self.client.register_ki(
                 kb_id=self.info.id,
-                ki=ki_info,
+                ki=ki_ctx.info,
             )
-            self.ki_registry[registered_ki.id] = registered_ki
+            ki_ctx.info = registered_ki
+            self.ki_registry[registered_ki.id] = ki_ctx
             return registered_ki
 
     def _register_ki_decorator(
@@ -87,18 +75,17 @@ class KnowledgeBase:
             def wrapper(*args, **kwargs):
                 return func(*args, **kwargs)
 
-            self.register_ki(info, defer_registration=defer_registration)
+            self.register_ki(
+                KnowledgeInteractionContext(info=info, handler=func),
+                defer_registration=defer_registration,
+            )
             return wrapper
 
         return decorator
 
     def register_deferred_kis(self) -> None:
-        for ki_info in self.deferred_kis:
-            registered_ki = self.client.register_ki(
-                kb_id=self.info.id,
-                ki=ki_info,
-            )
-            self.ki_registry[registered_ki.id] = registered_ki
+        for ki_ctx in self.deferred_kis:
+            self.register_ki(ki_ctx, defer_registration=False)
         self.deferred_kis.clear()
         return
 
@@ -174,7 +161,10 @@ class KnowledgeBase:
             defer_registration=defer_registration,
         )
 
-    def handle(
-        self, binding_set: BindingSet, ki: KnowledgeInteractionInfo
-    ) -> BindingSet:
-        pass
+    def call(self, binding_set: BindingSet, ki: KnowledgeInteractionInfo) -> BindingSet:
+        if ki.id not in self.ki_registry:
+            raise ValueError(f"Knowledge Interaction '{ki.name}' is not registered.")
+
+        ki_ctx = self.ki_registry[ki.id]
+        result = ki_ctx.handler(binding_set)
+        return result
