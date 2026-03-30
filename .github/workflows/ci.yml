@@ -19,10 +19,10 @@ jobs:
           enable-caching: true
 
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uvx ruff format --check .
 
       - name: Check linting
-        run: uv run ruff check .
+        run: uvx ruff check .
 
   test:
     name: Test (Python ${{ matrix.python-version }})
