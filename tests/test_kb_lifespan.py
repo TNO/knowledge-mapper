@@ -11,6 +11,7 @@ from tests.fake_client import FakeClient
 def client() -> FakeClient:
     return FakeClient(fake_url="http://fake-ke")
 
+
 @pytest.fixture
 def kb(client: FakeClient) -> KnowledgeBase:
     kb = KnowledgeBase(

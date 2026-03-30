@@ -51,6 +51,6 @@ class FakeClient:
         return registered
 
     def poll_ki_call(self, kb_id: str) -> tuple[PollResult, None]:
-        # This fake client never returns any KI calls to handle, but always asks to 
+        # This fake client never returns any KI calls to handle, but always asks to
         # repoll.
         return (PollResult.REPOLL, None)

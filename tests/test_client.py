@@ -131,4 +131,3 @@ def test_register_knowledge_interaction(client: Client):
         )
 
     assert registered_ki.id == "http://example.org/test#kb/interaction/ask-interaction"
-
