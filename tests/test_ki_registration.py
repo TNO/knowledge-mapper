@@ -32,7 +32,7 @@ def test_register_answer_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def answer_test():
+    def answer_test(binding_set: BindingSet) -> BindingSet:
         pass
 
     kb.register()
@@ -58,7 +58,7 @@ def test_register_react_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def react_test():
+    def react_test(binding_set: BindingSet) -> BindingSet:
         pass
 
     kb.register()
@@ -107,5 +107,5 @@ def test_call_handler():
 
     ki_info = next(iter(kb.ki_registry.values())).info
     input_binding_set = [{"input": "test:Input1", "value": "Hello"}]
-    result = kb.call(binding_set=input_binding_set, ki=ki_info)
+    result = kb.call(binding_set=input_binding_set, ki_id=ki_info.id)
     assert result == input_binding_set
