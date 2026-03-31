@@ -1,7 +1,7 @@
 import pytest
 
+from src import KnowledgeBase
 from src.ke.models import AskAnswerInteractionInfo, BindingSet, KiTypes
-from src.knowledge_base import KnowledgeBase
 from src.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,

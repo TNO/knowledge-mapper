@@ -1,6 +1,6 @@
 import logging
 
-from knowledge_base import KnowledgeBase
+from .knowledge_base import KnowledgeBase
 
 __version__ = "0.1.0a0"
 

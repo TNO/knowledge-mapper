@@ -2,8 +2,9 @@ from unittest.mock import patch
 
 import pytest
 
+from src import KnowledgeBase
 from src.ke.errors import KnowledgeEngineNotAvailableError
-from src.knowledge_base import KnowledgeBase, KnowledgeBaseState
+from src.knowledge_base import KnowledgeBaseState
 from tests.fake_client import FakeClient
 
 

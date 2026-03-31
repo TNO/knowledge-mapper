@@ -58,7 +58,7 @@ class KnowledgeBase:
         registered. Automatically syncs knowledge interactions with KE runtime.
 
         Raises:
-            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP 
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
             response.
         """
         logger.info(
@@ -177,9 +177,9 @@ class KnowledgeBase:
 
         Raises:
             ValueError: If the KB is not registered.
-            SmartConnectorNotFoundError: If the KB's smart connector is not found in 
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in
             the KE runtime.
-            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP 
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
             response.
         """
         if self.state != KnowledgeBaseState.REGISTERED:
@@ -204,11 +204,11 @@ class KnowledgeBase:
         prefixes: dict = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
-        """Return a decorator that registers the decorated function as an ASK KI 
+        """Return a decorator that registers the decorated function as an ASK KI
         handler.
 
         Raises:
-            ValueError: Propagated from ``register_ki`` if registration constraints are 
+            ValueError: Propagated from ``register_ki`` if registration constraints are
             violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.
@@ -232,11 +232,11 @@ class KnowledgeBase:
         prefixes: dict = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
-        """Return a decorator that registers the decorated function as an ANSWER KI 
+        """Return a decorator that registers the decorated function as an ANSWER KI
         handler.
 
         Raises:
-            ValueError: Propagated from ``register_ki`` if registration constraints are 
+            ValueError: Propagated from ``register_ki`` if registration constraints are
             violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.
@@ -261,11 +261,11 @@ class KnowledgeBase:
         prefixes: dict = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
-        """Return a decorator that registers the decorated function as a POST KI 
+        """Return a decorator that registers the decorated function as a POST KI
         handler.
 
         Raises:
-            ValueError: Propagated from ``register_ki`` if registration constraints are 
+            ValueError: Propagated from ``register_ki`` if registration constraints are
             violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.
@@ -295,7 +295,7 @@ class KnowledgeBase:
         handler.
 
         Raises:
-            ValueError: Propagated from ``register_ki`` if registration constraints are 
+            ValueError: Propagated from ``register_ki`` if registration constraints are
             violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.
