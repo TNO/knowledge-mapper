@@ -91,7 +91,7 @@ def test_sync_ki():
     )
 
 
-def test_sych_ki_before_kb_registration():
+def test_sync_ki_before_kb_registration():
     kb = kb_setup()
     with pytest.raises(ValueError):
         kb.sync_knowledge_interactions()

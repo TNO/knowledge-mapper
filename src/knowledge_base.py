@@ -48,12 +48,20 @@ class KnowledgeBase:
         logger.info(
             "Registering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.register_kb(self.info)
+        self.client.register_kb(self.info, reregister=True)
         self.state = KnowledgeBaseState.REGISTERED
         self.sync_knowledge_interactions()
         return
 
     def unregister(self) -> None:
+        if self.state != KnowledgeBaseState.REGISTERED:
+            logger.warning(
+                "Knowledge base '%s' (%s) is not registered, cannot unregister.",
+                self.info.id,
+                self.info.name,
+            )
+            return
+
         logger.info(
             "Unregistering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
@@ -208,6 +216,12 @@ class KnowledgeBase:
         return result
 
     def start_handling_loop(self, loops: int = None) -> None:
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise RuntimeError(
+                "Cannot start handling loop because the KB is not registered. Please "
+                "register the KB first."
+            )
+        
         loops_done = 0
         while loops is None or loops_done < loops:
             loops_done += 1
