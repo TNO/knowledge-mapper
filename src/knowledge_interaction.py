@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Concatenate
 
-from src.ke.models import BindingModel, KnowledgeInteractionInfo
+from src.ke.models import BindingSet, KnowledgeInteractionInfo
 
 type Handler = Callable[
-    Concatenate[list[BindingModel], KnowledgeInteractionInfo, ...], list[BindingModel]
+    Concatenate[BindingSet, KnowledgeInteractionInfo, ...], BindingSet
 ]
 
 

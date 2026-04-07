@@ -1,7 +1,12 @@
 import pytest
 
 from src import KnowledgeBase
-from src.ke.models import AskAnswerInteractionInfo, BindingSet, KiTypes
+from src.ke.models import (
+    AskAnswerInteractionInfo,
+    BindingSet,
+    KiTypes,
+    KnowledgeInteractionInfo,
+)
 from src.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
@@ -35,7 +40,7 @@ def ki_ctx_setup() -> KnowledgeInteractionContext:
             graph_pattern="""?s ?p ?o . """,
             prefixes=shared_prefixes(),
         ),
-        handler=lambda binding_set: binding_set,  # type: ignore
+        handler=lambda binding_set, info: binding_set,
         status=KnowledgeInteractionStatus.UNREGISTERED,
     )
 
@@ -120,8 +125,10 @@ def test_register_answer_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def answer_test(binding_set: BindingSet) -> BindingSet:
-        pass
+    def answer_test(
+        binding_set: BindingSet, info: KnowledgeInteractionInfo
+    ) -> BindingSet:
+        return binding_set
 
     kb.register()
 
@@ -146,8 +153,10 @@ def test_register_react_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def react_test(binding_set: BindingSet) -> BindingSet:
-        pass
+    def react_test(
+        binding_set: BindingSet, info: KnowledgeInteractionInfo
+    ) -> BindingSet:
+        return binding_set
 
     kb.register()
 
@@ -166,8 +175,10 @@ def test_register_ki_with_same_name():
             ?s ?p ?o .
         """,
     )
-    def first_handler(binding_set: BindingSet) -> BindingSet:
-        pass
+    def first_handler(
+        binding_set: BindingSet, info: KnowledgeInteractionInfo
+    ) -> BindingSet:
+        return binding_set
 
     with pytest.raises(ValueError):
 
@@ -176,8 +187,10 @@ def test_register_ki_with_same_name():
             argument_graph_pattern="""?s ?p ?o . """,
             result_graph_pattern="""?s ?p ?o . """,
         )
-        def second_handler(binding_set: BindingSet) -> BindingSet:
-            pass
+        def second_handler(
+            binding_set: BindingSet, info: KnowledgeInteractionInfo
+        ) -> BindingSet:
+            return binding_set
 
 
 def test_handler_registration_no_binding_set_param():
@@ -188,7 +201,7 @@ def test_handler_registration_no_binding_set_param():
         @kb.answer_ki(
             name="bad-handler",
             graph_pattern="""""",
-        )
+        )  # pyright: ignore[reportArgumentType]
         def bad_handler():
             pass
 
@@ -211,7 +224,9 @@ def test_call_handler():
         """,
         prefixes=shared_prefixes(),
     )
-    def echo_handler(binding_set: BindingSet) -> BindingSet:
+    def echo_handler(
+        binding_set: BindingSet, info: KnowledgeInteractionInfo
+    ) -> BindingSet:
         return binding_set
 
     kb.register()

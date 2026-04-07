@@ -12,7 +12,7 @@ class FakeClient:
         # Maps kb_id -> list of registered KIs
         self._knowledge_interactions: dict[str, list[KnowledgeInteractionInfo]] = {}
         self._next_ki_id: int = 1
-        self.ke_url = fake_url
+        self._ke_url = fake_url
 
     def ke_is_available(self) -> bool:
         return True
@@ -39,7 +39,9 @@ class FakeClient:
         self._knowledge_bases.pop(id)
         self._knowledge_interactions.pop(id, None)
 
-    def get_knowledge_interactions(self, kb_id: str) -> list[KnowledgeInteractionInfo]:
+    def get_all_knowledge_interactions(
+        self, kb_id: str
+    ) -> list[KnowledgeInteractionInfo]:
         return list(self._knowledge_interactions.get(kb_id, []))
 
     def register_ki(
@@ -54,3 +56,7 @@ class FakeClient:
         # This fake client never returns any KI calls to handle, but always asks to
         # repoll.
         return (PollResult.REPOLL, None)
+    
+    @property
+    def ke_url(self) -> str:
+        return self._ke_url

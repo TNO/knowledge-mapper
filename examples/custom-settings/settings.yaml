@@ -1,0 +1,43 @@
+# Application-specific settings
+db_host: "localhost"
+db_port: 5432
+debug: false
+
+# Knowledge Base settings
+knowledge_base:
+  id: "http://example.org/knowledge-mapper/custom-settings#kb"
+  name: "custom-knowledge-base"
+  description: "A knowledge base with custom settings loaded."
+
+knowledge_engine_endpoint: "http://localhost:8280/rest"
+
+knowledge_interactions:
+  - name: ask-from-settings
+    type: AskKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    graph_pattern: |
+      ?s ?p ?o .
+  - name: answer-from-settings
+    type: AnswerKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    graph_pattern: |
+      ?s ?p ?o .
+  - name: post-from-settings
+    type: PostKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    argument_graph_pattern: |
+      ?s ?p ?o .
+    result_graph_pattern: |
+      ?s ?p ?o .
+  - name: react-from-settings
+    type: ReactKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    argument_graph_pattern: |
+      ?s ?p ?o .
+    result_graph_pattern: |
+      ?s ?p ?o .
+

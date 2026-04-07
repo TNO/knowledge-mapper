@@ -118,7 +118,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def poll_ki_call(self, kb_id: str) -> PollResult:
+    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
 
         Raises:
@@ -128,13 +128,18 @@ class ClientProtocol(Protocol):
             response.
         """
         ...
+    
+    @property
+    def ke_url(self) -> str:
+        """Return the base URL of the KE runtime this client is communicating with."""
+        ...
 
 
 class Client(ClientProtocol):
     """HTTP client for the Knowledge Engine REST API."""
 
     def __init__(self, ke_url: str):
-        self.ke_url = ke_url
+        self._ke_url = ke_url
 
     def ke_is_available(self) -> bool:
         try:
@@ -282,3 +287,8 @@ class Client(ClientProtocol):
 
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
+        
+    
+    @property
+    def ke_url(self) -> str:
+        return self._ke_url

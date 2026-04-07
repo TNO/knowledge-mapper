@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -13,9 +14,9 @@ class BindingModel(BaseModel):
 class KnowledgeBaseInfo(BaseModel):
     model_config = ConfigDict(extra="allow", frozen=True, populate_by_name=True)
 
-    id: str = Field(..., alias="knowledgeBaseId")
-    name: str = Field(..., alias="knowledgeBaseName")
-    description: str = Field(..., alias="knowledgeBaseDescription")
+    id: Annotated[str, Field(..., alias="knowledgeBaseId")]
+    name: Annotated[str, Field(..., alias="knowledgeBaseName")]
+    description: Annotated[str, Field(..., alias="knowledgeBaseDescription")]
 
 
 class KiTypes(StrEnum):
@@ -30,10 +31,10 @@ class KnowledgeInteractionInfo(BaseModel):
         alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True
     )
 
-    type: KiTypes = Field(..., alias="knowledgeInteractionType")
-    id: str | None = Field(default=None, alias="knowledgeInteractionId")
-    name: str = Field(..., alias="knowledgeInteractionName")
-    prefixes: dict[str, str] = Field(default_factory=dict)
+    type: Annotated[KiTypes, Field(..., alias="knowledgeInteractionType")]
+    id: Annotated[str | None, Field(..., alias="knowledgeInteractionId")] = None
+    name: Annotated[str, Field(..., alias="knowledgeInteractionName")]
+    prefixes: Annotated[dict[str, str], Field(default_factory=dict)]
 
 
 class AskAnswerInteractionInfo(KnowledgeInteractionInfo):
