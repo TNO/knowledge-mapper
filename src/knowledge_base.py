@@ -171,8 +171,8 @@ class KnowledgeBase:
         return decorator
 
     def sync_knowledge_interactions(self) -> None:
-        """Synchronize registration of knowledge interactions in this object's local 
-        KI registry with the interactions registered at the KE runtime, so all 
+        """Synchronize registration of knowledge interactions in this object's local
+        KI registry with the interactions registered at the KE runtime, so all
         unregistered KIs in the local registry are registered.
 
         Raises:
@@ -336,7 +336,7 @@ class KnowledgeBase:
             the KE runtime.
             UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
             response.
-            RuntimeError: If an unknown long-polling result is obtained from the KE 
+            RuntimeError: If an unknown long-polling result is obtained from the KE
             client.
         """
         if self.state != KnowledgeBaseState.REGISTERED:
