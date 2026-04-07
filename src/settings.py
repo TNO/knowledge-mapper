@@ -11,7 +11,8 @@ from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
 
 
 class KnowledgeBaseSettings(BaseSettings):
-    """Base settings for a Knowledge Base application.
+    """Base settings for a KE Knowledge Base application, based on Pydantic 
+    BaseSettings.
 
     Subclass this to add application-specific settings. All fields are
     populated from the following sources, in priority order (highest first):
@@ -75,6 +76,7 @@ class KnowledgeBaseSettings(BaseSettings):
         return (
             init_settings,
             env_settings,
+            dotenv_settings,
             YamlConfigSettingsSource(settings_cls),
             JsonConfigSettingsSource(settings_cls),
         )
