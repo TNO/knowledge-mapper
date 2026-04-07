@@ -14,7 +14,7 @@ type Handler = Callable[
 def default_ask_handler(
     binding_set: BindingSet, info: KnowledgeInteractionInfo
 ) -> BindingSet:
-    # TODO: Implement a default ASK handler when implementing serialization and 
+    # TODO: Implement a default ASK handler when implementing serialization and
     # validation of binding sets
     return binding_set
 
@@ -22,7 +22,7 @@ def default_ask_handler(
 def default_post_handler(
     binding_set: BindingSet, info: KnowledgeInteractionInfo
 ) -> BindingSet:
-    # TODO: Implement a default ASK handler when implementing serialization and 
+    # TODO: Implement a default POST handler when implementing serialization and
     # validation of binding sets
     return binding_set
 

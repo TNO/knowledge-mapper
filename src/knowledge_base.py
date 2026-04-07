@@ -360,7 +360,7 @@ class KnowledgeBase:
         handler with info from the KB settings.
 
         Raises:
-            ValueError: If no settings are found or ``ki_name`` is not found in the 
+            ValueError: If no settings are found or ``ki_name`` is not found in the
             settings, or if registration constraints are violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.
@@ -389,12 +389,12 @@ class KnowledgeBase:
     def ki_from_settings_with_default_handler(
         self, ki_name: str, defer_ke_registration: bool = True
     ) -> None:
-        """Register a KI that was defined in the settings of a KB. Only applicable to 
+        """Register a KI that was defined in the settings of a KB. Only applicable to
         KIs of type ASK or POST, which will be registered with the default ASK and POST
         handlers, respectively.
         Raises:
-            ValueError: If no settings are found or ``ki_name`` is not found in the 
-            settings, if the KI type is not ASK or POST, or if registration constraints 
+            ValueError: If no settings are found or ``ki_name`` is not found in the
+            settings, if the KI type is not ASK or POST, or if registration constraints
             are violated.
             SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
               the KE runtime.

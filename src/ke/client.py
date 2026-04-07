@@ -128,7 +128,7 @@ class ClientProtocol(Protocol):
             response.
         """
         ...
-    
+
     @property
     def ke_url(self) -> str:
         """Return the base URL of the KE runtime this client is communicating with."""
@@ -287,8 +287,7 @@ class Client(ClientProtocol):
 
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
-        
-    
+
     @property
     def ke_url(self) -> str:
         return self._ke_url

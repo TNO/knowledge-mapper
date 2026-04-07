@@ -11,7 +11,7 @@ from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
 
 
 class KnowledgeBaseSettings(BaseSettings):
-    """Base settings for a KE Knowledge Base application, based on Pydantic 
+    """Base settings for a KE Knowledge Base application, based on Pydantic
     BaseSettings.
 
     Subclass this to add application-specific settings. All fields are
@@ -80,7 +80,7 @@ class KnowledgeBaseSettings(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
             JsonConfigSettingsSource(settings_cls),
         )
-    
+
     def interaction_by_name(self, name: str) -> KnowledgeInteractionInfo:
         for ki in self.knowledge_interactions:
             if ki.name == name:
