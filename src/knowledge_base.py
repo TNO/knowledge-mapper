@@ -171,9 +171,9 @@ class KnowledgeBase:
         return decorator
 
     def sync_knowledge_interactions(self) -> None:
-        """Synchronize registration of knowledge interactions in this object's registry
-        with the interactions registered at the KE runtime, so all unregistered KIs in
-        the registry are registered.
+        """Synchronize registration of knowledge interactions in this object's local 
+        KI registry with the interactions registered at the KE runtime, so all 
+        unregistered KIs in the local registry are registered.
 
         Raises:
             ValueError: If the KB is not registered.
@@ -336,7 +336,8 @@ class KnowledgeBase:
             the KE runtime.
             UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
             response.
-            Exception: If an unexpected poll result is returned.
+            RuntimeError: If an unknown long-polling result is obtained from the KE 
+            client.
         """
         if self.state != KnowledgeBaseState.REGISTERED:
             raise RuntimeError(
@@ -362,7 +363,7 @@ class KnowledgeBase:
                     logger.info("Received exit signal from KE, stopping handling loop.")
                     return
                 case _:
-                    raise Exception(
+                    raise RuntimeError(
                         f"Unexpected poll result: {poll_result} or request:"
                         f"{maybe_handle_request}"
                     )

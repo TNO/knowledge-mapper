@@ -91,7 +91,9 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def get_knowledge_interactions(self, kb_id: str) -> list[KnowledgeInteractionInfo]:
+    def get_all_knowledge_interactions(
+        self, kb_id: str
+    ) -> list[KnowledgeInteractionInfo]:
         """Return all knowledge interactions registered for the given KB.
 
         Raises:
@@ -191,7 +193,9 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
         return
 
-    def get_knowledge_interactions(self, kb_id: str) -> list[KnowledgeInteractionInfo]:
+    def get_all_knowledge_interactions(
+        self, kb_id: str
+    ) -> list[KnowledgeInteractionInfo]:
         response = requests.get(
             f"{self.ke_url}/sc/ki",
             headers={"Knowledge-Base-Id": kb_id},
