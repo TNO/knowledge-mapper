@@ -37,22 +37,102 @@ class HandleRequest(BaseModel):
 
 
 class ClientProtocol(Protocol):
-    def ke_is_available(self) -> bool: ...
-    def ke_version(self) -> str: ...
-    def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None: ...
-    def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]: ...
-    def register_kb(self, info: KnowledgeBaseInfo, reregister: bool = True) -> None: ...
-    def unregister_kb(self, id: str) -> None: ...
-    def get_knowledge_interactions(
+    """Interface for communicating with a Knowledge Engine runtime."""
+
+    def ke_is_available(self) -> bool:
+        """Return ``True`` if the KE runtime is reachable, ``False`` otherwise."""
+        ...
+
+    def ke_version(self) -> str:
+        """Return the version string of the KE runtime.
+
+        Raises:
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+        """Return the KB with the given ID, or ``None`` if it does not exist.
+
+        Raises:
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
+        """Return all KBs registered at the KE runtime.
+
+        Raises:
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def register_kb(self, info: KnowledgeBaseInfo, reregister: bool = True) -> None:
+        """Register a KB at the KE runtime, optionally re-registering if it already
+        exists.
+
+        Raises:
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def unregister_kb(self, id: str) -> None:
+        """Unregister the KB with the given ID from the KE runtime.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def get_all_knowledge_interactions(
         self, kb_id: str
-    ) -> list[KnowledgeInteractionInfo]: ...
+    ) -> list[KnowledgeInteractionInfo]:
+        """Return all knowledge interactions registered for the given KB.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
     def register_ki(
         self, kb_id: str, ki: KnowledgeInteractionInfo
-    ) -> KnowledgeInteractionInfo: ...
-    def poll_ki_call(self, kb_id: str) -> PollResult: ...
+    ) -> KnowledgeInteractionInfo:
+        """Register a knowledge interaction for the given KB and return it with its
+        assigned ID set in the info.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def poll_ki_call(self, kb_id: str) -> PollResult:
+        """Poll the KE runtime for an incoming KI call for the given KB.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
 
 
-class Client:
+class Client(ClientProtocol):
+    """HTTP client for the Knowledge Engine REST API."""
+
     def __init__(self, ke_url: str):
         self.ke_url = ke_url
 
@@ -113,7 +193,9 @@ class Client:
             raise UnexpectedHttpResponseError(response)
         return
 
-    def get_knowledge_interactions(self, kb_id: str) -> list[KnowledgeInteractionInfo]:
+    def get_all_knowledge_interactions(
+        self, kb_id: str
+    ) -> list[KnowledgeInteractionInfo]:
         response = requests.get(
             f"{self.ke_url}/sc/ki",
             headers={"Knowledge-Base-Id": kb_id},

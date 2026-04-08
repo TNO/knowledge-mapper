@@ -96,7 +96,9 @@ def test_get_knowledge_interactions(client: Client):
     ]
 
     with patch("requests.get", return_value=mock_response) as mock_get:
-        interactions = client.get_knowledge_interactions("http://example.org/test#kb")
+        interactions = client.get_all_knowledge_interactions(
+            "http://example.org/test#kb"
+        )
 
     mock_get.assert_called_once_with(
         "http://fake-ke/sc/ki",

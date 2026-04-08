@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from enum import StrEnum
 from functools import wraps
 
 from .ke import Client
@@ -13,15 +14,28 @@ from .ke.models import (
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
 )
-from .knowledge_interaction import Handler, KnowledgeInteractionContext
+from .knowledge_interaction import (
+    Handler,
+    KnowledgeInteractionContext,
+    KnowledgeInteractionStatus,
+)
 
 logger = logging.getLogger(__name__)
 
 
+class KnowledgeBaseState(StrEnum):
+    UNREGISTERED = "unregistered"
+    REGISTERED = "registered"
+
+
 class KnowledgeBase:
+    """This knowledge base is used for registering and unregistering at a Knowledge
+    Engine runtime, registering knowledge interactions and calling its handlers.
+    Starts in unregistered state.
+    """
+
     def __init__(self, id: str, name: str, description: str, ke_url: str):
-        self.registered = False
-        self.deferred_kis: list[KnowledgeInteractionContext] = []
+        self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext] = {}
         self.client = Client(ke_url)
         self.info = KnowledgeBaseInfo(
@@ -31,63 +45,156 @@ class KnowledgeBase:
         )
 
     def connect(self) -> None:
-        """Checks whether the KE runtime is available and raises an exception if not."""
-        connected = self.client.ke_is_available()
-        if not connected:
+        """Checks whether the KE runtime is available and raises an exception if not.
+
+        Raises:
+            KnowledgeEngineNotAvailableError: If the KE runtime cannot be reached.
+        """
+        if not self.client.ke_is_available():
             raise KnowledgeEngineNotAvailableError(self.client.ke_url)
 
     def register(self) -> None:
+        """Register this knowledge base at the KE runtime, reregister if already
+        registered. Automatically syncs knowledge interactions with KE runtime.
+
+        Raises:
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
         logger.info(
             "Registering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.register_kb(self.info)
-        self.registered = True
-        self.register_deferred_kis()
+        self.client.register_kb(self.info, reregister=True)
+        self.state = KnowledgeBaseState.REGISTERED
+        self.sync_knowledge_interactions()
         return
 
     def unregister(self) -> None:
+        """Unregister this knowledge base at the KE runtime, do nothing if not currently
+        registered. Knowledge interactions automatically unregistered.
+
+        Raises:
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in the
+              KE runtime.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+              response.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            logger.warning(
+                "Knowledge base '%s' (%s) is not registered, cannot unregister.",
+                self.info.id,
+                self.info.name,
+            )
+            return
+
         logger.info(
             "Unregistering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
         self.client.unregister_kb(self.info.id)
-        self.registered = False
+        self.state = KnowledgeBaseState.UNREGISTERED
+        for ki_ctx in self.ki_registry.values():
+            ki_ctx.status = KnowledgeInteractionStatus.UNREGISTERED
         return
 
     def register_ki(
-        self, ki_ctx: KnowledgeInteractionContext, defer_registration: bool = False
+        self, ki_ctx: KnowledgeInteractionContext, defer_ke_registration: bool = False
     ) -> KnowledgeInteractionInfo:
-        if defer_registration:
-            self.deferred_kis.append(ki_ctx)
-            return ki_ctx.info
-        else:
-            registered_ki = self.client.register_ki(
-                kb_id=self.info.id,
-                ki=ki_ctx.info,
+        """Register a knowledge interaction for this knowledge base at the KE runtime
+        and store it in this object's registry of interactions.
+
+        Raises:
+            ValueError: If the KB is not yet registered and ``defer_ke_registration`` is
+                ``False``, if a KI with the same name is already registered, or if the
+                given KI context is already in a registered state.
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in the
+                KE runtime (only when ``defer_ke_registration`` is ``False``).
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+                response (only when ``defer_ke_registration`` is ``False``).
+        """
+        if self.state != KnowledgeBaseState.REGISTERED and not defer_ke_registration:
+            raise ValueError(
+                f"Cannot register KI '{ki_ctx.info.name}' because the KB is not "
+                f"registered. Consider setting defer_ke_registration=True to defer "
+                f"registration until the KB itself is registered."
             )
-            ki_ctx.info = registered_ki
-            self.ki_registry[registered_ki.id] = ki_ctx
-            return registered_ki
+        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
+            raise ValueError(
+                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
+            )
+        if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
+            raise ValueError(
+                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
+                f"registered."
+            )
+
+        self.ki_registry[ki_ctx.info.name] = ki_ctx
+        if defer_ke_registration:
+            return ki_ctx.info
+
+        registered_ki = self.client.register_ki(
+            kb_id=self.info.id,
+            ki=ki_ctx.info,
+        )
+        ki_ctx.info = registered_ki
+        ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
+        return registered_ki
 
     def _register_ki_decorator(
-        self, info: KnowledgeInteractionInfo, defer_registration: bool
+        self, info: KnowledgeInteractionInfo, defer_ke_registration: bool
     ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as a KI handler.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+              violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
+
         def decorator(func: Handler) -> Handler:
             @wraps(func)
             def wrapper(*args, **kwargs):
                 return func(*args, **kwargs)
 
             self.register_ki(
-                KnowledgeInteractionContext(info=info, handler=func),
-                defer_registration=defer_registration,
+                KnowledgeInteractionContext(
+                    info=info,
+                    handler=func,
+                    status=KnowledgeInteractionStatus.UNREGISTERED,
+                ),
+                defer_ke_registration=defer_ke_registration,
             )
             return wrapper
 
         return decorator
 
-    def register_deferred_kis(self) -> None:
-        for ki_ctx in self.deferred_kis:
-            self.register_ki(ki_ctx, defer_registration=False)
-        self.deferred_kis.clear()
+    def sync_knowledge_interactions(self) -> None:
+        """Synchronize registration of knowledge interactions in this object's local
+        KI registry with the interactions registered at the KE runtime, so all
+        unregistered KIs in the local registry are registered.
+
+        Raises:
+            ValueError: If the KB is not registered.
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in
+            the KE runtime.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise ValueError(
+                "Cannot sync KIs because the KB is not registered. Please register "
+                "the KB first."
+            )
+        for ki_ctx in self.ki_registry.values():
+            if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
+                continue
+            ki_ctx.info = self.client.register_ki(
+                kb_id=self.info.id,
+                ki=ki_ctx.info,
+            )
+            ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
         return
 
     def ask_ki(
@@ -95,8 +202,19 @@ class KnowledgeBase:
         name: str,
         graph_pattern: str,
         prefixes: dict = None,
-        defer_registration: bool = True,
+        defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as an ASK KI
+        handler.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+            violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
         return self._register_ki_decorator(
             info=AskAnswerInteractionInfo(
                 type=KiTypes.ASK,
@@ -104,7 +222,7 @@ class KnowledgeBase:
                 prefixes=prefixes or dict(),
                 graph_pattern=graph_pattern,
             ),
-            defer_registration=defer_registration,
+            defer_ke_registration=defer_ke_registration,
         )
 
     def answer_ki(
@@ -112,8 +230,19 @@ class KnowledgeBase:
         name: str,
         graph_pattern: str,
         prefixes: dict = None,
-        defer_registration: bool = True,
+        defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as an ANSWER KI
+        handler.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+            violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
         return self._register_ki_decorator(
             info=AskAnswerInteractionInfo(
                 type=KiTypes.ANSWER,
@@ -121,7 +250,7 @@ class KnowledgeBase:
                 prefixes=prefixes or dict(),
                 graph_pattern=graph_pattern,
             ),
-            defer_registration=defer_registration,
+            defer_ke_registration=defer_ke_registration,
         )
 
     def post_ki(
@@ -130,8 +259,19 @@ class KnowledgeBase:
         argument_graph_pattern: str,
         result_graph_pattern: str,
         prefixes: dict = None,
-        defer_registration: bool = True,
+        defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as a POST KI
+        handler.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+            violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
         return self._register_ki_decorator(
             info=PostReactInteractionInfo(
                 type=KiTypes.POST,
@@ -140,7 +280,7 @@ class KnowledgeBase:
                 argument_graph_pattern=argument_graph_pattern,
                 result_graph_pattern=result_graph_pattern,
             ),
-            defer_registration=defer_registration,
+            defer_ke_registration=defer_ke_registration,
         )
 
     def react_ki(
@@ -149,8 +289,19 @@ class KnowledgeBase:
         argument_graph_pattern: str,
         result_graph_pattern: str,
         prefixes: dict = None,
-        defer_registration: bool = True,
+        defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as a REACT KI
+        handler.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+            violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
         return self._register_ki_decorator(
             info=PostReactInteractionInfo(
                 type=KiTypes.REACT,
@@ -159,18 +310,41 @@ class KnowledgeBase:
                 argument_graph_pattern=argument_graph_pattern,
                 result_graph_pattern=result_graph_pattern,
             ),
-            defer_registration=defer_registration,
+            defer_ke_registration=defer_ke_registration,
         )
 
     def call(self, binding_set: BindingSet, ki_id: str) -> BindingSet:
-        if ki_id not in self.ki_registry:
-            raise ValueError(f"Knowledge Interaction '{ki_id}' is not registered.")
+        """Invoke the handler of a registered KI by its ID.
 
+        Raises:
+            KeyError: If ``ki_id`` is not found in the local KI registry.
+        """
         ki_ctx = self.ki_registry[ki_id]
         result = ki_ctx.handler(binding_set)
         return result
 
     def start_handling_loop(self, loops: int = None) -> None:
+        """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
+
+        Runs until an EXIT signal is received from the KE runtime, or until
+        ``loops`` iterations have been completed if ``loops`` is specified.
+
+        Raises:
+            RuntimeError: If the KB is not registered.
+            KeyError: If the KE runtime refers to a KI not found in the local registry.
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in
+            the KE runtime.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+            RuntimeError: If an unknown long-polling result is obtained from the KE
+            client.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise RuntimeError(
+                "Cannot start handling loop because the KB is not registered. Please "
+                "register the KB first."
+            )
+
         loops_done = 0
         while loops is None or loops_done < loops:
             loops_done += 1
@@ -189,7 +363,12 @@ class KnowledgeBase:
                     logger.info("Received exit signal from KE, stopping handling loop.")
                     return
                 case _:
-                    raise Exception(
+                    raise RuntimeError(
                         f"Unexpected poll result: {poll_result} or request:"
                         f"{maybe_handle_request}"
                     )
+
+    @property
+    def is_registered(self) -> bool:
+        """Is the knowledge base in the registered state"""
+        return self.state == KnowledgeBaseState.REGISTERED

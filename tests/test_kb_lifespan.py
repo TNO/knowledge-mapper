@@ -2,8 +2,9 @@ from unittest.mock import patch
 
 import pytest
 
+from src import KnowledgeBase
 from src.ke.errors import KnowledgeEngineNotAvailableError
-from src.knowledge_base import KnowledgeBase
+from src.knowledge_base import KnowledgeBaseState
 from tests.fake_client import FakeClient
 
 
@@ -39,8 +40,18 @@ def test_connect_raises_if_ke_unavailable(kb: KnowledgeBase):
 def test_register_unregister_cycle(kb: KnowledgeBase, client: FakeClient):
     kb.connect()
     kb.register()
-    assert kb.registered
+    assert kb.state == KnowledgeBaseState.REGISTERED
     assert client.get_knowledge_base(kb.info.id) is not None
     kb.unregister()
-    assert not kb.registered
+    assert kb.state == KnowledgeBaseState.UNREGISTERED
     assert client.get_knowledge_base(kb.info.id) is None
+
+
+def test_unregister_without_registering(kb: KnowledgeBase):
+    kb.connect()
+    kb.unregister()  # Should not raise an exception, just log a warning
+
+
+def test_start_handling_loop_without_registering(kb: KnowledgeBase):
+    with pytest.raises(RuntimeError):
+        kb.start_handling_loop(loops=1)
