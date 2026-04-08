@@ -17,6 +17,7 @@ Run:
   python custom_settings.py --kb_id http://my/kb     # override via CLI
   KB_ID=http://my/kb python custom_settings.py       # override via env var
 """
+
 import sys
 from pathlib import Path
 
