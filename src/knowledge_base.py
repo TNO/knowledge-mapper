@@ -374,7 +374,7 @@ class KnowledgeBase:
                 "with a KnowledgeBaseSettings that includes the desired KI info."
             )
         try:
-            info = self._build_settings.interaction_by_name(ki_name)
+            info = self._build_settings.get_configured_interaction(ki_name)
         except ValueError as err:
             raise ValueError(
                 f"KI named '{ki_name}' not found in KB settings. Please ensure the "
@@ -392,6 +392,13 @@ class KnowledgeBase:
         """Register a KI that was defined in the settings of a KB. Only applicable to
         KIs of type ASK or POST, which will be registered with the default ASK and POST
         handlers, respectively.
+
+        .. warning::
+            The default ASK and POST handlers are not yet implemented. The KI will be
+            registered successfully, but invoking it will raise
+            :exc:`NotImplementedError`. Use :meth:`ki_from_settings` with a custom
+            handler instead.
+
         Raises:
             ValueError: If no settings are found or ``ki_name`` is not found in the
             settings, if the KI type is not ASK or POST, or if registration constraints
@@ -409,7 +416,7 @@ class KnowledgeBase:
             )
 
         try:
-            info = self._build_settings.interaction_by_name(ki_name)
+            info = self._build_settings.get_configured_interaction(ki_name)
         except ValueError as err:
             raise ValueError(
                 f"KI named '{ki_name}' not found in KB settings. Please ensure the "

@@ -81,7 +81,7 @@ class KnowledgeBaseSettings(BaseSettings):
             JsonConfigSettingsSource(settings_cls),
         )
 
-    def interaction_by_name(self, name: str) -> KnowledgeInteractionInfo:
+    def get_configured_interaction(self, name: str) -> KnowledgeInteractionInfo:
         for ki in self.knowledge_interactions:
             if ki.name == name:
                 return ki
