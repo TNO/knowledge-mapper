@@ -4,11 +4,33 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Concatenate
 
-from src.ke.models import BindingModel, KnowledgeInteractionInfo
+from src.ke.models import BindingSet, KnowledgeInteractionInfo
 
 type Handler = Callable[
-    Concatenate[list[BindingModel], KnowledgeInteractionInfo, ...], list[BindingModel]
+    Concatenate[BindingSet, KnowledgeInteractionInfo, ...], BindingSet
 ]
+
+
+def default_ask_handler(
+    binding_set: BindingSet, info: KnowledgeInteractionInfo
+) -> BindingSet:
+    # TODO: Implement a default ASK handler when implementing serialization and
+    # validation of binding sets
+    raise NotImplementedError(
+        "default_ask_handler is not yet implemented. "
+        "Provide a custom handler via ki_from_settings instead."
+    )
+
+
+def default_post_handler(
+    binding_set: BindingSet, info: KnowledgeInteractionInfo
+) -> BindingSet:
+    # TODO: Implement a default POST handler when implementing serialization and
+    # validation of binding sets
+    raise NotImplementedError(
+        "default_post_handler is not yet implemented. "
+        "Provide a custom handler via ki_from_settings instead."
+    )
 
 
 class KnowledgeInteractionStatus(StrEnum):

@@ -1,0 +1,5 @@
+knowledge_base:
+  id: "http://example.org/test/config#kb"
+  name: "config-knowledge-base"
+  description: "A knowledge base with settings loaded from config.yaml."
+knowledge_engine_endpoint: "http://example.org:8280/rest"

@@ -3,7 +3,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.ke import Client
-from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
+from src.ke.models import (
+    AskAnswerInteractionInfo,
+    KnowledgeBaseInfo,
+    KnowledgeInteractionInfo,
+    PostReactInteractionInfo,
+)
 
 
 @pytest.fixture
@@ -107,9 +112,11 @@ def test_get_knowledge_interactions(client: Client):
     assert len(interactions) == 2
     assert interactions[0].type == "AskKnowledgeInteraction"
     assert interactions[0].name == "ask-interaction"
+    assert isinstance(interactions[0], AskAnswerInteractionInfo)
     assert interactions[0].graph_pattern == "?s ?p ?o . "
     assert interactions[1].type == "PostKnowledgeInteraction"
     assert interactions[1].name == "post-interaction"
+    assert isinstance(interactions[1], PostReactInteractionInfo)
     assert interactions[1].argument_graph_pattern == "?s ?p ?o . "
     assert interactions[1].result_graph_pattern == "?s ?p ?o . "
 
@@ -127,7 +134,7 @@ def test_register_knowledge_interaction(client: Client):
             ki=KnowledgeInteractionInfo(
                 type="AskKnowledgeInteraction",
                 name="ask-interaction",
-                graph_pattern="?s ?p ?o . ",
+                graph_pattern="?s ?p ?o . ",  # pyright: ignore[reportCallIssue]
                 prefixes={"test": "http://example.org/test#"},
             ),
         )

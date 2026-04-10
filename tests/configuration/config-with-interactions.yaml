@@ -1,0 +1,35 @@
+knowledge_base:
+  id: "http://example.org/test/config#kb-with-interactions"
+  name: "kb-with-interactions"
+  description: "A knowledge base with interactions loaded from config file."
+knowledge_engine_endpoint: "http://example.org:8280/rest"
+
+knowledge_interactions:
+  - name: ask-from-settings
+    type: AskKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    graph_pattern: |
+      ?s ?p ?o .
+  - name: answer-from-settings
+    type: AnswerKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    graph_pattern: |
+      ?s ?p ?o .
+  - name: post-from-settings
+    type: PostKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    argument_graph_pattern: |
+      ?s ?p ?o .
+    result_graph_pattern: |
+      ?s ?p ?o .
+  - name: react-from-settings
+    type: ReactKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/custom-settings#"
+    argument_graph_pattern: |
+      ?s ?p ?o .
+    result_graph_pattern: |
+      ?s ?p ?o .

@@ -21,8 +21,9 @@ kb = KnowledgeBase(
     """,
     prefixes={"ex": "http://example.org/knowledge-mapper/basic#"},
 )
-def example_answer_ki():
+def example_answer_ki(binding_set, info):
     logger.info("Handling a call to the example answer KI.")
+    return binding_set
 
 
 if __name__ == "__main__":

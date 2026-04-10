@@ -4,7 +4,7 @@ from enum import StrEnum
 from functools import wraps
 
 from .ke import Client
-from .ke.client import PollResult
+from .ke.client import ClientProtocol, PollResult
 from .ke.errors import KnowledgeEngineNotAvailableError
 from .ke.models import (
     AskAnswerInteractionInfo,
@@ -18,7 +18,10 @@ from .knowledge_interaction import (
     Handler,
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
+    default_ask_handler,
+    default_post_handler,
 )
+from .settings import KnowledgeBaseSettings
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +40,27 @@ class KnowledgeBase:
     def __init__(self, id: str, name: str, description: str, ke_url: str):
         self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext] = {}
-        self.client = Client(ke_url)
+        self.client: ClientProtocol = Client(ke_url)
         self.info = KnowledgeBaseInfo(
             id=id,
             name=name,
             description=description,
         )
+        self._build_settings: KnowledgeBaseSettings | None = None
+
+    @classmethod
+    def from_settings(cls, settings: KnowledgeBaseSettings) -> "KnowledgeBase":
+        """Create a :class:`KnowledgeBase` from a
+        :class:`~.settings.KnowledgeBaseSettings` instance (or a subclass thereof).
+        """
+        kb = cls(
+            id=settings.knowledge_base.id,
+            name=settings.knowledge_base.name,
+            description=settings.knowledge_base.description,
+            ke_url=settings.knowledge_engine_endpoint,
+        )
+        kb._build_settings = settings
+        return kb
 
     def connect(self) -> None:
         """Checks whether the KE runtime is available and raises an exception if not.
@@ -155,8 +173,10 @@ class KnowledgeBase:
 
         def decorator(func: Handler) -> Handler:
             @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
+            def wrapper(
+                binding_set: BindingSet, info: KnowledgeInteractionInfo, *args, **kwargs
+            ):
+                return func(binding_set, info, *args, **kwargs)
 
             self.register_ki(
                 KnowledgeInteractionContext(
@@ -197,11 +217,31 @@ class KnowledgeBase:
             ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
         return
 
+    def ki_from_info(
+        self,
+        info: KnowledgeInteractionInfo,
+        defer_ke_registration: bool = True,
+    ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as a KI handler
+        based on the provided KnowledgeInteractionInfo.
+
+        Raises:
+            ValueError: Propagated from ``register_ki`` if registration constraints are
+              violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
+        return self._register_ki_decorator(
+            info=info, defer_ke_registration=defer_ke_registration
+        )
+
     def ask_ki(
         self,
         name: str,
         graph_pattern: str,
-        prefixes: dict = None,
+        prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as an ASK KI
@@ -229,7 +269,7 @@ class KnowledgeBase:
         self,
         name: str,
         graph_pattern: str,
-        prefixes: dict = None,
+        prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as an ANSWER KI
@@ -258,7 +298,7 @@ class KnowledgeBase:
         name: str,
         argument_graph_pattern: str,
         result_graph_pattern: str,
-        prefixes: dict = None,
+        prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as a POST KI
@@ -288,7 +328,7 @@ class KnowledgeBase:
         name: str,
         argument_graph_pattern: str,
         result_graph_pattern: str,
-        prefixes: dict = None,
+        prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as a REACT KI
@@ -313,6 +353,93 @@ class KnowledgeBase:
             defer_ke_registration=defer_ke_registration,
         )
 
+    def ki_from_settings(
+        self, ki_name: str, defer_ke_registration: bool = True
+    ) -> Callable[[Handler], Handler]:
+        """Return a decorator that registers the decorated function as a KI
+        handler with info from the KB settings.
+
+        Raises:
+            ValueError: If no settings are found or ``ki_name`` is not found in the
+            settings, or if registration constraints are violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
+        if not self._build_settings:
+            raise ValueError(
+                "Cannot register KI from settings because the KB was not built from "
+                "settings. Please build the KB using KnowledgeBase.from_settings() "
+                "with a KnowledgeBaseSettings that includes the desired KI info."
+            )
+        try:
+            info = self._build_settings.get_configured_interaction(ki_name)
+        except ValueError as err:
+            raise ValueError(
+                f"KI named '{ki_name}' not found in KB settings. Please ensure the "
+                f"settings include a KI with this name."
+            ) from err
+
+        return self._register_ki_decorator(
+            info=info,
+            defer_ke_registration=defer_ke_registration,
+        )
+
+    def ki_from_settings_with_default_handler(
+        self, ki_name: str, defer_ke_registration: bool = True
+    ) -> None:
+        """Register a KI that was defined in the settings of a KB. Only applicable to
+        KIs of type ASK or POST, which will be registered with the default ASK and POST
+        handlers, respectively.
+
+        .. warning::
+            The default ASK and POST handlers are not yet implemented. The KI will be
+            registered successfully, but invoking it will raise
+            :exc:`NotImplementedError`. Use :meth:`ki_from_settings` with a custom
+            handler instead.
+
+        Raises:
+            ValueError: If no settings are found or ``ki_name`` is not found in the
+            settings, if the KI type is not ASK or POST, or if registration constraints
+            are violated.
+            SmartConnectorNotFoundError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+            UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
+              the KE runtime.
+        """
+        if not self._build_settings:
+            raise ValueError(
+                "Cannot register KI from settings because the KB was not built from "
+                "settings. Please build the KB using KnowledgeBase.from_settings() with"
+                " a KnowledgeBaseSettings that includes the desired KI info."
+            )
+
+        try:
+            info = self._build_settings.get_configured_interaction(ki_name)
+        except ValueError as err:
+            raise ValueError(
+                f"KI named '{ki_name}' not found in KB settings. Please ensure the "
+                f"settings include a KI with this name."
+            ) from err
+
+        if not (info.type == KiTypes.ASK or info.type == KiTypes.POST):
+            raise ValueError(
+                f"KI named '{ki_name}' in settings must be of type ASK or POST to use "
+                f"the default handler registration method."
+            )
+
+        self.register_ki(
+            KnowledgeInteractionContext(
+                info=info,
+                handler=default_ask_handler
+                if info.type == KiTypes.ASK
+                else default_post_handler,
+            ),
+            defer_ke_registration=defer_ke_registration,
+        )
+        return
+
     def call(self, binding_set: BindingSet, ki_id: str) -> BindingSet:
         """Invoke the handler of a registered KI by its ID.
 
@@ -320,10 +447,10 @@ class KnowledgeBase:
             KeyError: If ``ki_id`` is not found in the local KI registry.
         """
         ki_ctx = self.ki_registry[ki_id]
-        result = ki_ctx.handler(binding_set)
+        result = ki_ctx.handler(binding_set, ki_ctx.info)
         return result
 
-    def start_handling_loop(self, loops: int = None) -> None:
+    def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
 
         Runs until an EXIT signal is received from the KE runtime, or until
@@ -353,6 +480,7 @@ class KnowledgeBase:
             )
             match poll_result, maybe_handle_request:
                 case PollResult.HANDLE, _:
+                    assert maybe_handle_request is not None
                     self.call(
                         maybe_handle_request.binding_set,
                         maybe_handle_request.knowledge_interaction_id,
