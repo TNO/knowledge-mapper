@@ -33,6 +33,9 @@ def shared_prefixes():
 
 
 def ki_ctx_setup() -> KnowledgeInteractionContext:
+    def handler(binding_set: BindingSet, info: KnowledgeInteractionInfo) -> BindingSet:
+        return binding_set
+
     return KnowledgeInteractionContext(
         info=AskAnswerInteractionInfo(
             name="test-ki",
@@ -40,7 +43,7 @@ def ki_ctx_setup() -> KnowledgeInteractionContext:
             graph_pattern="""?s ?p ?o . """,
             prefixes=shared_prefixes(),
         ),
-        handler=lambda binding_set, info: binding_set,
+        handler=handler,
         status=KnowledgeInteractionStatus.UNREGISTERED,
     )
 
@@ -233,5 +236,5 @@ def test_call_handler():
 
     ki_info = next(iter(kb.ki_registry.values())).info
     input_binding_set = [{"input": "test:Input1", "value": "Hello"}]
-    result = kb.call(binding_set=input_binding_set, ki_id=ki_info.name)
+    result = kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
     assert result == input_binding_set

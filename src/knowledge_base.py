@@ -1,13 +1,15 @@
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from enum import StrEnum
 from functools import wraps
+from typing import Any
 
 from .ke import Client
 from .ke.client import ClientProtocol, PollResult
 from .ke.errors import KnowledgeEngineNotAvailableError
 from .ke.models import (
     AskAnswerInteractionInfo,
+    BindingModel,
     BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
@@ -39,7 +41,7 @@ class KnowledgeBase:
 
     def __init__(self, id: str, name: str, description: str, ke_url: str):
         self.state = KnowledgeBaseState.UNREGISTERED
-        self.ki_registry: dict[str, KnowledgeInteractionContext] = {}
+        self.ki_registry: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
         self.client: ClientProtocol = Client(ke_url)
         self.info = KnowledgeBaseInfo(
             id=id,
@@ -115,7 +117,9 @@ class KnowledgeBase:
         return
 
     def register_ki(
-        self, ki_ctx: KnowledgeInteractionContext, defer_ke_registration: bool = False
+        self,
+        ki_ctx: KnowledgeInteractionContext[Any, ...],
+        defer_ke_registration: bool = False,
     ) -> KnowledgeInteractionInfo:
         """Register a knowledge interaction for this knowledge base at the KE runtime
         and store it in this object's registry of interactions.
@@ -174,14 +178,17 @@ class KnowledgeBase:
         def decorator(func: Handler) -> Handler:
             @wraps(func)
             def wrapper(
-                binding_set: BindingSet, info: KnowledgeInteractionInfo, *args, **kwargs
-            ):
+                binding_set: BindingSet | list[BindingModel],
+                info: KnowledgeInteractionInfo,
+                *args,
+                **kwargs,
+            ) -> BindingSet | Sequence[BindingModel]:
                 return func(binding_set, info, *args, **kwargs)
 
             self.register_ki(
                 KnowledgeInteractionContext(
                     info=info,
-                    handler=func,
+                    handler=wrapper,
                     status=KnowledgeInteractionStatus.UNREGISTERED,
                 ),
                 defer_ke_registration=defer_ke_registration,
@@ -440,15 +447,27 @@ class KnowledgeBase:
         )
         return
 
-    def call(self, binding_set: BindingSet, ki_id: str) -> BindingSet:
-        """Invoke the handler of a registered KI by its ID.
+    def call(
+        self, binding_set: BindingSet, ki_name: str
+    ) -> BindingSet:
+        """Invoke the handler of a registered KI by its name.
 
         Raises:
-            KeyError: If ``ki_id`` is not found in the local KI registry.
+            KeyError: If ``ki_name`` is not found in the local KI registry.
         """
-        ki_ctx = self.ki_registry[ki_id]
-        result = ki_ctx.handler(binding_set, ki_ctx.info)
-        return result
+        ki_ctx = self.ki_registry[ki_name]
+        if ki_ctx.validation_model:
+            binding_models = [
+                ki_ctx.validation_model.model_validate(b) for b in binding_set
+            ]
+            result_bindings = ki_ctx.handler(binding_models, ki_ctx.info)
+        else:
+            result_bindings = ki_ctx.handler(binding_set, ki_ctx.info)
+
+        if ki_ctx.serialization_model and result_bindings:
+            # We can assume the result bindings are BindingModels, so we can model_dump
+            result_bindings = [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue],
+        return result_bindings # pyright: ignore[reportReturnType]
 
     def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
