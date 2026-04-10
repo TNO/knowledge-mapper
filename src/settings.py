@@ -17,7 +17,7 @@ class KnowledgeBaseSettings(BaseSettings):
     Subclass this to add application-specific settings. All fields are
     populated from the following sources, in priority order (highest first):
 
-    1. Initialiser keyword arguments
+    1. Keyword arguments
     2. Environment variables
     3. YAML config file (``yaml_file`` in ``model_config``, default ``config.yaml``)
     4. JSON config file (``json_file`` in ``model_config``, default ``config.json``)
