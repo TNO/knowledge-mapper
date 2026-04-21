@@ -447,9 +447,7 @@ class KnowledgeBase:
         )
         return
 
-    def call(
-        self, binding_set: BindingSet, ki_name: str
-    ) -> BindingSet:
+    def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
         """Invoke the handler of a registered KI by its name.
 
         Raises:
@@ -467,7 +465,7 @@ class KnowledgeBase:
         if ki_ctx.serialization_model and result_bindings:
             # We can assume the result bindings are BindingModels, so we can model_dump
             result_bindings = [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue],
-        return result_bindings # pyright: ignore[reportReturnType]
+        return result_bindings  # pyright: ignore[reportReturnType]
 
     def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.

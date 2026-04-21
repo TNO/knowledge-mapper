@@ -49,12 +49,15 @@ def binding_models_answer_ki(
     )
     return [
         CurrentTemperatureBinding(
-            measurement=URIRef("http://example.org/knowledge-mapper/binding-models#currentTemp"),
+            measurement=URIRef(
+                "http://example.org/knowledge-mapper/binding-models#currentTemp"
+            ),
             value=22.5,
             unit=URIRef("http://example.org/knowledge-mapper/binding-models#Celsius"),
             time=datetime.now(),
         )
     ]
+
 
 @kb.answer_ki(
     name="binding-models-raw-answer-ki",
@@ -76,7 +79,7 @@ def binding_models_raw_answer_ki(
     return [
         {
             "measurement": "<http://example.org/knowledge-mapper/binding-models#currentTemp>",
-            "value": 22.5,
+            "value": "'22.5'^^xsd:float",
             "unit": "<http://example.org/knowledge-mapper/binding-models#Celsius>",
             "time": datetime.now().isoformat(),
         }
