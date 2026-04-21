@@ -95,7 +95,7 @@ class BindingModel(BaseModel):
 
     def matches_with(self, **kwargs) -> bool:
         for key, other_value in kwargs.items():
-            own_value: BindingNode = getattr(self, key)
+            own_value = getattr(self, key)
             if own_value is None:
                 continue
             if own_value.n3() == other_value:
