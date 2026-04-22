@@ -9,6 +9,7 @@ from pydantic.alias_generators import to_camel
 from .errors import SmartConnectorNotFoundError, UnexpectedHttpResponseError
 from .models import (
     AskAnswerInteractionInfo,
+    AskResult,
     BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
@@ -129,7 +130,25 @@ class ClientProtocol(Protocol):
             response.
         """
         ...
+    
+    def ask(
+        self,
+        kb_id: str,
+        ki_id: str,
+        binding_set: BindingSet,
+        recipient_ids: list[str] | None = None,
+    ) -> AskResult:
+        """Execute an ASK interaction by sending the given binding set as the
+        response to the KI call and returning the resulting binding set from the KE.
 
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+    
     def execute_post_interaction(
         self,
         kb_id: str,
@@ -337,6 +356,37 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
 
         return PostResult.model_validate(response.json())
+    
+    def ask(
+        self,
+        kb_id: str,
+        ki_id: str,
+        binding_set: BindingSet,
+        recipient_ids: list[str] | None = None,
+    ) -> AskResult:
+        if recipient_ids is not None:
+            payload = {
+                "bindingSet": binding_set,
+                "recipientSelector": {
+                    "knowledgeBases": recipient_ids,
+                },
+            }
+        else:
+            payload = binding_set
+
+        response = requests.post(
+            f"{self.ke_url}/sc/ask",
+            json=payload,
+            headers={
+                "Knowledge-Base-Id": kb_id,
+                "Knowledge-Interaction-Id": ki_id,
+            },
+        )
+
+        if not response.ok:
+            raise UnexpectedHttpResponseError(response)
+
+        return AskResult.model_validate(response.json())
 
     @property
     def ke_url(self) -> str:

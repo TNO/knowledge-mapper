@@ -162,6 +162,15 @@ class ExchangeInfo(BaseModel):
     failed_message: str | None = None
 
 
+class AskResult(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, frozen=True, populate_by_name=True
+    )
+
+    binding_set: BindingSet
+    exchange_info: list[ExchangeInfo]
+
+
 class PostResult(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, frozen=True, populate_by_name=True
