@@ -1,7 +1,16 @@
 """In-memory FakeClient that satisfies ClientProtocol for use in tests."""
 
+from datetime import UTC, datetime
+
 from src.ke.client import PollResult
-from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
+from src.ke.models import (
+    BindingSet,
+    ExchangeInfo,
+    Initiator,
+    KnowledgeBaseInfo,
+    KnowledgeInteractionInfo,
+    PostResult,
+)
 
 
 class FakeClient:
@@ -13,6 +22,8 @@ class FakeClient:
         self._knowledge_interactions: dict[str, list[KnowledgeInteractionInfo]] = {}
         self._next_ki_id: int = 1
         self._ke_url = fake_url
+        # Maps ki_name -> BindingSet to return from execute_post_interaction
+        self._mock_post_results: dict[str, BindingSet] = {}
 
     def ke_is_available(self) -> bool:
         return True
@@ -56,6 +67,49 @@ class FakeClient:
         # This fake client never returns any KI calls to handle, but always asks to
         # repoll.
         return (PollResult.REPOLL, None)
+
+    def mock_result_binding_set(self, ki_name: str, binding_set: BindingSet) -> None:
+        """Store a result binding set to be returned when execute_post_interaction
+        is called for the KI with the given name."""
+        self._mock_post_results[ki_name] = binding_set
+
+    def execute_post_interaction(
+        self,
+        kb_id: str,
+        ki_id: str,
+        binding_set: BindingSet,
+        recipient_ids: list[str] | None = None,
+    ) -> PostResult:
+        # Look up KI by ID to find its name, then check for a mocked result.
+        ki = next(
+            (
+                ki
+                for kis in self._knowledge_interactions.values()
+                for ki in kis
+                if ki.id == ki_id
+            ),
+            None,
+        )
+        ki_name = ki.name if ki is not None else None
+        result_binding_set = (
+            self._mock_post_results[ki_name]
+            if ki_name is not None and ki_name in self._mock_post_results
+            else []
+        )
+        now = datetime.now(tz=UTC)
+        return PostResult(
+            result_binding_set=result_binding_set,
+            exchange_info=[
+                ExchangeInfo(
+                    initiator=Initiator.KNOWLEDGE_BASE,
+                    knowledge_base_id=kb_id,
+                    knowledge_interaction_id=ki_id,
+                    exchange_start=now,
+                    exchange_end=now,
+                    status="OK",
+                )
+            ],
+        )
 
     @property
     def ke_url(self) -> str:

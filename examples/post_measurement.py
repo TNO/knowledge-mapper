@@ -50,8 +50,8 @@ kb.post_ki(
             ex:storedBy ?kb ;
     """,
     prefixes={"ex": "http://example.org/knowledge-mapper/post-measurement#"},
-    argument_binding_model=MeasurementBinding,
     result_binding_model=ResultBinding,
+    argument_binding_model=MeasurementBinding,
 )
 
 

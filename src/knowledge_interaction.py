@@ -48,10 +48,10 @@ class KnowledgeInteractionContext[B, **P]:
     serialization_model: type[BindingModel] | None = None
 
     def __post_init__(self):
-        if not callable(self.handler):
-            raise ValueError("Handler must be a callable.")
-
         if self.info.type == KiTypes.ANSWER or self.info.type == KiTypes.REACT:
+            if not callable(self.handler):
+                raise ValueError("Handler must be a callable.")
+            
             self.validation_model = self._inspect_incoming_binding_model(self.handler)
             self.serialization_model = self._inspect_outgoing_binding_model(self.handler)
 

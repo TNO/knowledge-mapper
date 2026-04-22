@@ -464,7 +464,7 @@ class KnowledgeBase:
         """
         ki_ctx = self.ki_registry[ki_name]
         assert ki_ctx.handler is not None # Should always be set for ANSWER/REACT KI's
-        
+
         if ki_ctx.validation_model:
             binding_models = [
                 ki_ctx.validation_model.model_validate(b) for b in binding_set
@@ -488,12 +488,18 @@ class KnowledgeBase:
             ValueError: If the KI is not registered at the KE runtime.
         """
         ki_ctx = self.ki_registry[ki_name]
+        if ki_ctx.info.type != KiTypes.POST:
+            raise ValueError(
+                f"KI named '{ki_name}' is of type {ki_ctx.info.type}, not POST, and "
+                f"cannot be called with the post() method."
+            )
         if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
                 f"Cannot call KI '{ki_name}' because it is not registered. Please "
                 f"register the KB and sync KIs first."
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
+        
         logger.info(
             f"Calling POST KI '{ki_name}' with bindings: {binding_set} and info: {ki_ctx.info}"
         )
