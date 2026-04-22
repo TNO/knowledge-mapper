@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
-from src.ke.models import BindingModel, BindingSet, KnowledgeInteractionInfo
+from src.ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
 
 type Handler[B, **P] = Callable[
     Concatenate[B, KnowledgeInteractionInfo, P],
@@ -42,17 +42,18 @@ class KnowledgeInteractionStatus(StrEnum):
 @dataclass
 class KnowledgeInteractionContext[B, **P]:
     info: KnowledgeInteractionInfo
-    handler: Handler[B, P]
+    handler: Handler[B, P] | None
     status: KnowledgeInteractionStatus = KnowledgeInteractionStatus.UNREGISTERED
-    validation_model: type[BindingModel] | None = field(init=False, default=None)
-    serialization_model: type[BindingModel] | None = field(init=False, default=None)
+    validation_model: type[BindingModel] | None = None
+    serialization_model: type[BindingModel] | None = None
 
     def __post_init__(self):
         if not callable(self.handler):
             raise ValueError("Handler must be a callable.")
 
-        self.validation_model = self._inspect_incoming_binding_model(self.handler)
-        self.serialization_model = self._inspect_outgoing_binding_model(self.handler)
+        if self.info.type == KiTypes.ANSWER or self.info.type == KiTypes.REACT:
+            self.validation_model = self._inspect_incoming_binding_model(self.handler)
+            self.serialization_model = self._inspect_outgoing_binding_model(self.handler)
 
     def _inspect_incoming_binding_model(
         self, handler: Callable[..., Any]

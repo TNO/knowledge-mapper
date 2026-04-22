@@ -305,11 +305,13 @@ class KnowledgeBase:
         name: str,
         argument_graph_pattern: str,
         result_graph_pattern: str,
+        argument_binding_model: type[BindingModel] | None = None,
+        result_binding_model: type[BindingModel] | None = None,
         prefixes: dict | None = None,
         defer_ke_registration: bool = True,
-    ) -> Callable[[Handler], Handler]:
-        """Return a decorator that registers the decorated function as a POST KI
-        handler.
+    ) -> None:
+        """Register a POST KI at the KE runtime with optional argument and result 
+        binding models.
 
         Raises:
             ValueError: Propagated from ``register_ki`` if registration constraints are
@@ -319,16 +321,23 @@ class KnowledgeBase:
             UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
               the KE runtime.
         """
-        return self._register_ki_decorator(
-            info=PostReactInteractionInfo(
-                type=KiTypes.POST,
-                name=name,
-                prefixes=prefixes or dict(),
-                argument_graph_pattern=argument_graph_pattern,
-                result_graph_pattern=result_graph_pattern,
+        self.register_ki(
+            KnowledgeInteractionContext(
+                info=PostReactInteractionInfo(
+                    type=KiTypes.POST,
+                    name=name,
+                    prefixes=prefixes or dict(),
+                    argument_graph_pattern=argument_graph_pattern,
+                    result_graph_pattern=result_graph_pattern,
+                ),
+                handler=None,
+                status=KnowledgeInteractionStatus.UNREGISTERED,
+                validation_model=result_binding_model,
+                serialization_model=argument_binding_model,
             ),
             defer_ke_registration=defer_ke_registration,
         )
+        return
 
     def react_ki(
         self,
@@ -454,6 +463,8 @@ class KnowledgeBase:
             KeyError: If ``ki_name`` is not found in the local KI registry.
         """
         ki_ctx = self.ki_registry[ki_name]
+        assert ki_ctx.handler is not None # Should always be set for ANSWER/REACT KI's
+        
         if ki_ctx.validation_model:
             binding_models = [
                 ki_ctx.validation_model.model_validate(b) for b in binding_set
@@ -466,6 +477,52 @@ class KnowledgeBase:
             # We can assume the result bindings are BindingModels, so we can model_dump
             result_bindings = [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue],
         return result_bindings  # pyright: ignore[reportReturnType]
+
+    def post(
+        self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
+    ) -> Sequence[BindingModel] | BindingSet:
+        """...
+
+        Raises:
+            KeyError: If ``ki_name`` is not found in the local KI registry.
+            ValueError: If the KI is not registered at the KE runtime.
+        """
+        ki_ctx = self.ki_registry[ki_name]
+        if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
+            raise ValueError(
+                f"Cannot call KI '{ki_name}' because it is not registered. Please "
+                f"register the KB and sync KIs first."
+            )
+        assert ki_ctx.info.id is not None  # Should always be set for registered KIs
+        logger.info(
+            f"Calling POST KI '{ki_name}' with bindings: {binding_set} and info: {ki_ctx.info}"
+        )
+        if ki_ctx.serialization_model:
+            # We can assume the result bindings are BindingModels, so we can model_dump
+            binding_models = [
+                b.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
+                for b in binding_set
+            ]
+            post_result = self.client.execute_post_interaction(
+                kb_id=self.info.id,
+                ki_id=ki_ctx.info.id,
+                binding_set=binding_models,
+            )
+        else:
+            post_result = self.client.execute_post_interaction(
+                kb_id=self.info.id,
+                ki_id=ki_ctx.info.id,
+                binding_set=binding_set,  # pyright: ignore[reportArgumentType]
+            )
+
+        if ki_ctx.validation_model and post_result.result_binding_set:
+            result_bindings = [
+                ki_ctx.validation_model.model_validate(b)
+                for b in post_result.result_binding_set
+            ]
+            return result_bindings
+        else:
+            return post_result.result_binding_set
 
     def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.

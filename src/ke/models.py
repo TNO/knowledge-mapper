@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Self, TypeVar
 
@@ -140,3 +141,31 @@ class AskAnswerInteractionInfo(KnowledgeInteractionInfo):
 class PostReactInteractionInfo(KnowledgeInteractionInfo):
     argument_graph_pattern: str
     result_graph_pattern: str
+
+
+class Initiator(StrEnum):
+    KNOWLEDGE_BASE = "knowledgeBase"
+    REASONER = "reasoner"
+
+
+class ExchangeInfo(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, frozen=True, populate_by_name=True
+    )
+
+    initiator: Initiator
+    knowledge_base_id: str
+    knowledge_interaction_id: str
+    exchange_start: datetime
+    exchange_end: datetime
+    status: str
+    failed_message: str | None = None
+
+
+class PostResult(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, frozen=True, populate_by_name=True
+    )
+
+    result_binding_set: BindingSet
+    exchange_info: list[ExchangeInfo]

@@ -14,6 +14,7 @@ from .models import (
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
+    PostResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -120,6 +121,24 @@ class ClientProtocol(Protocol):
 
     def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def execute_post_interaction(
+        self,
+        kb_id: str,
+        ki_id: str,
+        binding_set: BindingSet,
+        recipient_ids: list[str] | None = None,
+    ) -> PostResult:
+        """Execute a POST interaction by sending the given binding set as the
+        response to the KI call.
 
         Raises:
             SmartConnectorNotFoundError: If no smart connector exists for the given KB
@@ -287,6 +306,37 @@ class Client(ClientProtocol):
 
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
+
+    def execute_post_interaction(
+        self,
+        kb_id: str,
+        ki_id: str,
+        binding_set: BindingSet,
+        recipient_ids: list[str] | None = None,
+    ) -> PostResult:
+        if recipient_ids is not None:
+            payload = {
+                "bindingSet": binding_set,
+                "recipientSelector": {
+                    "knowledgeBases": recipient_ids,
+                },
+            }
+        else:
+            payload = binding_set
+
+        response = requests.post(
+            f"{self.ke_url}/sc/post",
+            json=payload,
+            headers={
+                "Knowledge-Base-Id": kb_id,
+                "Knowledge-Interaction-Id": ki_id,
+            },
+        )
+
+        if not response.ok:
+            raise UnexpectedHttpResponseError(response)
+
+        return PostResult.model_validate(response.json())
 
     @property
     def ke_url(self) -> str:
