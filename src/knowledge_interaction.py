@@ -12,28 +12,6 @@ type Handler[B, **P] = Callable[
 ]
 
 
-def default_ask_handler(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo, keyword: str
-) -> BindingSet:
-    # TODO: Implement a default ASK handler when implementing serialization and
-    # validation of binding sets
-    raise NotImplementedError(
-        "default_ask_handler is not yet implemented. "
-        "Provide a custom handler via ki_from_settings instead."
-    )
-
-
-def default_post_handler(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo, keyword: str
-) -> BindingSet:
-    # TODO: Implement a default POST handler when implementing serialization and
-    # validation of binding sets
-    raise NotImplementedError(
-        "default_post_handler is not yet implemented. "
-        "Provide a custom handler via ki_from_settings instead."
-    )
-
-
 class KnowledgeInteractionStatus(StrEnum):
     REGISTERED = "registered"
     UNREGISTERED = "unregistered"
