@@ -145,4 +145,3 @@ def test_build_with_all_ki_types():
     assert "answer-ki" in kb.ki_registry
     assert "post-ki" in kb.ki_registry
     assert "react-ki" in kb.ki_registry
-
