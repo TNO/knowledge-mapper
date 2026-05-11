@@ -6,6 +6,7 @@ from enum import StrEnum
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
+from ..di import resolve_dependencies
 from ..ke import Client
 from ..ke.client import ClientProtocol, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
@@ -388,13 +389,15 @@ class KnowledgeBase:
         ki_ctx = self.ki_registry[ki_name]
         assert ki_ctx.handler is not None  # Should always be set for ANSWER/REACT KI's
 
+        dep_kwargs = resolve_dependencies(ki_ctx.handler)
+
         if ki_ctx.validation_model:
             binding_models = [
                 ki_ctx.validation_model.model_validate(b) for b in binding_set
             ]
-            result_bindings = ki_ctx.handler(binding_models, ki_ctx.info)
+            result_bindings = ki_ctx.handler(binding_models, ki_ctx.info, **dep_kwargs)
         else:
-            result_bindings = ki_ctx.handler(binding_set, ki_ctx.info)
+            result_bindings = ki_ctx.handler(binding_set, ki_ctx.info, **dep_kwargs)
 
         if ki_ctx.serialization_model and result_bindings:
             # We can assume the result bindings are BindingModels, so we can model_dump

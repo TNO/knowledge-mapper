@@ -1,5 +1,6 @@
 import logging
 
+from .depends import Depends
 from .kb.builder import KnowledgeBaseBuilder
 from .kb.knowledge_base import KnowledgeBase
 from .settings import KnowledgeBaseSettings
