@@ -130,7 +130,7 @@ class ClientProtocol(Protocol):
             response.
         """
         ...
-    
+
     def ask(
         self,
         kb_id: str,
@@ -148,7 +148,7 @@ class ClientProtocol(Protocol):
             response.
         """
         ...
-    
+
     def post(
         self,
         kb_id: str,
@@ -356,7 +356,7 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
 
         return PostResult.model_validate(response.json())
-    
+
     def ask(
         self,
         kb_id: str,

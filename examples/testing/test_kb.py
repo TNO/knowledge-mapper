@@ -17,9 +17,11 @@ kb.client = test_client
 # interactions in the tests.
 kb.register()
 
+
 @pytest.fixture()
 def client():
     return test_client
+
 
 # In a test you can do any ASK interaction that is registered.
 # The TestClient will return an empty result binding set by default, disregarding the

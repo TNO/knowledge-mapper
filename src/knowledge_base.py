@@ -564,7 +564,7 @@ class KnowledgeBase:
                 ki_id=ki_ctx.info.id,
                 binding_set=binding_set,  # pyright: ignore[reportArgumentType]
             )
-        
+
         if ki_ctx.validation_model and ask_result.binding_set:
             result_bindings = [
                 ki_ctx.validation_model.model_validate(b)
