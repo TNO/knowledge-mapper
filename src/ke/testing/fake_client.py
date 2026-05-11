@@ -14,7 +14,7 @@ from src.ke.models import (
 )
 
 
-class FakeClient:
+class TestClient:
     """A lightweight in-memory stand-in for Client. Always succeeds."""
 
     def __init__(self, fake_url) -> None:

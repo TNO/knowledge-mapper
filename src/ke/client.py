@@ -149,7 +149,7 @@ class ClientProtocol(Protocol):
         """
         ...
     
-    def execute_post_interaction(
+    def post(
         self,
         kb_id: str,
         ki_id: str,
@@ -326,7 +326,7 @@ class Client(ClientProtocol):
         if not response.ok:
             raise UnexpectedHttpResponseError(response)
 
-    def execute_post_interaction(
+    def post(
         self,
         kb_id: str,
         ki_id: str,

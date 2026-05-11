@@ -20,8 +20,6 @@ from .knowledge_interaction import (
     Handler,
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
-    default_ask_handler,
-    default_post_handler,
 )
 from .settings import KnowledgeBaseSettings
 
@@ -456,9 +454,7 @@ class KnowledgeBase:
         self.register_ki(
             KnowledgeInteractionContext(
                 info=info,
-                handler=default_ask_handler
-                if info.type == KiTypes.ASK
-                else default_post_handler,
+                handler=None,
             ),
             defer_ke_registration=defer_ke_registration,
         )
@@ -514,13 +510,13 @@ class KnowledgeBase:
                 b.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
                 for b in binding_set
             ]
-            post_result = self.client.execute_post_interaction(
+            post_result = self.client.post(
                 kb_id=self.info.id,
                 ki_id=ki_ctx.info.id,
                 binding_set=binding_models,
             )
         else:
-            post_result = self.client.execute_post_interaction(
+            post_result = self.client.post(
                 kb_id=self.info.id,
                 ki_id=ki_ctx.info.id,
                 binding_set=binding_set,  # pyright: ignore[reportArgumentType]

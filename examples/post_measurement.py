@@ -7,7 +7,6 @@ from shared import get_example_logger
 
 from src.ke.models import (
     BindingModel,
-    KnowledgeInteractionInfo,
     Literal,
     Uri,
 )
