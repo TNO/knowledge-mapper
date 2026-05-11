@@ -62,6 +62,8 @@ class KnowledgeBase:
         :meth:`~.knowledge_base_builder.KnowledgeBaseBuilder.build` to obtain the
         configured :class:`KnowledgeBase`.
         """
+        from .builder import KnowledgeBaseBuilder
+        
         return KnowledgeBaseBuilder(settings)
 
     def connect(self) -> None:
