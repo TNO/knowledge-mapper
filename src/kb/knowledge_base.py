@@ -6,10 +6,10 @@ from enum import StrEnum
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-from .ke import Client
-from .ke.client import ClientProtocol, PollResult
-from .ke.errors import KnowledgeEngineNotAvailableError
-from .ke.models import (
+from ..ke import Client
+from ..ke.client import ClientProtocol, PollResult
+from ..ke.errors import KnowledgeEngineNotAvailableError
+from ..ke.models import (
     AskAnswerInteractionInfo,
     BindingModel,
     BindingSet,
@@ -18,15 +18,15 @@ from .ke.models import (
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
 )
-from .knowledge_interaction import (
+from ..knowledge_interaction import (
     Handler,
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
 )
 
 if TYPE_CHECKING:
-    from .knowledge_base_builder import KnowledgeBaseBuilder
-    from .settings import KnowledgeBaseSettings
+    from ..settings import KnowledgeBaseSettings
+    from .builder import KnowledgeBaseBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,6 @@ class KnowledgeBase:
         :meth:`~.knowledge_base_builder.KnowledgeBaseBuilder.build` to obtain the
         configured :class:`KnowledgeBase`.
         """
-        from .knowledge_base_builder import KnowledgeBaseBuilder
-
         return KnowledgeBaseBuilder(settings)
 
     def connect(self) -> None:

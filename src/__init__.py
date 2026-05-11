@@ -1,7 +1,7 @@
 import logging
 
-from .knowledge_base import KnowledgeBase
-from .knowledge_base_builder import KnowledgeBaseBuilder
+from .kb.builder import KnowledgeBaseBuilder
+from .kb.knowledge_base import KnowledgeBase
 from .settings import KnowledgeBaseSettings
 
 __version__ = "0.1.0a0"

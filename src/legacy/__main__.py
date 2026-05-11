@@ -7,7 +7,7 @@ import importlib
 import time
 import signal
 import requests.exceptions
-from src.knowledge_base import KnowledgeBaseUnregistered
+from src.kb.knowledge_base import KnowledgeBaseUnregistered
 
 from src.knowledge_mapper import KnowledgeMapper
 from src.auth.sql_auth import SqlAuth

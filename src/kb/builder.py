@@ -1,7 +1,9 @@
-from .ke.models import KiTypes
+from typing import Self
+
+from ..ke.models import KiTypes
+from ..knowledge_interaction import Handler, KnowledgeInteractionContext
+from ..settings import KnowledgeBaseSettings
 from .knowledge_base import KnowledgeBase
-from .knowledge_interaction import Handler, KnowledgeInteractionContext
-from .settings import KnowledgeBaseSettings
 
 
 class KnowledgeBaseBuilder:
@@ -41,7 +43,7 @@ class KnowledgeBaseBuilder:
             if ki.type in (KiTypes.ANSWER, KiTypes.REACT)
         }
 
-    def handler(self, ki_name: str, func: Handler) -> None:
+    def handler(self, ki_name: str, func: Handler) -> Self:
         """Attach *func* as the handler for the ANSWER or REACT KI named *ki_name*.
 
         Args:
@@ -67,6 +69,7 @@ class KnowledgeBaseBuilder:
 
         self._kb._register_ki_decorator(info=info, defer_ke_registration=True)(func)
         self._unhandled_incoming.discard(ki_name)
+        return self
 
     def build(self) -> KnowledgeBase:
         """Return the configured :class:`KnowledgeBase`.

@@ -3,7 +3,7 @@ import time
 import os
 import requests
 
-from src.knowledge_base import (
+from src.kb.knowledge_base import (
     KnowledgeEngineTerminated,
 )
 from src.utils import match_bindings

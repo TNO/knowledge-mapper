@@ -1,6 +1,7 @@
 import pytest
 
 from src import KnowledgeBase, KnowledgeBaseSettings
+from src.kb.builder import KnowledgeBaseBuilder
 from src.ke.models import (
     AskAnswerInteractionInfo,
     BindingSet,
@@ -9,7 +10,6 @@ from src.ke.models import (
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
 )
-from src.knowledge_base_builder import KnowledgeBaseBuilder
 
 
 def settings_factory(
@@ -60,15 +60,6 @@ def dummy_handler(
     binding_set: BindingSet, info: KnowledgeInteractionInfo
 ) -> BindingSet:
     return binding_set
-
-
-# --- Tracer bullet ---
-
-
-def test_from_settings_returns_builder():
-    settings = settings_factory()
-    builder = KnowledgeBase.from_settings(settings)
-    assert isinstance(builder, KnowledgeBaseBuilder)
 
 
 # --- build() ---
@@ -155,26 +146,3 @@ def test_build_with_all_ki_types():
     assert "post-ki" in kb.ki_registry
     assert "react-ki" in kb.ki_registry
 
-
-# --- KnowledgeBase no longer has settings-related API ---
-
-
-def test_knowledge_base_has_no_build_settings():
-    kb = KnowledgeBase(
-        id="http://example.org/test#kb",
-        name="test",
-        description="test",
-        ke_url="http://fake-ke",
-    )
-    assert not hasattr(kb, "_build_settings")
-
-
-def test_knowledge_base_has_no_ki_from_settings():
-    kb = KnowledgeBase(
-        id="http://example.org/test#kb",
-        name="test",
-        description="test",
-        ke_url="http://fake-ke",
-    )
-    assert not hasattr(kb, "ki_from_settings")
-    assert not hasattr(kb, "ki_from_settings_with_default_handler")
