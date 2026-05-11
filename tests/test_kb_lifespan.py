@@ -4,17 +4,17 @@ import pytest
 
 from src import KnowledgeBase
 from src.ke.errors import KnowledgeEngineNotAvailableError
+from src.ke.testing import TestClient
 from src.knowledge_base import KnowledgeBaseState
-from tests.fake_client import FakeClient
 
 
 @pytest.fixture
-def client() -> FakeClient:
-    return FakeClient(fake_url="http://fake-ke")
+def client() -> TestClient:
+    return TestClient(fake_url="http://fake-ke")
 
 
 @pytest.fixture
-def kb(client: FakeClient) -> KnowledgeBase:
+def kb(client: TestClient) -> KnowledgeBase:
     kb = KnowledgeBase(
         id="http://example.org/test#kb",
         name="test-kb",
@@ -37,7 +37,7 @@ def test_connect_raises_if_ke_unavailable(kb: KnowledgeBase):
         kb.connect()
 
 
-def test_register_unregister_cycle(kb: KnowledgeBase, client: FakeClient):
+def test_register_unregister_cycle(kb: KnowledgeBase, client: TestClient):
     kb.connect()
     kb.register()
     assert kb.state == KnowledgeBaseState.REGISTERED

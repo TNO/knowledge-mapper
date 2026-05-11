@@ -3,17 +3,16 @@ from rdflib import URIRef
 
 from src import KnowledgeBase
 from src.ke.models import BindingModel, Literal, Uri
-
-from .fake_client import FakeClient
+from src.ke.testing import TestClient
 
 
 @pytest.fixture
 def client():
-    return FakeClient(fake_url="http://fake-ke")
+    return TestClient(fake_url="http://fake-ke")
 
 
 @pytest.fixture
-def kb(client: FakeClient):
+def kb(client: TestClient):
     kb = KnowledgeBase(
         id="http://example.org/test#kb",
         name="test-kb",
@@ -25,7 +24,7 @@ def kb(client: FakeClient):
     return kb
 
 
-def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: FakeClient):
+def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient):
     kb.ask_ki(
         name="ask-ki",
         graph_pattern="""
@@ -66,7 +65,7 @@ def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: FakeClient
     ]
 
 
-def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: FakeClient):
+def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClient):
     class PersonBinding(BindingModel):
         person: Uri
         name: Literal[str]
@@ -115,7 +114,7 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: FakeClie
     ]
 
 
-def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: FakeClient):
+def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClient):
     kb.post_ki(
         name="post-ki",
         argument_graph_pattern="""
@@ -162,7 +161,7 @@ def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: FakeClien
     ]
 
 
-def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: FakeClient):
+def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: TestClient):
     class MeasurementBinding(BindingModel):
         measurement: Uri
         value: Literal[float]

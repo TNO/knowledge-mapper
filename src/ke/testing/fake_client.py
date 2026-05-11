@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from src.ke.client import PollResult
+from src.ke.client import ClientProtocol, PollResult
 from src.ke.models import (
     AskResult,
     BindingSet,
@@ -14,7 +14,7 @@ from src.ke.models import (
 )
 
 
-class TestClient:
+class TestClient(ClientProtocol):
     """A lightweight in-memory stand-in for Client. Always succeeds."""
 
     def __init__(self, fake_url) -> None:

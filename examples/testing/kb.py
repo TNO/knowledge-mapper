@@ -100,7 +100,7 @@ def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
                     )
                 ],
                 "post-ki",
-            ) # type: ignore
+            )  # type: ignore
         )
         sleep(1)
     return [cast(URIRef, binding.other) for binding in result_binding_set]

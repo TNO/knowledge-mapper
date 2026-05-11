@@ -7,11 +7,11 @@ from src.ke.models import (
     KiTypes,
     KnowledgeInteractionInfo,
 )
+from src.ke.testing import TestClient
 from src.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
 )
-from tests.fake_client import FakeClient
 
 
 # Not a fixture as a fresh KB instance is needed for each test.
@@ -22,7 +22,7 @@ def kb_setup() -> KnowledgeBase:
         description="A KB for testing.",
         ke_url="http://fake-ke",
     )
-    kb.client = FakeClient(fake_url="http://fake-ke")
+    kb.client = TestClient(fake_url="http://fake-ke")
     return kb
 
 
