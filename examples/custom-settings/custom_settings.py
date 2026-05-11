@@ -33,6 +33,9 @@ EXAMPLE_NAME = "custom-settings"
 logger = get_example_logger(EXAMPLE_NAME)
 
 
+# Subclass KnowledgeBaseSettings to add application-specific settings alongside the
+# standard KB configuration fields. The model_config points to the YAML file for this
+# example and enables CLI argument parsing.
 class AppSettings(KnowledgeBaseSettings):
     model_config = SettingsConfigDict(
         yaml_file="custom-settings/settings.yaml",
@@ -45,6 +48,9 @@ class AppSettings(KnowledgeBaseSettings):
     db_port: int = 5432
     debug: bool = False
 
+    # Override settings_customise_sources to prepend CliSettingsSource so that CLI
+    # arguments take the highest priority, followed by the sources defined in the base
+    # class (env vars, config file, defaults).
     @classmethod
     def settings_customise_sources(cls, settings_cls, **kwargs):  # type: ignore
         return (
@@ -53,27 +59,38 @@ class AppSettings(KnowledgeBaseSettings):
         )
 
 
+# Instantiate AppSettings to load configuration from all sources at once (CLI args,
+# env vars, YAML file, and field defaults), in priority order.
 settings = AppSettings()  # type: ignore
-kb = KnowledgeBase.from_settings(settings)
-kb.ki_from_settings_with_default_handler("ask-from-settings")
-kb.ki_from_settings_with_default_handler("post-from-settings")
 
 
-@kb.ki_from_settings("answer-from-settings")
 def example_answer_from_settings(
     binding_set: BindingSet, info: KnowledgeInteractionInfo
 ) -> BindingSet:
     return binding_set
 
 
-@kb.ki_from_settings("react-from-settings")
 def example_react_from_settings(
     binding_set: BindingSet, info: KnowledgeInteractionInfo
 ) -> BindingSet:
     return binding_set
 
 
+# Use KnowledgeBase.from_settings to build the KB from the settings object instead of
+# passing explicit constructor arguments. KIs defined in the settings YAML are
+# registered automatically; use .handler() to attach a handler function to each of
+# the ANSWER/REACT KIs by name. This is required, otherwise .build() will fail.
+kb = (
+    KnowledgeBase.from_settings(settings)
+    .handler("answer-from-settings", example_answer_from_settings)
+    .handler("react-from-settings", example_react_from_settings)
+    .build()
+)
+
+
 if __name__ == "__main__":
+    # After building, we can see that KI contexts are accessible, and so
+    # are the settings from configuration sources.
     ask_ctx = kb.ki_registry["ask-from-settings"]
     post_ctx = kb.ki_registry["post-from-settings"]
 
