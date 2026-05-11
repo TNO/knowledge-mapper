@@ -171,4 +171,4 @@ if __name__ == "__main__":
     kb.connect()
     kb.register()
     logger.info("Registered the dependency-injection example KB!")
-    kb.start_handling_loop()
+    kb.unregister()
