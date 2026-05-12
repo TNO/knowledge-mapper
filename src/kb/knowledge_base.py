@@ -63,7 +63,7 @@ class KnowledgeBase:
         configured :class:`KnowledgeBase`.
         """
         from .builder import KnowledgeBaseBuilder
-        
+
         return KnowledgeBaseBuilder(settings)
 
     def connect(self) -> None:
