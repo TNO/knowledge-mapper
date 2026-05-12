@@ -1,7 +1,6 @@
 import pytest
 
 from src import KnowledgeBase, KnowledgeBaseSettings
-from src.kb.builder import KnowledgeBaseBuilder
 from src.ke.models import (
     AskAnswerInteractionInfo,
     BindingSet,
