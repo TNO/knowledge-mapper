@@ -2,7 +2,7 @@ from functools import partial
 import logging as log
 from src.auth.base_auth import BaseAuth
 from src.utils import extract_variables
-from src.knowledge_base import (
+from src.kb.knowledge_base import (
     KnowledgeBaseRegistrationRequest,
 )
 from src.knowledge_interaction import (

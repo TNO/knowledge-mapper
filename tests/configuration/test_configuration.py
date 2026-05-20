@@ -10,7 +10,8 @@ def test_basic_configuration():
         )
 
     settings = KbSettings()  # pyright: ignore[reportCallIssue]
-    kb = KnowledgeBase.from_settings(settings)
+    builder = KnowledgeBase.from_settings(settings)
+    kb = builder.build()
     assert kb.info.id == settings.knowledge_base.id
 
 
@@ -22,7 +23,8 @@ def test_configuration_different_sources():
         )
 
     settings = KbSettings()  # pyright: ignore[reportCallIssue]
-    kb = KnowledgeBase.from_settings(settings)
+    builder = KnowledgeBase.from_settings(settings)
+    kb = builder.build()
     assert kb.info.id == "http://example.org/test/config#kb-from-env"
 
 
@@ -33,23 +35,23 @@ def test_configuration_interactions():
         )
 
     settings = KbSettings()  # pyright: ignore[reportCallIssue]
-    kb = KnowledgeBase.from_settings(settings)
-    kb.ki_from_settings_with_default_handler("ask-from-settings")
-    kb.ki_from_settings_with_default_handler("post-from-settings")
+    builder = KnowledgeBase.from_settings(settings)
+
+    def answer(binding_set, info):
+        return binding_set
+
+    def react(binding_set, info):
+        return binding_set
+
+    builder.handler("answer-from-settings", answer)
+    builder.handler("react-from-settings", react)
+
+    kb = builder.build()
 
     ask_ki = kb.ki_registry["ask-from-settings"]
     assert ask_ki.info.name == "ask-from-settings"
     post_ki = kb.ki_registry["post-from-settings"]
     assert post_ki.info.name == "post-from-settings"
-
-    @kb.ki_from_settings("answer-from-settings")
-    def answer(binding_set, info):
-        return binding_set
-
-    @kb.ki_from_settings("react-from-settings")
-    def react(binding_set, info):
-        return binding_set
-
     answer_ki = kb.ki_registry["answer-from-settings"]
     assert answer_ki.info.name == "answer-from-settings"
     react_ki = kb.ki_registry["react-from-settings"]

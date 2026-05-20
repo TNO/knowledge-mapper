@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from src import KnowledgeBase
+from src.kb.knowledge_base import KnowledgeBaseState
 from src.ke.errors import KnowledgeEngineNotAvailableError
 from src.ke.testing import TestClient
-from src.knowledge_base import KnowledgeBaseState
 
 
 @pytest.fixture

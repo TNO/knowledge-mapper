@@ -1,4 +1,4 @@
-from src.knowledge_base import KnowledgeBase
+from src.kb.knowledge_base import KnowledgeBase
 
 class DataSource:
     def test(self):
