@@ -22,6 +22,10 @@ The following diagram shows where the Knowledge Mapper operates within the Knowl
 
 ![architecture diagram](./docs/img/architecture.png)
 
+## Getting Started with Examples
+
+The easiest way to learn the Knowledge Mapper is by exploring the [examples](./examples/README.md). They demonstrate key features like creating knowledge bases, defining knowledge interactions, using binding models, dependency injection, and testing. Each example includes inline comments and can be run locally with a Knowledge Engine instance. See the [examples README](./examples/README.md) for setup instructions and an overview of all available examples.
+
 ## How do I use it?
 
 1. Install `knowledge_mapper` in a Python environment with `pip`:

@@ -5,12 +5,7 @@ from uuid import uuid4
 from rdflib import URIRef
 from shared import get_example_logger
 
-from src.knowledge_mapper.kb.knowledge_base import KnowledgeBase
-from src.knowledge_mapper.ke.models import (
-    BindingModel,
-    Literal,
-    Uri,
-)
+from knowledge_mapper import BindingModel, KnowledgeBase, Literal, Uri
 
 EXAMPLE_NAME = "post-measurement"
 logger = get_example_logger(EXAMPLE_NAME)

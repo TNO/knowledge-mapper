@@ -34,7 +34,7 @@ addopts = [
 exclude = [
     ".pytest_cache",
     ".venv",
-    "./src/legacy",
+    "./src/knowledge_mapper/legacy",
     "./examples/legacy",
 ]
 line-length = 88

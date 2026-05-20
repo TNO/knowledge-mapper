@@ -1,9 +1,9 @@
 import pytest
 from rdflib import URIRef
+from src.knowledge_mapper.ke.testing import TestClient
 
 from src.knowledge_mapper import KnowledgeBase
 from src.knowledge_mapper.ke.models import BindingModel, Literal, Uri
-from src.knowledge_mapper.ke.testing import TestClient
 
 
 @pytest.fixture
@@ -88,8 +88,8 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
         binding_set=[
             {
                 "person": "<http://example.org/test#person1>",
-                "name": "\"Alice\"^^xsd:string",
-                "age": "\"30\"^^xsd:integer",
+                "name": '"Alice"^^xsd:string',
+                "age": '"30"^^xsd:integer',
             }
         ],
     )

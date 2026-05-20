@@ -1,7 +1,6 @@
 from shared import get_example_logger
 
-from src.knowledge_mapper import KnowledgeBase
-from src.knowledge_mapper.ke.models import BindingModel, Literal, Uri
+from knowledge_mapper import BindingModel, KnowledgeBase, Literal, Uri
 
 EXAMPLE_NAME = "ask-interaction"
 logger = get_example_logger(EXAMPLE_NAME)

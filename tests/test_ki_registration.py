@@ -7,11 +7,11 @@ from src.knowledge_mapper.ke.models import (
     KiTypes,
     KnowledgeInteractionInfo,
 )
-from src.knowledge_mapper.ke.testing import TestClient
 from src.knowledge_mapper.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
 )
+from src.knowledge_mapper.testing import TestClient
 
 
 # Not a fixture as a fresh KB instance is needed for each test.

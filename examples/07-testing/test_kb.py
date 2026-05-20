@@ -1,7 +1,7 @@
 import pytest
 from rdflib import URIRef
 
-from src.knowledge_mapper.ke.testing import TestClient
+from knowledge_mapper.testing import TestClient
 
 # Import the Knowledge Base that you would like to test, along with any relevant binding
 # models.
@@ -40,7 +40,7 @@ def test_ask_ki_with_result(client: TestClient):
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "\"test value\"",
+                "value": '"test value"',
             }
         ],
     )
@@ -48,7 +48,7 @@ def test_ask_ki_with_result(client: TestClient):
     assert result_binding_set == [
         {
             "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-            "value": "\"test value\"",
+            "value": '"test value"',
         }
     ]
 
@@ -62,7 +62,7 @@ def test_ask_ki_with_binding_model(client: TestClient):
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "\"test value\"",
+                "value": '"test value"',
             }
         ],
     )
@@ -98,7 +98,7 @@ def test_function_containing_ask(client: TestClient):
     )
 
     result = ask_for_values_of_subject("Subject")
-    assert result == ["\"test value\""]
+    assert result == ['"test value"']
 
 
 # Similar approaches can be taken for POST interactions.

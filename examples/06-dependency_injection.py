@@ -26,8 +26,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from shared import get_example_logger
 
-from src.knowledge_mapper import Depends, KnowledgeBase
-from src.knowledge_mapper.ke.models import BindingModel, KnowledgeInteractionInfo, Literal, Uri
+from knowledge_mapper import (
+    BindingModel,
+    Depends,
+    KnowledgeBase,
+    KnowledgeInteractionInfo,
+    Literal,
+    Uri,
+)
 
 EXAMPLE_NAME = "dependency-injection"
 logger = get_example_logger(EXAMPLE_NAME)
