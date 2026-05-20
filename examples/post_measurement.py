@@ -5,8 +5,8 @@ from uuid import uuid4
 from rdflib import URIRef
 from shared import get_example_logger
 
-from src.kb.knowledge_base import KnowledgeBase
-from src.ke.models import (
+from src.knowledge_mapper.kb.knowledge_base import KnowledgeBase
+from src.knowledge_mapper.ke.models import (
     BindingModel,
     Literal,
     Uri,
@@ -46,7 +46,7 @@ kb.post_ki(
     """,
     result_graph_pattern="""
         ?measurement a ex:Measurement ;
-            ex:storedBy ?kb ;
+            ex:storedBy ?kb .
     """,
     prefixes={"ex": "http://example.org/knowledge-mapper/post-measurement#"},
     result_binding_model=ResultBinding,

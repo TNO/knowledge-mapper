@@ -3,7 +3,7 @@ import requests
 import logging as log
 import time
 
-import src.kb.knowledge_base as knowledge_base
+import src.knowledge_mapper.kb.knowledge_base as knowledge_base
 
 from src.tke_exceptions import UnexpectedHttpResponseError
 

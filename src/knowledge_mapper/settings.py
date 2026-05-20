@@ -7,7 +7,7 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from src.ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
+from .ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
 
 
 class KnowledgeBaseSettings(BaseSettings):

@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.ke import Client
-from src.ke.models import (
+from src.knowledge_mapper.ke import Client
+from src.knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,

@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime
 
-from src.ke.client import ClientProtocol, PollResult
-from src.ke.models import (
+from src.knowledge_mapper.ke.client import ClientProtocol, PollResult
+from src.knowledge_mapper.ke.models import (
     AskResult,
     BindingSet,
     ExchangeInfo,

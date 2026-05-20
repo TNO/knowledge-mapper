@@ -407,7 +407,7 @@ class KnowledgeBase:
     def post(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
-        """...
+        """Invoke a POST KI by its name.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
@@ -527,10 +527,22 @@ class KnowledgeBase:
             match poll_result, maybe_handle_request:
                 case PollResult.HANDLE, _:
                     assert maybe_handle_request is not None
-                    self.call(
-                        maybe_handle_request.binding_set,
-                        maybe_handle_request.knowledge_interaction_id,
+                    name = next(
+                        ki.info.name
+                        for ki in self.ki_registry.values()
+                        if ki.info.id == maybe_handle_request.knowledge_interaction_id
                     )
+                    result_binding_set = self.call(
+                        maybe_handle_request.binding_set,
+                        name,
+                    )
+                    self.client.post_handle_response(
+                        kb_id=self.info.id,
+                        ki_id=maybe_handle_request.knowledge_interaction_id,
+                        handle_request_id=maybe_handle_request.handle_request_id,
+                        binding_set=result_binding_set,
+                    )
+
                 case PollResult.REPOLL, None:
                     continue
                 case PollResult.EXIT, None:

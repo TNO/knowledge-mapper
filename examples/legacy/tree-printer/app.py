@@ -1,5 +1,5 @@
 from time import sleep
-from src.knowledge_interaction import AskKnowledgeInteraction, AskKnowledgeInteractionRegistrationRequest
+from src.knowledge_mapper.knowledge_interaction import AskKnowledgeInteraction, AskKnowledgeInteractionRegistrationRequest
 from src.tke_client import TkeClient
 from src.knowledge_base import KnowledgeBaseRegistrationRequest
 

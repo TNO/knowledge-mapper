@@ -3,8 +3,8 @@ from datetime import datetime
 from rdflib import URIRef
 from shared import get_example_logger
 
-from src.kb.knowledge_base import KnowledgeBase
-from src.ke.models import (
+from src.knowledge_mapper.kb.knowledge_base import KnowledgeBase
+from src.knowledge_mapper.ke.models import (
     BindingModel,
     BindingSet,
     KnowledgeInteractionInfo,

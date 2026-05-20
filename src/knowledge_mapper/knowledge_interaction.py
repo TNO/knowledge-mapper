@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
-from src.ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
+from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
 
 type Handler[B, **P] = Callable[
     Concatenate[B, KnowledgeInteractionInfo, P],

@@ -1,7 +1,7 @@
 import pytest
 from rdflib import URIRef
 
-from src.ke.testing import TestClient
+from src.knowledge_mapper.ke.testing import TestClient
 
 # Import the Knowledge Base that you would like to test, along with any relevant binding
 # models.
@@ -40,7 +40,7 @@ def test_ask_ki_with_result(client: TestClient):
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "test value",
+                "value": "\"test value\"",
             }
         ],
     )
@@ -48,22 +48,21 @@ def test_ask_ki_with_result(client: TestClient):
     assert result_binding_set == [
         {
             "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-            "value": "test value",
+            "value": "\"test value\"",
         }
     ]
 
 
 # This is a little more useful when you have a binding model, testing the correctness of
 # the binding model according to the graph pattern. One test per interaction like this
-# per interaction is probably a good idea, to isolate issues with the binding model from
-# other issues.
+# is probably a good idea, to isolate issues with the binding model from other issues.
 def test_ask_ki_with_binding_model(client: TestClient):
     client.mock_result_binding_set(
         "ask-ki-with-binding-model",
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "test value",
+                "value": "\"test value\"",
             }
         ],
     )
@@ -99,7 +98,7 @@ def test_function_containing_ask(client: TestClient):
     )
 
     result = ask_for_values_of_subject("Subject")
-    assert result == ["test value"]
+    assert result == ["\"test value\""]
 
 
 # Similar approaches can be taken for POST interactions.

@@ -26,8 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pydantic_settings import CliSettingsSource, SettingsConfigDict
 from shared import get_example_logger
 
-from src import KnowledgeBase, KnowledgeBaseSettings
-from src.ke.models import BindingSet, KnowledgeInteractionInfo
+from src.knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
+from src.knowledge_mapper.ke.models import BindingSet, KnowledgeInteractionInfo
 
 EXAMPLE_NAME = "custom-settings"
 logger = get_example_logger(EXAMPLE_NAME)

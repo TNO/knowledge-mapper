@@ -1,9 +1,9 @@
 import pytest
 from rdflib import URIRef
 
-from src import KnowledgeBase
-from src.ke.models import BindingModel, Literal, Uri
-from src.ke.testing import TestClient
+from src.knowledge_mapper import KnowledgeBase
+from src.knowledge_mapper.ke.models import BindingModel, Literal, Uri
+from src.knowledge_mapper.ke.testing import TestClient
 
 
 @pytest.fixture
@@ -28,8 +28,8 @@ def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient
     kb.ask_ki(
         name="ask-ki",
         graph_pattern="""
-            ?person a ex:Person .
-                ex:hasName ?name .
+            ?person a ex:Person ;
+                ex:hasName ?name ;
                 ex:hasAge ?age .
         """,
         prefixes={"ex": "http://example.org/test#"},
@@ -74,8 +74,8 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
     kb.ask_ki(
         name="ask-ki",
         graph_pattern="""
-            ?person a ex:Person .
-                ex:hasName ?name .
+            ?person a ex:Person ;
+                ex:hasName ?name ;
                 ex:hasAge ?age .
         """,
         binding_model=PersonBinding,
@@ -88,8 +88,8 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
         binding_set=[
             {
                 "person": "<http://example.org/test#person1>",
-                "name": '"Alice"^^xsd:string',
-                "age": '"30"^^xsd:integer',
+                "name": "\"Alice\"^^xsd:string",
+                "age": "\"30\"^^xsd:integer",
             }
         ],
     )
@@ -125,7 +125,7 @@ def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClien
         """,
         result_graph_pattern="""
             ?measurement a ex:Measurement ;
-                ex:storedBy ?kb ;
+                ex:storedBy ?kb .
         """,
         prefixes={"ex": "http://example.org/test#"},
         defer_ke_registration=False,
@@ -182,7 +182,7 @@ def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: TestCli
         """,
         result_graph_pattern="""
             ?measurement a ex:Measurement ;
-                ex:storedBy ?kb ;
+                ex:storedBy ?kb .
         """,
         prefixes={"ex": "http://example.org/test#"},
         argument_binding_model=MeasurementBinding,

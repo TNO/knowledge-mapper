@@ -1,6 +1,6 @@
 from pydantic_settings import SettingsConfigDict
 
-from src import KnowledgeBase, KnowledgeBaseSettings
+from src.knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
 
 
 def test_basic_configuration():

@@ -2,10 +2,10 @@ from unittest.mock import patch
 
 import pytest
 
-from src import KnowledgeBase
-from src.kb.knowledge_base import KnowledgeBaseState
-from src.ke.errors import KnowledgeEngineNotAvailableError
-from src.ke.testing import TestClient
+from src.knowledge_mapper import KnowledgeBase
+from src.knowledge_mapper.kb.knowledge_base import KnowledgeBaseState
+from src.knowledge_mapper.ke.errors import KnowledgeEngineNotAvailableError
+from src.knowledge_mapper.ke.testing import TestClient
 
 
 @pytest.fixture

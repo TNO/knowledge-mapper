@@ -7,7 +7,7 @@ import importlib
 import time
 import signal
 import requests.exceptions
-from src.kb.knowledge_base import KnowledgeBaseUnregistered
+from src.knowledge_mapper.kb.knowledge_base import KnowledgeBaseUnregistered
 
 from src.knowledge_mapper import KnowledgeMapper
 from src.auth.sql_auth import SqlAuth
@@ -52,7 +52,7 @@ def test_data_source(data_source: DataSource):
 
 
 def main():
-    from . import __version__
+    from ...legacy import __version__
 
     log.info(f"Running Knowledge Mapper {__version__}")
     parser = argparse.ArgumentParser(
@@ -62,7 +62,7 @@ def main():
     parser.add_argument("--wizard", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
     if args.wizard:
-        from . import wizard_mapper
+        from ...legacy import wizard_mapper
 
         wizard_mapper.start()
         exit()

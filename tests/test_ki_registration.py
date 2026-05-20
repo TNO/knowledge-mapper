@@ -1,14 +1,14 @@
 import pytest
 
-from src import KnowledgeBase
-from src.ke.models import (
+from src.knowledge_mapper import KnowledgeBase
+from src.knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
     BindingSet,
     KiTypes,
     KnowledgeInteractionInfo,
 )
-from src.ke.testing import TestClient
-from src.knowledge_interaction import (
+from src.knowledge_mapper.ke.testing import TestClient
+from src.knowledge_mapper.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
 )

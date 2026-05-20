@@ -1,5 +1,5 @@
-import src.kb.knowledge_base as tke_kb
-import src.knowledge_interaction as tke_ki
+import src.knowledge_mapper.kb.knowledge_base as tke_kb
+import src.knowledge_mapper.knowledge_interaction as tke_ki
 import src.tke_client as tke
 import pytest
 import asyncio
