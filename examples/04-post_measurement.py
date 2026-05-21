@@ -1,3 +1,9 @@
+"""POST interaction example for publishing a measurement.
+
+This script registers a POST KI, then posts one measurement binding set and logs
+the result bindings returned by the KE.
+"""
+
 import time
 from datetime import datetime
 from uuid import uuid4
@@ -19,6 +25,7 @@ kb = KnowledgeBase(
 )
 
 
+# Argument bindings for the POST interaction input pattern.
 class MeasurementBinding(BindingModel):
     measurement: Uri
     value: Literal[float]
@@ -26,11 +33,13 @@ class MeasurementBinding(BindingModel):
     time: Literal[datetime]
 
 
+# Result bindings for the POST interaction result pattern.
 class ResultBinding(BindingModel):
     measurement: Uri
     kb: Uri
 
 
+# Register a POST KI with separate argument and result graph patterns.
 kb.post_ki(
     name="post-measurement-ki",
     argument_graph_pattern="""
@@ -50,6 +59,7 @@ kb.post_ki(
 
 
 if __name__ == "__main__":
+    # Register KB, wait briefly for manual testing, then execute one POST.
     kb.register()
     logger.info("KB registered.")
     time.sleep(

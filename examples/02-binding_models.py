@@ -1,3 +1,10 @@
+"""Binding models example: compare typed vs raw binding handling.
+
+This example registers two ANSWER KIs with the same pattern:
+1. A typed handler using a BindingModel class.
+2. A raw handler using plain BindingSet dictionaries.
+"""
+
 from datetime import datetime
 
 from rdflib import URIRef
@@ -23,6 +30,7 @@ kb = KnowledgeBase(
 )
 
 
+# Define strongly-typed bindings for variables in the graph pattern.
 class CurrentTemperatureBinding(BindingModel):
     measurement: Uri
     value: Literal[float]
@@ -47,6 +55,7 @@ def binding_models_answer_ki(
         f"Handling a call to the binding models answer KI with incoming bindings: "
         f"{binding_set}"
     )
+    # Return a single current measurement using typed values.
     return [
         CurrentTemperatureBinding(
             measurement=URIRef(
@@ -76,6 +85,7 @@ def binding_models_raw_answer_ki(
         f"Handling a call to the binding models raw answer KI with incoming bindings: "
         f"{binding_set}"
     )
+    # Return the same shape as above, but manually encoded as raw strings.
     return [
         {
             "measurement": "<http://example.org/knowledge-mapper/binding-models#currentTemp>",
@@ -87,6 +97,7 @@ def binding_models_raw_answer_ki(
 
 
 if __name__ == "__main__":
+    # Register both KIs, then cleanly unregister.
     kb.connect()
     kb.register()
     logger.info("Registered the binding models example KB!")
