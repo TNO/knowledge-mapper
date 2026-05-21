@@ -6,7 +6,7 @@ from enum import StrEnum
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-from ..di import resolve_dependencies
+from ..dependency_injection import resolve_dependencies
 from ..ke import Client
 from ..ke.client import ClientProtocol, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
