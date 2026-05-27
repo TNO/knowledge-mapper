@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, get_args, get_type_hints
@@ -99,7 +99,7 @@ async def resolve_dependencies(
             factory_kwargs = await resolve_dependencies(
                 actual_factory, cache, overrides
             )
-            if asyncio.iscoroutinefunction(actual_factory):
+            if inspect.iscoroutinefunction(actual_factory):
                 value = await actual_factory(**factory_kwargs)
             else:
                 value = actual_factory(**factory_kwargs)
