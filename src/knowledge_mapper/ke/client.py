@@ -122,9 +122,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def poll_ki_call(
-        self, kb_id: str
-    ) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
 
         Raises:
@@ -307,12 +305,13 @@ class Client(ClientProtocol):
         )
         return registered_ki
 
-    async def poll_ki_call(
-        self, kb_id: str
-    ) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         logger.debug("Polling for KI calls...")
         response = await self._http.get(
-            f"{self.ke_url}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
+            f"{self.ke_url}/sc/handle",
+            headers={"Knowledge-Base-Id": kb_id},
+            # Set a longer timeout for this request due to the KE 30 second long-polling
+            timeout=httpx.Timeout(35.0, connect=5.0),
         )
 
         if response.status_code == 200:
