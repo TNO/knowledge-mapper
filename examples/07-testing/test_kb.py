@@ -98,7 +98,7 @@ def test_function_containing_ask(client: TestClient):
     )
 
     result = ask_for_values_of_subject("Subject")
-    assert result == ['test value']
+    assert result == ["test value"]
 
 
 # Similar approaches can be taken for POST interactions.
