@@ -1,9 +1,9 @@
 import pytest
 from rdflib import URIRef
 
-from src.knowledge_mapper import KnowledgeBase
-from src.knowledge_mapper.ke.models import BindingModel, Literal, Uri
-from src.knowledge_mapper.ke.testing import TestClient
+from knowledge_mapper import KnowledgeBase
+from knowledge_mapper.ke.models import BindingModel, Literal, Uri
+from knowledge_mapper.testing import TestClient
 
 
 @pytest.fixture

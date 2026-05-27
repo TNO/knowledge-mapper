@@ -5,7 +5,7 @@ from knowledge_mapper.testing import TestClient
 
 # Import the Knowledge Base that you would like to test, along with any relevant binding
 # models.
-from .kb import TestBinding, ask_for_values_of_subject, kb, repeat_value_post
+from .kb import ExampleBinding, ask_for_values_of_subject, kb, repeat_value_post
 
 # In your tests you likely want to use the TestClient to mock results from the KE.
 # A Knowledge Base instance is initialized with a real Client that makes HTTP requests
@@ -69,7 +69,7 @@ def test_ask_ki_with_binding_model(client: TestClient):
 
     result_binding_set = kb.ask(
         [
-            TestBinding(
+            ExampleBinding(
                 s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
                 value=None,
             )
@@ -77,7 +77,7 @@ def test_ask_ki_with_binding_model(client: TestClient):
         "ask-ki-with-binding-model",
     )
     assert result_binding_set == [
-        TestBinding(
+        ExampleBinding(
             s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
             value="test value",
         )
@@ -90,7 +90,7 @@ def test_function_containing_ask(client: TestClient):
     client.mock_result_binding_set(
         ki_name="ask-ki-with-binding-model",
         binding_set=[
-            TestBinding(
+            ExampleBinding(
                 s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
                 value="test value",
             ).model_dump(),
@@ -98,7 +98,7 @@ def test_function_containing_ask(client: TestClient):
     )
 
     result = ask_for_values_of_subject("Subject")
-    assert result == ['"test value"']
+    assert result == ['test value']
 
 
 # Similar approaches can be taken for POST interactions.

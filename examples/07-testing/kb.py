@@ -31,7 +31,7 @@ kb.ask_ki(
 )
 
 
-class TestBinding(BindingModel):
+class ExampleBinding(BindingModel):
     s: Uri
     value: Literal[str]
 
@@ -42,15 +42,15 @@ kb.ask_ki(
         ?s a ex:TestSubject ;
             ex:hasValue ?value .
     """,
-    binding_model=TestBinding,
+    binding_model=ExampleBinding,
     prefixes={"ex": "http://example.org/knowledge-mapper/testing#"},
 )
 
 
 def ask_for_values_of_subject(subject_name: str) -> list[str]:
-    result_binding_set: list[TestBinding] = kb.ask(
+    result_binding_set: list[ExampleBinding] = kb.ask(
         [
-            TestBinding(
+            ExampleBinding(
                 s=URIRef(f"http://example.org/knowledge-mapper/testing#{subject_name}"),
                 value=None,
             )
@@ -79,7 +79,7 @@ kb.post_ki(
         ?s a ex:TestSubject ;
             ex:storedBy ?other .
     """,
-    argument_binding_model=TestBinding,
+    argument_binding_model=ExampleBinding,
     result_binding_model=ResultBinding,
     prefixes={"ex": "http://example.org/knowledge-mapper/testing#"},
 )
@@ -91,7 +91,7 @@ def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
         result_binding_set.extend(
             kb.post(
                 [
-                    TestBinding(
+                    ExampleBinding(
                         s=URIRef(
                             f"http://example.org/knowledge-mapper/testing#Subject-{i}"
                         ),

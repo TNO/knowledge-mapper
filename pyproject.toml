@@ -26,6 +26,9 @@ addopts = [
     "-ra",
     "-q",
 ]
+filterwarnings = [
+    "ignore:cannot collect test class 'TestClient':pytest.PytestCollectionWarning",
+]
 
 
 # TOOLS - ruff

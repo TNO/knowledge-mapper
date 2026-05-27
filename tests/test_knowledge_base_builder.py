@@ -1,7 +1,7 @@
 import pytest
 
-from src.knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
-from src.knowledge_mapper.ke.models import (
+from knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
+from knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
     BindingSet,
     KiTypes,

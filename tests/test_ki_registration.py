@@ -1,17 +1,17 @@
 import pytest
 
-from src.knowledge_mapper import KnowledgeBase
-from src.knowledge_mapper.ke.models import (
+from knowledge_mapper import KnowledgeBase
+from knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
     BindingSet,
     KiTypes,
     KnowledgeInteractionInfo,
 )
-from src.knowledge_mapper.knowledge_interaction import (
+from knowledge_mapper.knowledge_interaction import (
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
 )
-from src.knowledge_mapper.testing import TestClient
+from knowledge_mapper.testing import TestClient
 
 
 # Not a fixture as a fresh KB instance is needed for each test.
