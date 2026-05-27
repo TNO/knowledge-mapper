@@ -1,8 +1,9 @@
 """In-memory FakeClient that satisfies ClientProtocol for use in tests."""
 
+from collections import deque
 from datetime import UTC, datetime
 
-from knowledge_mapper.ke.client import ClientProtocol, PollResult
+from knowledge_mapper.ke.client import ClientProtocol, HandleRequest, PollResult
 from knowledge_mapper.ke.models import (
     AskResult,
     BindingSet,
@@ -26,6 +27,8 @@ class TestClient(ClientProtocol):
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
         self._handle_responses: list[tuple[str, str, int, BindingSet]] = []
+        self._incoming_calls: deque[tuple[PollResult, HandleRequest | None]] = deque()
+        self._next_handle_request_id: int = 1
 
     def ke_is_available(self) -> bool:
         return True
@@ -65,9 +68,9 @@ class TestClient(ClientProtocol):
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
 
-    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, None]:
-        # This fake client never returns any KI calls to handle, but always asks to
-        # repoll.
+    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+        if self._incoming_calls:
+            return self._incoming_calls.popleft()
         return (PollResult.REPOLL, None)
 
     def post_handle_response(
@@ -86,6 +89,52 @@ class TestClient(ClientProtocol):
         """Store a result binding set to be returned when execute_post_interaction
         is called for the KI with the given name."""
         self._mock_interaction_results[ki_name] = binding_set
+
+    def enqueue_handle_request(
+        self,
+        ki_name: str,
+        binding_set: BindingSet,
+        requesting_kb_id: str = "http://example.org/requesting-kb",
+    ) -> None:
+        """Queue an incoming KI call so ``poll_ki_call`` returns HANDLE for it.
+
+        Args:
+            ki_name: Name of a KI that has already been registered via
+                ``register_ki``.
+            binding_set: The incoming binding set to pass to the handler.
+            requesting_kb_id: The ID of the requesting knowledge base
+                (defaults to a test sentinel).
+
+        Raises:
+            KeyError: If no registered KI with *ki_name* exists.
+        """
+        ki = next(
+            (
+                ki
+                for kis in self._knowledge_interactions.values()
+                for ki in kis
+                if ki.name == ki_name
+            ),
+            None,
+        )
+        if ki is None or ki.id is None:
+            raise KeyError(
+                f"No registered KI named '{ki_name}' found in TestClient. "
+                "Register the KI before enqueueing a handle request."
+            )
+
+        handle_request = HandleRequest(
+            knowledge_interaction_id=ki.id,
+            handle_request_id=self._next_handle_request_id,
+            binding_set=binding_set,
+            requesting_knowledge_base_id=requesting_kb_id,
+        )
+        self._next_handle_request_id += 1
+        self._incoming_calls.append((PollResult.HANDLE, handle_request))
+
+    def enqueue_exit(self) -> None:
+        """Queue an EXIT signal so ``poll_ki_call`` terminates the handling loop."""
+        self._incoming_calls.append((PollResult.EXIT, None))
 
     def ask(
         self,
