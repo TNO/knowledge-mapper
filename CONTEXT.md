@@ -69,6 +69,7 @@ User's Python app (this library)
 ```
 src/
   __init__.py                  # Public API exports: KnowledgeBase, KnowledgeBaseBuilder, KnowledgeBaseSettings, Depends
+  cli.py                       # CLI entry point (Typer): `knowledge-mapper run` subcommand
   depends.py                   # Depends — DI marker for handler parameter annotations
   di.py                        # resolve_dependencies — resolves Depends-annotated params at call time
   knowledge_base.py            # KnowledgeBase class — the main user-facing class
@@ -100,6 +101,7 @@ src/legacy/                    # ← IGNORE: pre-overhaul implementation, do not
 tests/
   test_ask_and_post.py
   test_bindings.py
+  test_cli.py
   test_client.py
   test_handlers.py
   test_kb_lifespan.py
@@ -322,6 +324,31 @@ builder.handler("my-answer-ki", my_handler_func)
 
 kb = builder.build()
 ```
+
+---
+
+## CLI
+
+The package provides a `knowledge-mapper` console command (registered via `console_scripts` in `pyproject.toml`).
+
+### `knowledge-mapper run`
+
+Loads a `KnowledgeBase` instance from a Python file and runs its full lifecycle:
+
+```bash
+knowledge-mapper run path/to/my_app.py:kb
+```
+
+Where `my_app.py` is the Python file and `kb` is the name of the `KnowledgeBase` variable.
+
+**Behaviour:**
+1. Loads the specified Python module.
+2. Retrieves the named `KnowledgeBase` instance from the module.
+3. Calls `kb.register()`.
+4. Calls `kb.start_handling_loop()` (blocking).
+5. On SIGINT/SIGTERM: calls `kb.unregister()` and exits cleanly.
+
+This replaces the boilerplate `if __name__ == "__main__"` block.
 
 ---
 

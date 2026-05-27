@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings[yaml]>=2.13.1",
     "rdflib>=7.6.0",
     "requests>=2.32.5",
+    "typer>=0.15",
 ]
 
 [dependency-groups]
@@ -65,6 +66,9 @@ select = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+[project.scripts]
+knowledge-mapper = "knowledge_mapper.cli:app"
 
 [build-system]
 requires = ["setuptools>=80"]
