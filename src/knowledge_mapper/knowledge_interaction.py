@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
+from .dependency_injection import resolve_dependencies
 from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
 
 type Handler[B, **P] = Callable[
@@ -34,6 +35,49 @@ class KnowledgeInteractionContext[B, **P]:
             self.serialization_model = self._inspect_outgoing_binding_model(
                 self.handler
             )
+
+    def dispatch(self, binding_set: BindingSet) -> BindingSet:
+        """Validate incoming bindings, call the handler (with DI), and serialize
+        the result back to a raw BindingSet.
+
+        Used by the handling loop for incoming ANSWER/REACT KI calls.
+        """
+        assert self.handler is not None
+
+        dep_kwargs = resolve_dependencies(self.handler)
+
+        if self.validation_model:
+            validated = [self.validation_model.model_validate(b) for b in binding_set]
+            result_bindings = self.handler(validated, self.info, **dep_kwargs)
+        else:
+            result_bindings = self.handler(binding_set, self.info, **dep_kwargs)
+
+        if self.serialization_model and result_bindings:
+            return [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]
+        return result_bindings  # pyright: ignore[reportReturnType]
+
+    def prepare_outgoing(
+        self, binding_set: Sequence[BindingModel] | BindingSet
+    ) -> BindingSet:
+        """Serialize outgoing BindingModels to raw dicts for the client.
+
+        Used by ``ask()`` / ``post()`` before calling the SC.
+        """
+        if self.serialization_model:
+            return [b.model_dump() for b in binding_set]  # pyright: ignore[reportAttributeAccessIssue]
+        return binding_set  # pyright: ignore[reportReturnType]
+
+    def parse_result(
+        self, binding_set: BindingSet
+    ) -> Sequence[BindingModel] | BindingSet:
+        """Validate raw result bindings into BindingModels if a validation model
+        is configured.
+
+        Used by ``ask()`` / ``post()`` after receiving the SC response.
+        """
+        if self.validation_model and binding_set:
+            return [self.validation_model.model_validate(b) for b in binding_set]
+        return binding_set
 
     def _inspect_incoming_binding_model(
         self, handler: Callable[..., Any]

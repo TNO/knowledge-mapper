@@ -6,7 +6,6 @@ from enum import StrEnum
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-from ..dependency_injection import resolve_dependencies
 from ..ke import Client
 from ..ke.client import ClientProtocol, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
@@ -392,23 +391,7 @@ class KnowledgeBase:
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
         """
-        ki_ctx = self.ki_registry[ki_name]
-        assert ki_ctx.handler is not None  # Should always be set for ANSWER/REACT KI's
-
-        dep_kwargs = resolve_dependencies(ki_ctx.handler)
-
-        if ki_ctx.validation_model:
-            binding_models = [
-                ki_ctx.validation_model.model_validate(b) for b in binding_set
-            ]
-            result_bindings = ki_ctx.handler(binding_models, ki_ctx.info, **dep_kwargs)
-        else:
-            result_bindings = ki_ctx.handler(binding_set, ki_ctx.info, **dep_kwargs)
-
-        if ki_ctx.serialization_model and result_bindings:
-            # We can assume the result bindings are BindingModels, so we can model_dump
-            result_bindings = [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue],
-        return result_bindings  # pyright: ignore[reportReturnType]
+        return self.ki_registry[ki_name].dispatch(binding_set)
 
     def post(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
@@ -432,37 +415,22 @@ class KnowledgeBase:
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
 
-        if ki_ctx.serialization_model:
-            # We can assume the result bindings are BindingModels, so we can model_dump
-            binding_models = [
-                b.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
-                for b in binding_set
-            ]
-            post_result = self.client.post(
-                kb_id=self.info.id,
-                ki_id=ki_ctx.info.id,
-                binding_set=binding_models,
-            )
-        else:
-            post_result = self.client.post(
-                kb_id=self.info.id,
-                ki_id=ki_ctx.info.id,
-                binding_set=binding_set,  # pyright: ignore[reportArgumentType]
-            )
-
-        if ki_ctx.validation_model and post_result.result_binding_set:
-            result_bindings = [
-                ki_ctx.validation_model.model_validate(b)
-                for b in post_result.result_binding_set
-            ]
-            return result_bindings
-        else:
-            return post_result.result_binding_set
+        post_result = self.client.post(
+            kb_id=self.info.id,
+            ki_id=ki_ctx.info.id,
+            binding_set=ki_ctx.prepare_outgoing(binding_set),
+        )
+        return ki_ctx.parse_result(post_result.result_binding_set)
 
     def ask(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
-        """..."""
+        """Invoke an ASK KI by its name.
+
+        Raises:
+            KeyError: If ``ki_name`` is not found in the local KI registry.
+            ValueError: If the KI is not registered at the KE runtime.
+        """
         ki_ctx = self.ki_registry[ki_name]
         if ki_ctx.info.type != KiTypes.ASK:
             raise ValueError(
@@ -475,32 +443,13 @@ class KnowledgeBase:
                 f"register the KB and sync KIs first."
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
-        if ki_ctx.serialization_model:
-            # We can assume the result bindings are BindingModels, so we can model_dump
-            binding_models = [
-                b.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
-                for b in binding_set
-            ]
-            ask_result = self.client.ask(
-                kb_id=self.info.id,
-                ki_id=ki_ctx.info.id,
-                binding_set=binding_models,
-            )
-        else:
-            ask_result = self.client.ask(
-                kb_id=self.info.id,
-                ki_id=ki_ctx.info.id,
-                binding_set=binding_set,  # pyright: ignore[reportArgumentType]
-            )
 
-        if ki_ctx.validation_model and ask_result.binding_set:
-            result_bindings = [
-                ki_ctx.validation_model.model_validate(b)
-                for b in ask_result.binding_set
-            ]
-            return result_bindings
-        else:
-            return ask_result.binding_set
+        ask_result = self.client.ask(
+            kb_id=self.info.id,
+            ki_id=ki_ctx.info.id,
+            binding_set=ki_ctx.prepare_outgoing(binding_set),
+        )
+        return ki_ctx.parse_result(ask_result.binding_set)
 
     def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
