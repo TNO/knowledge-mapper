@@ -60,7 +60,7 @@ User's Python app (this library)
   Other KBs in the network
 ```
 
-**Key runtime model**: The `KnowledgeBase` registers itself and its KIs with the SC, then enters a **long-polling loop** (`start_handling_loop()`). On each poll the SC either returns an incoming KI call to handle or asks to re-poll. The KB dispatches calls to registered handler functions, serializes the result, and replies to the SC. For outgoing interactions (`ask()` / `post()`), the KB sends a request to the SC which fans out through the network.
+**Key runtime model**: The `KnowledgeBase` registers itself and its KIs with the SC, then enters a **concurrent long-polling loop** (`start_handling_loop()`). The loop runs multiple poll-dispatch cycles concurrently, bounded by a semaphore (`max_concurrent_handlers`, default 10). Each cycle acquires the semaphore, polls the SC, and on HANDLE spawns an `asyncio.Task` that runs the handler, posts the response, and releases the semaphore. Handler exceptions are caught — an empty binding set is posted back so the SC doesn't hang. On EXIT, the loop stops polling and awaits all in-flight handler tasks. For outgoing interactions (`ask()` / `post()`), the KB sends a request to the SC which fans out through the network.
 
 ---
 
@@ -171,8 +171,9 @@ result = await kb.post(binding_set, ki_name="...")   # Returns result BindingSet
 #### Handling loop
 
 ```python
-await kb.start_handling_loop()           # Blocks, handles incoming KIs forever
-await kb.start_handling_loop(loops=10)   # Runs exactly 10 poll iterations (useful for testing)
+await kb.start_handling_loop()                          # Concurrent dispatch, up to 10 in-flight
+await kb.start_handling_loop(max_concurrent_handlers=5) # Limit to 5 concurrent handlers
+await kb.start_handling_loop(loops=10)                  # Runs exactly 10 poll cycles (useful for testing)
 ```
 
 ---

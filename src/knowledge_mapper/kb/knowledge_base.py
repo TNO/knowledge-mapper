@@ -8,7 +8,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any
 
 from ..ke import Client
-from ..ke.client import ClientProtocol, PollResult
+from ..ke.client import ClientProtocol, HandleRequest, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
 from ..ke.models import (
     AskAnswerInteractionInfo,
@@ -487,60 +487,104 @@ class KnowledgeBase:
         )
         return ki_ctx.parse_result(ask_result.binding_set)
 
-    async def start_handling_loop(self, loops: int | None = None) -> None:
-        """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
+    async def start_handling_loop(
+        self,
+        loops: int | None = None,
+        max_concurrent_handlers: int = 10,
+    ) -> None:
+        """Poll the KE runtime for incoming KI calls and dispatch them concurrently.
 
-        Runs until an EXIT signal is received from the KE runtime, or until
-        ``loops`` iterations have been completed if ``loops`` is specified.
+        Runs multiple concurrent poll-dispatch cycles, bounded by a semaphore.
+        Each cycle acquires the semaphore, polls, and on HANDLE spawns a task
+        that runs the handler, posts the response, and releases the semaphore.
+
+        Stops when an EXIT signal is received or ``loops`` poll cycles have
+        been completed.  On EXIT, all in-flight handler tasks are awaited
+        before returning.
+
+        Args:
+            loops: If set, limits the total number of poll cycles (useful for
+                testing).  ``None`` means poll indefinitely.
+            max_concurrent_handlers: Maximum number of concurrent handler tasks
+                (semaphore size).  Defaults to 10.
 
         Raises:
             RuntimeError: If the KB is not registered.
-            KeyError: If the KE runtime refers to a KI not found in the local registry.
-            SmartConnectorNotFoundError: If the KB's smart connector is not found in
-            the KE runtime.
-            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
-            response.
-            RuntimeError: If an unknown long-polling result is obtained from the KE
-            client.
         """
+        import asyncio
+
         if self.state != KnowledgeBaseState.REGISTERED:
             raise RuntimeError(
                 "Cannot start handling loop because the KB is not registered. Please "
                 "register the KB first."
             )
 
+        self._loop = asyncio.get_running_loop()
+        semaphore = asyncio.Semaphore(max_concurrent_handlers)
+        in_flight: set[asyncio.Task[None]] = set()
+
         loops_done = 0
         while loops is None or loops_done < loops:
+            await semaphore.acquire()
             loops_done += 1
+
             poll_result, maybe_handle_request = await self.client.poll_ki_call(
                 kb_id=self.info.id
             )
             match poll_result, maybe_handle_request:
                 case PollResult.HANDLE, _:
                     assert maybe_handle_request is not None
-                    ki_id = maybe_handle_request.knowledge_interaction_id
-                    ki_ctx = self._ki_registry_by_id[ki_id]
-                    result_binding_set = await self.call(
-                        maybe_handle_request.binding_set,
-                        ki_ctx.info.name,
-                    )
-                    await self.client.post_handle_response(
-                        kb_id=self.info.id,
-                        ki_id=maybe_handle_request.knowledge_interaction_id,
-                        handle_request_id=maybe_handle_request.handle_request_id,
-                        binding_set=result_binding_set,
-                    )
+
+                    async def _handle(
+                        handle_request: HandleRequest,
+                    ) -> None:
+                        ki_id = handle_request.knowledge_interaction_id
+                        ki_ctx = self._ki_registry_by_id[ki_id]
+                        try:
+                            result_binding_set = await self.call(
+                                handle_request.binding_set,
+                                ki_ctx.info.name,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Handler for KI '%s' raised an exception "
+                                "(request %d from %s). Posting empty binding set.",
+                                ki_ctx.info.name,
+                                handle_request.handle_request_id,
+                                handle_request.requesting_knowledge_base_id,
+                            )
+                            result_binding_set = []
+
+                        await self.client.post_handle_response(
+                            kb_id=self.info.id,
+                            ki_id=handle_request.knowledge_interaction_id,
+                            handle_request_id=handle_request.handle_request_id,
+                            binding_set=result_binding_set,
+                        )
+                        semaphore.release()
+
+                    task = asyncio.create_task(_handle(maybe_handle_request))
+                    in_flight.add(task)
+                    task.add_done_callback(in_flight.discard)
 
                 case PollResult.REPOLL, None:
+                    semaphore.release()
                     continue
+
                 case PollResult.EXIT, None:
+                    semaphore.release()
                     logger.info("Received exit signal from KE, stopping handling loop.")
-                    return
+                    break
+
                 case _:
+                    semaphore.release()
                     raise RuntimeError(
                         f"Unexpected poll result: {poll_result} or request:"
                         f"{maybe_handle_request}"
                     )
+
+        if in_flight:
+            await asyncio.gather(*in_flight)
 
     async def close(self) -> None:
         """Close the underlying client, releasing any held resources."""
