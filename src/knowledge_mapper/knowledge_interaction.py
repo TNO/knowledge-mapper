@@ -74,7 +74,7 @@ class KnowledgeInteractionContext[B, **P]:
             )
 
         if self.serialization_model and result_bindings:
-            return [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]
+            return [b.dump_partial_binding() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]
         return result_bindings  # pyright: ignore[reportReturnType]
 
     def prepare_outgoing(
@@ -85,7 +85,7 @@ class KnowledgeInteractionContext[B, **P]:
         Used by ``ask()`` / ``post()`` before calling the SC.
         """
         if self.serialization_model:
-            return [b.model_dump() for b in binding_set]  # pyright: ignore[reportAttributeAccessIssue]
+            return [b.dump_partial_binding() for b in binding_set]  # pyright: ignore[reportAttributeAccessIssue]
         return binding_set  # pyright: ignore[reportReturnType]
 
     def parse_result(

@@ -96,11 +96,17 @@ def binding_models_raw_answer_ki(
     ]
 
 
-if __name__ == "__main__":
+async def main():
     # Register both KIs, then cleanly unregister.
-    kb.connect()
-    kb.register()
+    await kb.connect()
+    await kb.register()
     logger.info("Registered the binding models example KB!")
 
-    kb.unregister()
+    await kb.unregister()
     logger.info("Unregistered the binding models example KB!")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

@@ -35,10 +35,16 @@ def example_answer_ki(binding_set, info):
     return binding_set
 
 
-if __name__ == "__main__":
+async def main():
     # Connect to the KE, then register and unregister this KB.
-    kb.connect()
-    kb.register()
+    await kb.connect()
+    await kb.register()
     logger.info("Registered a Knowledge Base in the basic example!")
-    kb.unregister()
+    await kb.unregister()
     logger.info("Unregistered the Knowledge Base in the basic example!")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

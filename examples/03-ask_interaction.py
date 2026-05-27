@@ -4,6 +4,7 @@ Registers an ASK KI and executes it from this script to show how query bindings
 and typed results work end-to-end.
 """
 
+from rdflib import URIRef
 from shared import get_example_logger
 
 from knowledge_mapper import BindingModel, KnowledgeBase, Literal, Uri
@@ -38,19 +39,28 @@ kb.ask_ki(
     prefixes={"ex": "http://example.org/knowledge-mapper/ask-interaction#"},
 )
 
-if __name__ == "__main__":
+
+async def main():
     # Register this KB, execute one ASK request, and then unregister.
-    kb.register()
+    await kb.register()
     logger.info("KB registered.")
-    result = kb.ask(
+    result = await kb.ask(
         [
-            {
-                "person": "http://example.org/knowledge-mapper/ask-interaction#person1",
-            }
+            PersonBinding(
+                person=URIRef("http://example.org/knowledge-mapper/ask-interaction#person1"),
+                name=None,
+                age=None,
+            )
         ],
         "ask-ki",
     )
     logger.info(f"Received result from ASK KI: {result}")
 
-    kb.unregister()
+    await kb.unregister()
     logger.info("KB unregistered.")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

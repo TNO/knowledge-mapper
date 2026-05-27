@@ -173,8 +173,15 @@ def answer_sensor_readings(
     ]
 
 
-if __name__ == "__main__":
-    kb.connect()
-    kb.register()
+async def main():
+    await kb.connect()
+    await kb.register()
     logger.info("Registered the dependency-injection example KB!")
-    kb.unregister()
+    await kb.unregister()
+    logger.info("Unregistered the dependency-injection example KB!")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
