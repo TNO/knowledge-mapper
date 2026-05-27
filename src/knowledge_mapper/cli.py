@@ -16,6 +16,7 @@ from types import FrameType
 import typer
 
 from .kb.knowledge_base import KnowledgeBase
+from .ke.models import KiTypes
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,77 @@ def run(
     kb.register()
     logger.info(
         "Knowledge base '%s' registered. Entering handling loop.",
+        kb.info.name,
+    )
+
+    try:
+        kb.start_handling_loop()
+    finally:
+        kb.unregister()
+
+
+@app.command()
+def sparql(
+    config_file: Path = typer.Argument(  # noqa: B008
+        help="Path to a YAML config file defining the SPARQL-backed Knowledge Base.",
+    ),
+) -> None:
+    """Start a config-driven KB backed by a SPARQL endpoint.
+
+    Loads the config, auto-generates ANSWER/REACT handlers that query the
+    configured SPARQL endpoint, registers the KB, and enters the handling
+    loop.  On SIGINT/SIGTERM the KB is unregistered and the process exits.
+    """
+    if not config_file.is_file():
+        _fail(f"Config file not found: '{config_file}'.")
+
+    import yaml
+
+    from .sparql.handler import make_sparql_handler
+    from .sparql.settings import SparqlSettings
+
+    with open(config_file) as f:
+        config_data = yaml.safe_load(f) or {}
+
+    try:
+        settings = SparqlSettings(**config_data)
+    except Exception as exc:
+        _fail(str(exc))
+
+    answer_react_kis = [
+        ki
+        for ki in settings.knowledge_interactions
+        if ki.type in (KiTypes.ANSWER, KiTypes.REACT)
+    ]
+    if not answer_react_kis:
+        _fail(
+            "No ANSWER or REACT knowledge interactions found in config. "
+            "The sparql subcommand requires at least one."
+        )
+
+    builder = KnowledgeBase.from_settings(settings)
+    for ki in answer_react_kis:
+        handler = make_sparql_handler(
+            sparql_endpoint=settings.sparql_endpoint,
+            sparql_query=ki.sparql_query,
+            variable_mapping=ki.variable_mapping,
+        )
+        builder.handler(ki.name, handler)
+
+    kb = builder.build()
+
+    def _shutdown(signum: int, frame: FrameType | None) -> None:
+        sig_name = signal.Signals(signum).name
+        logger.info("Received %s, shutting down.", sig_name)
+        kb.unregister()
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGINT, _shutdown)
+    signal.signal(signal.SIGTERM, _shutdown)
+
+    kb.register()
+    logger.info(
+        "SPARQL-backed knowledge base '%s' registered. Entering handling loop.",
         kb.info.name,
     )
 

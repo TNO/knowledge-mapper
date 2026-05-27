@@ -1,0 +1,14 @@
+knowledge_base:
+  id: "http://example.org/knowledge-mapper/sparql-source#kb"
+  name: "sparql-source-knowledge-base"
+  description: "A knowledge base connecting a SPARQL endpoint as a source."
+
+knowledge_engine_endpoint: "http://localhost:8280/rest"
+
+knowledge_interactions:
+  - name: ask-from-settings
+    type: AskKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/knowledge-mapper/sparql-source#"
+    graph_pattern: |
+      ?s ?p ?o .
