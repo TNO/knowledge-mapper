@@ -1,7 +1,12 @@
+"""ASK interaction example.
+
+Registers an ASK KI and executes it from this script to show how query bindings
+and typed results work end-to-end.
+"""
+
 from shared import get_example_logger
 
-from src import KnowledgeBase
-from src.ke.models import BindingModel, Literal, Uri
+from knowledge_mapper import BindingModel, KnowledgeBase, Literal, Uri
 
 EXAMPLE_NAME = "ask-interaction"
 logger = get_example_logger(EXAMPLE_NAME)
@@ -14,12 +19,14 @@ kb = KnowledgeBase(
 )
 
 
+# Binding model for variables used in the ASK graph pattern.
 class PersonBinding(BindingModel):
     person: Uri
     name: Literal[str]
     age: Literal[int]
 
 
+# Register an ASK KI that can be called via kb.ask(...).
 kb.ask_ki(
     name="ask-ki",
     graph_pattern="""
@@ -32,6 +39,7 @@ kb.ask_ki(
 )
 
 if __name__ == "__main__":
+    # Register this KB, execute one ASK request, and then unregister.
     kb.register()
     logger.info("KB registered.")
     result = kb.ask(

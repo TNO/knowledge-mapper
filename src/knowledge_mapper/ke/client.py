@@ -33,7 +33,7 @@ class HandleRequest(BaseModel):
     )
 
     knowledge_interaction_id: str
-    handle_request_id: str
+    handle_request_id: int
     binding_set: list[dict[str, str]]
     requesting_knowledge_base_id: str
 
@@ -122,6 +122,19 @@ class ClientProtocol(Protocol):
 
     def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    def post_handle_response(
+        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
+    ) -> None:
+        """Post the response to a KI call that was received via ``poll_ki_call``.
 
         Raises:
             SmartConnectorNotFoundError: If no smart connector exists for the given KB
@@ -308,7 +321,7 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
 
     def post_handle_response(
-        self, kb_id: str, ki_id: str, handle_request_id: str, binding_set: BindingSet
+        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
     ) -> None:
         logger.debug("Posting handle response for KI call.")
         response = requests.post(

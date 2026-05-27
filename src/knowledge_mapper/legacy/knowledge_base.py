@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import logging as log
 import requests
 
-import src.knowledge_interaction as knowledge_interaction
+import src.knowledge_mapper.knowledge_interaction as knowledge_interaction
 
 from src.tke_exceptions import UnexpectedHttpResponseError
 

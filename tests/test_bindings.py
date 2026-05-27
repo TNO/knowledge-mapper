@@ -1,7 +1,7 @@
 from rdflib import Literal as RDFLiteral
 from rdflib import URIRef
 
-from src.ke.models import (
+from knowledge_mapper.ke.models import (
     BindingModel,
     Literal,
     Uri,

@@ -1,11 +1,11 @@
 import pytest
 from rdflib import URIRef
 
-from src.ke.testing import TestClient
+from knowledge_mapper.testing import TestClient
 
 # Import the Knowledge Base that you would like to test, along with any relevant binding
 # models.
-from .kb import TestBinding, ask_for_values_of_subject, kb, repeat_value_post
+from .kb import ExampleBinding, ask_for_values_of_subject, kb, repeat_value_post
 
 # In your tests you likely want to use the TestClient to mock results from the KE.
 # A Knowledge Base instance is initialized with a real Client that makes HTTP requests
@@ -40,7 +40,7 @@ def test_ask_ki_with_result(client: TestClient):
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "test value",
+                "value": '"test value"',
             }
         ],
     )
@@ -48,29 +48,28 @@ def test_ask_ki_with_result(client: TestClient):
     assert result_binding_set == [
         {
             "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-            "value": "test value",
+            "value": '"test value"',
         }
     ]
 
 
 # This is a little more useful when you have a binding model, testing the correctness of
 # the binding model according to the graph pattern. One test per interaction like this
-# per interaction is probably a good idea, to isolate issues with the binding model from
-# other issues.
+# is probably a good idea, to isolate issues with the binding model from other issues.
 def test_ask_ki_with_binding_model(client: TestClient):
     client.mock_result_binding_set(
         "ask-ki-with-binding-model",
         [
             {
                 "s": "<http://example.org/knowledge-mapper/testing#Subject>",
-                "value": "test value",
+                "value": '"test value"',
             }
         ],
     )
 
     result_binding_set = kb.ask(
         [
-            TestBinding(
+            ExampleBinding(
                 s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
                 value=None,
             )
@@ -78,7 +77,7 @@ def test_ask_ki_with_binding_model(client: TestClient):
         "ask-ki-with-binding-model",
     )
     assert result_binding_set == [
-        TestBinding(
+        ExampleBinding(
             s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
             value="test value",
         )
@@ -91,7 +90,7 @@ def test_function_containing_ask(client: TestClient):
     client.mock_result_binding_set(
         ki_name="ask-ki-with-binding-model",
         binding_set=[
-            TestBinding(
+            ExampleBinding(
                 s=URIRef("http://example.org/knowledge-mapper/testing#Subject"),
                 value="test value",
             ).model_dump(),

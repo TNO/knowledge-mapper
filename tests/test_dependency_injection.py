@@ -2,9 +2,9 @@ from typing import Annotated
 
 import pytest
 
-from src import Depends
-from src.kb.knowledge_base import KnowledgeBase
-from src.ke.models import BindingSet
+from knowledge_mapper import Depends
+from knowledge_mapper.kb.knowledge_base import KnowledgeBase
+from knowledge_mapper.ke.models import BindingSet
 
 
 @pytest.fixture
