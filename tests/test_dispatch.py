@@ -167,3 +167,75 @@ def test_parse_result_empty_binding_set():
     )
 
     assert ctx.parse_result([]) == []
+
+
+# -- async handler dispatch ---------------------------------------------------
+
+
+async def test_dispatch_async_handler():
+    """dispatch() detects an async handler and awaits it directly."""
+
+    async def handler(binding_set: BindingSet, info) -> BindingSet:
+        return [{"sensor": b["sensor"]} for b in binding_set]
+
+    ctx = KnowledgeInteractionContext(
+        info=AskAnswerInteractionInfo(
+            type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
+        ),
+        handler=handler,
+    )
+
+    result = await ctx.dispatch([{"sensor": "<http://example.org/s1>"}])
+    assert result == [{"sensor": "<http://example.org/s1>"}]
+
+
+async def test_dispatch_sync_handler_runs_in_thread():
+    """dispatch() runs a sync handler via asyncio.to_thread (off the event loop)."""
+    import threading
+
+    event_loop_thread = threading.current_thread()
+    handler_thread = None
+
+    def handler(binding_set: BindingSet, info) -> BindingSet:
+        nonlocal handler_thread
+        handler_thread = threading.current_thread()
+        return binding_set
+
+    ctx = KnowledgeInteractionContext(
+        info=AskAnswerInteractionInfo(
+            type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
+        ),
+        handler=handler,
+    )
+
+    await ctx.dispatch([{"sensor": "<http://example.org/s1>"}])
+    assert handler_thread is not None
+    assert handler_thread is not event_loop_thread
+
+
+async def test_dispatch_async_handler_via_decorator():
+    """Decorator-registered async handler is detected as async and awaited."""
+    import threading
+
+    from knowledge_mapper import KnowledgeBase
+
+    kb = KnowledgeBase(
+        id="http://example.org/test#kb",
+        name="test-kb",
+        description="test",
+        ke_url="http://fake-ke",
+    )
+
+    event_loop_thread = threading.current_thread()
+    handler_thread = None
+
+    @kb.answer_ki(name="async-ki", graph_pattern=GRAPH_PATTERN)
+    async def my_handler(binding_set: BindingSet, info) -> BindingSet:
+        nonlocal handler_thread
+        handler_thread = threading.current_thread()
+        return binding_set
+
+    result = await kb.call([{"sensor": "<http://example.org/s1>"}], "async-ki")
+    assert result == [{"sensor": "<http://example.org/s1>"}]
+    # Async handler runs on the event loop thread, not in a separate thread
+    assert handler_thread is event_loop_thread

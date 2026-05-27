@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Callable, Sequence
 from enum import StrEnum
@@ -196,23 +197,44 @@ class KnowledgeBase:
         """
 
         def decorator(func: Handler) -> Handler:
-            @wraps(func)
-            def wrapper(
-                binding_set: BindingSet | list[BindingModel],
-                info: KnowledgeInteractionInfo,
-                *args,
-                **kwargs,
-            ) -> BindingSet | Sequence[BindingModel]:
-                return func(binding_set, info, *args, **kwargs)
+            if inspect.iscoroutinefunction(func):
 
-            self._register_ki_locally(
-                KnowledgeInteractionContext(
-                    info=info,
-                    handler=wrapper,
-                    status=KnowledgeInteractionStatus.UNREGISTERED,
-                ),
-            )
-            return wrapper
+                @wraps(func)
+                async def async_wrapper(
+                    binding_set: BindingSet | list[BindingModel],
+                    info: KnowledgeInteractionInfo,
+                    *args,
+                    **kwargs,
+                ) -> BindingSet | Sequence[BindingModel]:
+                    return await func(binding_set, info, *args, **kwargs)
+
+                self._register_ki_locally(
+                    KnowledgeInteractionContext(
+                        info=info,
+                        handler=async_wrapper,
+                        status=KnowledgeInteractionStatus.UNREGISTERED,
+                    ),
+                )
+                return async_wrapper
+            else:
+
+                @wraps(func)
+                def wrapper(
+                    binding_set: BindingSet | list[BindingModel],
+                    info: KnowledgeInteractionInfo,
+                    *args,
+                    **kwargs,
+                ) -> BindingSet | Sequence[BindingModel]:
+                    return func(binding_set, info, *args, **kwargs)
+
+                self._register_ki_locally(
+                    KnowledgeInteractionContext(
+                        info=info,
+                        handler=wrapper,
+                        status=KnowledgeInteractionStatus.UNREGISTERED,
+                    ),
+                )
+                return wrapper
 
         return decorator
 

@@ -1,5 +1,6 @@
+import asyncio
 import inspect
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Concatenate, get_args
@@ -7,10 +8,15 @@ from typing import Any, Concatenate, get_args
 from .dependency_injection import resolve_dependencies
 from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
 
-type Handler[B, **P] = Callable[
-    Concatenate[B, KnowledgeInteractionInfo, P],
-    BindingSet | Sequence[BindingModel],
-]
+type _HandlerReturn = BindingSet | Sequence[BindingModel]
+
+type Handler[B, **P] = (
+    Callable[Concatenate[B, KnowledgeInteractionInfo, P], _HandlerReturn]
+    | Callable[
+        Concatenate[B, KnowledgeInteractionInfo, P],
+        Coroutine[Any, Any, _HandlerReturn],
+    ]
+)
 
 
 class KnowledgeInteractionStatus(StrEnum):
@@ -56,9 +62,16 @@ class KnowledgeInteractionContext[B, **P]:
 
         if self.validation_model:
             validated = [self.validation_model.model_validate(b) for b in binding_set]
-            result_bindings = self.handler(validated, self.info, **dep_kwargs)
+            input_data = validated
         else:
-            result_bindings = self.handler(binding_set, self.info, **dep_kwargs)
+            input_data = binding_set
+
+        if inspect.iscoroutinefunction(self.handler):
+            result_bindings = await self.handler(input_data, self.info, **dep_kwargs)
+        else:
+            result_bindings = await asyncio.to_thread(
+                self.handler, input_data, self.info, **dep_kwargs
+            )
 
         if self.serialization_model and result_bindings:
             return [b.model_dump() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]

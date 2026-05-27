@@ -90,3 +90,51 @@ async def test_handler_with_typed_binding_set(kb: KnowledgeBase):
     assert result == [
         {"sensor": "<http://example.org/test#sensor1>"},
     ]
+
+
+async def test_async_handler_with_untyped_binding_set(kb: KnowledgeBase):
+    @kb.answer_ki(
+        name="test-async-untyped-answer-ki",
+        graph_pattern="""
+            ?sensor a ex:Sensor ;
+            """,
+        prefixes={"ex": "http://example.org/test#"},
+    )
+    async def test_async_untyped_answer_ki(binding_set: BindingSet, info) -> BindingSet:
+        return [
+            binding
+            for binding in binding_set
+            if binding["sensor"] == "<http://example.org/test#sensor1>"
+        ]
+
+    result = await kb.call(
+        [{"sensor": "<http://example.org/test#sensor1>"}],
+        "test-async-untyped-answer-ki",
+    )
+    assert result == [
+        {"sensor": "<http://example.org/test#sensor1>"},
+    ]
+
+
+async def test_async_handler_with_typed_binding_set(kb: KnowledgeBase):
+    class TestBinding(BindingModel):
+        sensor: Uri
+
+    @kb.answer_ki(
+        name="async-typed-answer-ki",
+        graph_pattern="""
+            ?sensor a ex:Sensor ;
+            """,
+        prefixes={"ex": "http://example.org/test#"},
+    )
+    async def test_async_answer_ki(
+        binding_set: list[TestBinding], info
+    ) -> list[TestBinding]:
+        return binding_set
+
+    result = await kb.call(
+        [{"sensor": "<http://example.org/test#sensor1>"}], "async-typed-answer-ki"
+    )
+    assert result == [
+        {"sensor": "<http://example.org/test#sensor1>"},
+    ]
