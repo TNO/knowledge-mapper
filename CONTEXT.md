@@ -68,7 +68,9 @@ User's Python app (this library)
 
 ```
 src/
-  __init__.py                  # Public API exports: KnowledgeBase, KnowledgeBaseBuilder, KnowledgeBaseSettings
+  __init__.py                  # Public API exports: KnowledgeBase, KnowledgeBaseBuilder, KnowledgeBaseSettings, Depends
+  depends.py                   # Depends — DI marker for handler parameter annotations
+  di.py                        # resolve_dependencies — resolves Depends-annotated params at call time
   knowledge_base.py            # KnowledgeBase class — the main user-facing class
   knowledge_base_builder.py    # KnowledgeBaseBuilder — settings-aware builder that wraps KnowledgeBase
   knowledge_interaction.py     # KnowledgeInteractionContext, Handler type, status enum
@@ -171,6 +173,36 @@ result = kb.post(binding_set, ki_name="...")   # Returns result BindingSet or li
 kb.start_handling_loop()           # Blocks, handles incoming KIs forever
 kb.start_handling_loop(loops=10)   # Runs exactly 10 poll iterations (useful for testing)
 ```
+
+---
+
+### `Depends` — Dependency injection
+
+Handlers can declare dependencies (database connections, HTTP clients, config, etc.) using
+`Depends()` in `Annotated` type hints.  The framework resolves them at call time.
+
+```python
+from typing import Annotated
+from src import Depends
+
+def get_db() -> MyDatabase:
+    return MyDatabase(url="...")
+
+@kb.answer_ki(name="...", graph_pattern="...")
+def handler(
+    binding_set: list[PersonBinding],
+    info: KnowledgeInteractionInfo,
+    db: Annotated[MyDatabase, Depends(get_db)],
+) -> list[PersonBinding]:
+    return db.query(binding_set)
+```
+
+**Behaviour:**
+- The framework inspects handler signatures at registration time and resolves `Depends` params at call time.
+- Dependency factories are **sync-only** (async support is out of scope).
+- Factories can themselves declare `Depends` parameters — nested/transitive resolution is supported.
+- `cache=True` (default): factory called once per KI-call invocation; result shared across all uses.
+- `cache=False`: factory called fresh every time it is needed.
 
 ---
 
@@ -385,3 +417,4 @@ These are excluded from linting (`ruff`) and are kept for historical reference o
 - **KI registry indexed by ID after registration**: `KnowledgeBase` maintains a secondary index (`_ki_registry_by_id`) populated once a KI is registered with the SC and assigned an ID. The handling loop dispatches by ID using this index.
 - **Handler introspection**: `KnowledgeInteractionContext.__post_init__` inspects handler signatures to auto-detect binding models, enabling transparent (de)serialization without manual type dispatch. Dispatch logic (validate → call → serialize for ANSWER/REACT; prepare_outgoing + parse_result for ASK/POST) lives in `KnowledgeInteractionContext`, not in `KnowledgeBase`.
 - **`KnowledgeBaseBuilder` wraps `KnowledgeBase`**: Settings-based KI registration belongs to `KnowledgeBaseBuilder`, not to `KnowledgeBase`. `KnowledgeBase.from_settings()` returns a builder; `builder.build()` returns the finished `KnowledgeBase`. `KnowledgeBase` itself has no knowledge of settings. ASK/POST KIs are auto-registered at `build()` time; ANSWER/REACT KIs require a handler attached via `builder.handler(name, func)` before `build()` is called.
+- **Dependency injection via `Depends`**: `KnowledgeBase.call()` calls `resolve_dependencies(handler)` before invoking the handler, passing resolved values as kwargs.  The resolver (`src/di.py`) uses `get_type_hints(include_extras=True)` to find `Annotated[T, Depends(factory)]` params, recursively resolves factory deps (transitive), and caches results per invocation when `cache=True`.  `@wraps` on the decorator wrapper preserves `__annotations__`, so the resolver sees the original handler's hints.
