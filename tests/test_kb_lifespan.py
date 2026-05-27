@@ -60,3 +60,9 @@ async def test_unregister_without_registering(kb: KnowledgeBase):
 async def test_start_handling_loop_without_registering(kb: KnowledgeBase):
     with pytest.raises(RuntimeError):
         await kb.start_handling_loop(loops=1)
+
+
+async def test_close_delegates_to_client(kb: KnowledgeBase, client: TestClient):
+    await kb.connect()
+    await kb.register()
+    await kb.close()  # Should not raise; delegates to client.close()

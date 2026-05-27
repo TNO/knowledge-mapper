@@ -542,6 +542,10 @@ class KnowledgeBase:
                         f"{maybe_handle_request}"
                     )
 
+    async def close(self) -> None:
+        """Close the underlying client, releasing any held resources."""
+        await self.client.close()
+
     @property
     def is_registered(self) -> bool:
         """Is the knowledge base in the registered state"""

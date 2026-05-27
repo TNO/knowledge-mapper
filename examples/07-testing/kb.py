@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from time import sleep
 from typing import cast
 
 from rdflib import URIRef
@@ -47,8 +46,8 @@ kb.ask_ki(
 )
 
 
-def ask_for_values_of_subject(subject_name: str) -> list[str]:
-    result_binding_set: list[ExampleBinding] = kb.ask(
+async def ask_for_values_of_subject(subject_name: str) -> list[str]:
+    result_binding_set: list[ExampleBinding] = await kb.ask(
         [
             ExampleBinding(
                 s=URIRef(f"http://example.org/knowledge-mapper/testing#{subject_name}"),
@@ -85,11 +84,11 @@ kb.post_ki(
 )
 
 
-def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
+async def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
     result_binding_set: list[ResultBinding] = []
     for i in range(iterations):
         result_binding_set.extend(
-            kb.post(
+            await kb.post(
                 [
                     ExampleBinding(
                         s=URIRef(
@@ -101,7 +100,6 @@ def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
                 "post-ki",
             )  # type: ignore
         )
-        sleep(1)
     return [cast(URIRef, binding.other) for binding in result_binding_set]
 
 

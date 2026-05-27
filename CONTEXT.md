@@ -129,9 +129,10 @@ builder = KnowledgeBase.from_settings(settings)  # settings: KnowledgeBaseSettin
 
 #### Lifecycle
 ```python
-kb.connect()      # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
-kb.register()     # Register KB + sync all KIs with the SC (re-registers if already registered)
-kb.unregister()   # Unregister KB from SC (KIs automatically unregistered)
+await kb.connect()      # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
+await kb.register()     # Register KB + sync all KIs with the SC (re-registers if already registered)
+await kb.unregister()   # Unregister KB from SC (KIs automatically unregistered)
+await kb.close()        # Close the underlying HTTP client and release resources
 ```
 
 #### Registering KIs (decorator pattern)
@@ -163,15 +164,15 @@ kb.post_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...",
 #### Outgoing interactions
 
 ```python
-result = kb.ask(binding_set, ki_name="...")    # Returns BindingSet or list[BindingModel]
-result = kb.post(binding_set, ki_name="...")   # Returns result BindingSet or list[BindingModel]
+result = await kb.ask(binding_set, ki_name="...")    # Returns BindingSet or list[BindingModel]
+result = await kb.post(binding_set, ki_name="...")   # Returns result BindingSet or list[BindingModel]
 ```
 
 #### Handling loop
 
 ```python
-kb.start_handling_loop()           # Blocks, handles incoming KIs forever
-kb.start_handling_loop(loops=10)   # Runs exactly 10 poll iterations (useful for testing)
+await kb.start_handling_loop()           # Blocks, handles incoming KIs forever
+await kb.start_handling_loop(loops=10)   # Runs exactly 10 poll iterations (useful for testing)
 ```
 
 ---
