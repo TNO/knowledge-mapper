@@ -12,7 +12,7 @@ def client():
 
 
 @pytest.fixture
-def kb(client: TestClient):
+async def kb(client: TestClient):
     kb = KnowledgeBase(
         id="http://example.org/test#kb",
         name="test-kb",
@@ -20,11 +20,13 @@ def kb(client: TestClient):
         ke_url="http://fake-ke",
     )
     kb.client = client
-    kb.register()
+    await kb.register()
     return kb
 
 
-def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient):
+async def test_ask_interaction_no_binding_models(
+    kb: KnowledgeBase, client: TestClient
+):
     kb.ask_ki(
         name="ask-ki",
         graph_pattern="""
@@ -33,8 +35,8 @@ def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient
                 ex:hasAge ?age .
         """,
         prefixes={"ex": "http://example.org/test#"},
-        defer_ke_registration=False,
     )
+    await kb.sync_knowledge_interactions()
 
     client.mock_result_binding_set(
         ki_name="ask-ki",
@@ -47,7 +49,7 @@ def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient
         ],
     )
 
-    result = kb.ask(
+    result = await kb.ask(
         [
             {
                 "person": "http://example.org/test#person1",
@@ -65,7 +67,9 @@ def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient
     ]
 
 
-def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClient):
+async def test_ask_interaction_with_binding_models(
+    kb: KnowledgeBase, client: TestClient
+):
     class PersonBinding(BindingModel):
         person: Uri
         name: Literal[str]
@@ -80,8 +84,8 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
         """,
         binding_model=PersonBinding,
         prefixes={"ex": "http://example.org/test#"},
-        defer_ke_registration=False,
     )
+    await kb.sync_knowledge_interactions()
 
     client.mock_result_binding_set(
         ki_name="ask-ki",
@@ -94,7 +98,7 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
         ],
     )
 
-    result = kb.ask(
+    result = await kb.ask(
         [
             PersonBinding(
                 person=URIRef("http://example.org/test#person1"),
@@ -114,7 +118,9 @@ def test_ask_interaction_with_binding_models(kb: KnowledgeBase, client: TestClie
     ]
 
 
-def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClient):
+async def test_post_measurement_no_binding_models(
+    kb: KnowledgeBase, client: TestClient
+):
     kb.post_ki(
         name="post-ki",
         argument_graph_pattern="""
@@ -128,8 +134,8 @@ def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClien
                 ex:storedBy ?kb .
         """,
         prefixes={"ex": "http://example.org/test#"},
-        defer_ke_registration=False,
     )
+    await kb.sync_knowledge_interactions()
 
     client.mock_result_binding_set(
         ki_name="post-ki",
@@ -141,7 +147,7 @@ def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClien
         ],
     )
 
-    result = kb.post(
+    result = await kb.post(
         [
             {
                 "measurement": "<http://example.org/test#measurement1>",
@@ -161,7 +167,9 @@ def test_post_measurement_no_binding_models(kb: KnowledgeBase, client: TestClien
     ]
 
 
-def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: TestClient):
+async def test_post_measurement_with_binding_models(
+    kb: KnowledgeBase, client: TestClient
+):
     class MeasurementBinding(BindingModel):
         measurement: Uri
         value: Literal[float]
@@ -187,8 +195,8 @@ def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: TestCli
         prefixes={"ex": "http://example.org/test#"},
         argument_binding_model=MeasurementBinding,
         result_binding_model=ResultBinding,
-        defer_ke_registration=False,
     )
+    await kb.sync_knowledge_interactions()
 
     client.mock_result_binding_set(
         ki_name="post-ki",
@@ -200,7 +208,7 @@ def test_post_measurement_with_binding_models(kb: KnowledgeBase, client: TestCli
         ],
     )
 
-    result = kb.post(
+    result = await kb.post(
         [
             MeasurementBinding(
                 measurement=URIRef("http://example.org/test#measurement1"),

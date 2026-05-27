@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -16,18 +16,28 @@ def client():
     return Client(ke_url="http://fake-ke")
 
 
-def test_register_knowledge_base(client: Client):
+async def test_register_knowledge_base(client: Client):
     mock_get_response = MagicMock()
     mock_get_response.status_code = 404
 
     mock_post_response = MagicMock()
-    mock_post_response.ok = True
+    mock_post_response.is_success = True
 
     with (
-        patch("requests.get", return_value=mock_get_response) as mock_get,
-        patch("requests.post", return_value=mock_post_response) as mock_post,
+        patch.object(
+            client._http,
+            "get",
+            new_callable=AsyncMock,
+            return_value=mock_get_response,
+        ) as mock_get,
+        patch.object(
+            client._http,
+            "post",
+            new_callable=AsyncMock,
+            return_value=mock_post_response,
+        ) as mock_post,
     ):
-        client.register_kb(
+        await client.register_kb(
             info=KnowledgeBaseInfo(
                 id="http://example.org/test#kb",
                 name="test-kb",
@@ -36,14 +46,22 @@ def test_register_knowledge_base(client: Client):
         )
 
     mock_get.assert_called_once_with(
-        "http://fake-ke/sc", headers={"Knowledge-Base-Id": "http://example.org/test#kb"}
+        "http://fake-ke/sc",
+        headers={"Knowledge-Base-Id": "http://example.org/test#kb"},
     )
-    mock_post.assert_called_once()
+    mock_post.assert_called_once_with(
+        "http://fake-ke/sc",
+        json={
+            "knowledgeBaseId": "http://example.org/test#kb",
+            "knowledgeBaseName": "test-kb",
+            "knowledgeBaseDescription": "A KB for testing.",
+        },
+    )
 
 
-def test_get_knowledge_base(client: Client):
+async def test_get_knowledge_base(client: Client):
     mock_response = MagicMock()
-    mock_response.ok = True
+    mock_response.is_success = True
     mock_response.json.return_value = [
         {
             "knowledgeBaseId": "http://example.org/test#kb",
@@ -52,8 +70,13 @@ def test_get_knowledge_base(client: Client):
         }
     ]
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        kb_info = client.get_knowledge_base("http://example.org/test#kb")
+    with patch.object(
+        client._http,
+        "get",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ) as mock_get:
+        kb_info = await client.get_knowledge_base("http://example.org/test#kb")
 
     mock_get.assert_called_once_with(
         "http://fake-ke/sc", headers={"Knowledge-Base-Id": "http://example.org/test#kb"}
@@ -65,12 +88,17 @@ def test_get_knowledge_base(client: Client):
     )
 
 
-def test_get_knowledge_base_not_found(client: Client):
+async def test_get_knowledge_base_not_found(client: Client):
     mock_response = MagicMock()
     mock_response.status_code = 404
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        kb_info = client.get_knowledge_base("http://example.org/nonexistent-kb")
+    with patch.object(
+        client._http,
+        "get",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ) as mock_get:
+        kb_info = await client.get_knowledge_base("http://example.org/nonexistent-kb")
 
     mock_get.assert_called_once_with(
         "http://fake-ke/sc",
@@ -79,9 +107,9 @@ def test_get_knowledge_base_not_found(client: Client):
     assert kb_info is None
 
 
-def test_get_knowledge_interactions(client: Client):
+async def test_get_knowledge_interactions(client: Client):
     mock_response = MagicMock()
-    mock_response.ok = True
+    mock_response.is_success = True
     mock_response.json.return_value = [
         {
             "knowledgeInteractionType": "AskKnowledgeInteraction",
@@ -100,8 +128,13 @@ def test_get_knowledge_interactions(client: Client):
         },
     ]
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        interactions = client.get_all_knowledge_interactions(
+    with patch.object(
+        client._http,
+        "get",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ) as mock_get:
+        interactions = await client.get_all_knowledge_interactions(
             "http://example.org/test#kb"
         )
 
@@ -121,15 +154,20 @@ def test_get_knowledge_interactions(client: Client):
     assert interactions[1].result_graph_pattern == "?s ?p ?o . "
 
 
-def test_register_knowledge_interaction(client: Client):
+async def test_register_knowledge_interaction(client: Client):
     mock_response = MagicMock()
-    mock_response.ok = True
+    mock_response.is_success = True
     mock_response.json.return_value = {
         "knowledgeInteractionId": "http://example.org/test#kb/interaction/ask-interaction"
     }
 
-    with patch("requests.post", return_value=mock_response):
-        registered_ki = client.register_ki(
+    with patch.object(
+        client._http,
+        "post",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ):
+        registered_ki = await client.register_ki(
             kb_id="http://example.org/test#kb",
             ki=KnowledgeInteractionInfo(
                 type="AskKnowledgeInteraction",

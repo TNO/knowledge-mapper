@@ -68,16 +68,16 @@ class KnowledgeBase:
 
         return KnowledgeBaseBuilder(settings)
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         """Checks whether the KE runtime is available and raises an exception if not.
 
         Raises:
             KnowledgeEngineNotAvailableError: If the KE runtime cannot be reached.
         """
-        if not self.client.ke_is_available():
+        if not await self.client.ke_is_available():
             raise KnowledgeEngineNotAvailableError(self.client.ke_url)
 
-    def register(self) -> None:
+    async def register(self) -> None:
         """Register this knowledge base at the KE runtime, reregister if already
         registered. Automatically syncs knowledge interactions with KE runtime.
 
@@ -88,12 +88,12 @@ class KnowledgeBase:
         logger.info(
             "Registering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.register_kb(self.info, reregister=True)
+        await self.client.register_kb(self.info, reregister=True)
         self.state = KnowledgeBaseState.REGISTERED
-        self.sync_knowledge_interactions()
+        await self.sync_knowledge_interactions()
         return
 
-    def unregister(self) -> None:
+    async def unregister(self) -> None:
         """Unregister this knowledge base at the KE runtime, do nothing if not currently
         registered. Knowledge interactions automatically unregistered.
 
@@ -114,14 +114,35 @@ class KnowledgeBase:
         logger.info(
             "Unregistering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.unregister_kb(self.info.id)
+        await self.client.unregister_kb(self.info.id)
         self.state = KnowledgeBaseState.UNREGISTERED
         self._ki_registry_by_id.clear()
         for ki_ctx in self.ki_registry.values():
             ki_ctx.status = KnowledgeInteractionStatus.UNREGISTERED
         return
 
-    def register_ki(
+    def _register_ki_locally(
+        self,
+        ki_ctx: KnowledgeInteractionContext[Any, ...],
+    ) -> None:
+        """Validate and store a KI context in the local registry (sync).
+
+        Does NOT contact the KE runtime. Use :meth:`register_ki` for full
+        async registration, or call this from synchronous code (e.g. decorators)
+        followed by :meth:`sync_knowledge_interactions` to push to the KE.
+        """
+        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
+            raise ValueError(
+                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
+            )
+        if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
+            raise ValueError(
+                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
+                f"registered."
+            )
+        self.ki_registry[ki_ctx.info.name] = ki_ctx
+
+    async def register_ki(
         self,
         ki_ctx: KnowledgeInteractionContext[Any, ...],
         defer_ke_registration: bool = False,
@@ -144,21 +165,13 @@ class KnowledgeBase:
                 f"registered. Consider setting defer_ke_registration=True to defer "
                 f"registration until the KB itself is registered."
             )
-        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
-            raise ValueError(
-                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
-            )
-        if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
-            raise ValueError(
-                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
-                f"registered."
-            )
 
-        self.ki_registry[ki_ctx.info.name] = ki_ctx
+        self._register_ki_locally(ki_ctx)
+
         if defer_ke_registration:
             return ki_ctx.info
 
-        registered_ki = self.client.register_ki(
+        registered_ki = await self.client.register_ki(
             kb_id=self.info.id,
             ki=ki_ctx.info,
         )
@@ -192,19 +205,18 @@ class KnowledgeBase:
             ) -> BindingSet | Sequence[BindingModel]:
                 return func(binding_set, info, *args, **kwargs)
 
-            self.register_ki(
+            self._register_ki_locally(
                 KnowledgeInteractionContext(
                     info=info,
                     handler=wrapper,
                     status=KnowledgeInteractionStatus.UNREGISTERED,
                 ),
-                defer_ke_registration=defer_ke_registration,
             )
             return wrapper
 
         return decorator
 
-    def sync_knowledge_interactions(self) -> None:
+    async def sync_knowledge_interactions(self) -> None:
         """Synchronize registration of knowledge interactions in this object's local
         KI registry with the interactions registered at the KE runtime, so all
         unregistered KIs in the local registry are registered.
@@ -224,7 +236,7 @@ class KnowledgeBase:
         for ki_ctx in self.ki_registry.values():
             if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
                 continue
-            ki_ctx.info = self.client.register_ki(
+            ki_ctx.info = await self.client.register_ki(
                 kb_id=self.info.id,
                 ki=ki_ctx.info,
             )
@@ -272,7 +284,7 @@ class KnowledgeBase:
             UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
               the KE runtime.
         """
-        self.register_ki(
+        self._register_ki_locally(
             KnowledgeInteractionContext(
                 info=AskAnswerInteractionInfo(
                     type=KiTypes.ASK,
@@ -285,7 +297,6 @@ class KnowledgeBase:
                 validation_model=binding_model,
                 serialization_model=binding_model,
             ),
-            defer_ke_registration=defer_ke_registration,
         )
         return
 
@@ -338,7 +349,7 @@ class KnowledgeBase:
             UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
               the KE runtime.
         """
-        self.register_ki(
+        self._register_ki_locally(
             KnowledgeInteractionContext(
                 info=PostReactInteractionInfo(
                     type=KiTypes.POST,
@@ -352,7 +363,6 @@ class KnowledgeBase:
                 validation_model=result_binding_model,
                 serialization_model=argument_binding_model,
             ),
-            defer_ke_registration=defer_ke_registration,
         )
         return
 
@@ -397,7 +407,7 @@ class KnowledgeBase:
             dependency_overrides=self.dependency_overrides or None,
         )
 
-    def post(
+    async def post(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke a POST KI by its name.
@@ -419,14 +429,14 @@ class KnowledgeBase:
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
 
-        post_result = self.client.post(
+        post_result = await self.client.post(
             kb_id=self.info.id,
             ki_id=ki_ctx.info.id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(post_result.result_binding_set)
 
-    def ask(
+    async def ask(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke an ASK KI by its name.
@@ -448,14 +458,14 @@ class KnowledgeBase:
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
 
-        ask_result = self.client.ask(
+        ask_result = await self.client.ask(
             kb_id=self.info.id,
             ki_id=ki_ctx.info.id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(ask_result.binding_set)
 
-    def start_handling_loop(self, loops: int | None = None) -> None:
+    async def start_handling_loop(self, loops: int | None = None) -> None:
         """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
 
         Runs until an EXIT signal is received from the KE runtime, or until
@@ -480,7 +490,7 @@ class KnowledgeBase:
         loops_done = 0
         while loops is None or loops_done < loops:
             loops_done += 1
-            poll_result, maybe_handle_request = self.client.poll_ki_call(
+            poll_result, maybe_handle_request = await self.client.poll_ki_call(
                 kb_id=self.info.id
             )
             match poll_result, maybe_handle_request:
@@ -492,7 +502,7 @@ class KnowledgeBase:
                         maybe_handle_request.binding_set,
                         ki_ctx.info.name,
                     )
-                    self.client.post_handle_response(
+                    await self.client.post_handle_response(
                         kb_id=self.info.id,
                         ki_id=maybe_handle_request.knowledge_interaction_id,
                         handle_request_id=maybe_handle_request.handle_request_id,
