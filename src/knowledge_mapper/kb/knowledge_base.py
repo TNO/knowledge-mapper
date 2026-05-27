@@ -52,6 +52,7 @@ class KnowledgeBase:
             name=name,
             description=description,
         )
+        self.dependency_overrides: dict[Callable[..., Any], Callable[..., Any]] = {}
 
     @classmethod
     def from_settings(cls, settings: KnowledgeBaseSettings) -> KnowledgeBaseBuilder:
@@ -391,7 +392,10 @@ class KnowledgeBase:
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
         """
-        return self.ki_registry[ki_name].dispatch(binding_set)
+        return self.ki_registry[ki_name].dispatch(
+            binding_set,
+            dependency_overrides=self.dependency_overrides or None,
+        )
 
     def post(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str

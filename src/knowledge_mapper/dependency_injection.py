@@ -61,6 +61,7 @@ def _get_dep_params(func: Callable[..., Any]) -> dict[str, Depends]:
 def resolve_dependencies(
     func: Callable[..., Any],
     cache: dict[Callable[..., Any], Any] | None = None,
+    overrides: dict[Callable[..., Any], Callable[..., Any]] | None = None,
 ) -> dict[str, Any]:
     """Resolve all ``Annotated[T, Depends(...)]`` parameters of *func*.
 
@@ -70,6 +71,11 @@ def resolve_dependencies(
             same dict for all calls within a single KI invocation so that
             ``cache=True`` factories are called at most once.  Pass ``None``
             to start fresh (a new empty dict will be created).
+        overrides: An optional mapping of original factory → replacement
+            factory.  When a ``Depends`` factory appears as a key in this
+            dict, the corresponding override callable is invoked instead.
+            Overrides are checked transitively at every level of the
+            dependency tree.
 
     Returns:
         A dict mapping parameter name → resolved value for every
@@ -82,13 +88,16 @@ def resolve_dependencies(
     resolved: dict[str, Any] = {}
     for param_name, dep in dep_params.items():
         factory = dep.factory
-        if dep.cache and factory in cache:
-            resolved[param_name] = cache[factory]
+        actual_factory = (
+            overrides[factory] if overrides and factory in overrides else factory
+        )
+        if dep.cache and actual_factory in cache:
+            resolved[param_name] = cache[actual_factory]
         else:
             # Recursively resolve factory's own dependencies first
-            factory_kwargs = resolve_dependencies(factory, cache)
-            value = factory(**factory_kwargs)
+            factory_kwargs = resolve_dependencies(actual_factory, cache, overrides)
+            value = actual_factory(**factory_kwargs)
             if dep.cache:
-                cache[factory] = value
+                cache[actual_factory] = value
             resolved[param_name] = value
     return resolved

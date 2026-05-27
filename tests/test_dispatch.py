@@ -70,12 +70,8 @@ def test_dispatch_typed_handler():
 def test_dispatch_react_typed():
     """dispatch() works for REACT KIs with typed handlers."""
 
-    def handler(
-        binding_set: list[MeasurementBinding], info
-    ) -> list[ResultBinding]:
-        return [
-            ResultBinding(measurement=b.measurement) for b in binding_set
-        ]
+    def handler(binding_set: list[MeasurementBinding], info) -> list[ResultBinding]:
+        return [ResultBinding(measurement=b.measurement) for b in binding_set]
 
     ctx = KnowledgeInteractionContext(
         info=PostReactInteractionInfo(

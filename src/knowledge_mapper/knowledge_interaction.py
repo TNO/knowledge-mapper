@@ -36,7 +36,13 @@ class KnowledgeInteractionContext[B, **P]:
                 self.handler
             )
 
-    def dispatch(self, binding_set: BindingSet) -> BindingSet:
+    def dispatch(
+        self,
+        binding_set: BindingSet,
+        dependency_overrides: (
+            dict[Callable[..., Any], Callable[..., Any]] | None
+        ) = None,
+    ) -> BindingSet:
         """Validate incoming bindings, call the handler (with DI), and serialize
         the result back to a raw BindingSet.
 
@@ -44,7 +50,7 @@ class KnowledgeInteractionContext[B, **P]:
         """
         assert self.handler is not None
 
-        dep_kwargs = resolve_dependencies(self.handler)
+        dep_kwargs = resolve_dependencies(self.handler, overrides=dependency_overrides)
 
         if self.validation_model:
             validated = [self.validation_model.model_validate(b) for b in binding_set]

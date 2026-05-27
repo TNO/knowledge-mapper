@@ -349,6 +349,33 @@ kb.start_handling_loop()
 assert client.last_handle_response == [...]
 ```
 
+### `dependency_overrides` — Overriding Dependencies in Tests
+
+`KnowledgeBase.dependency_overrides` is a `dict[Callable, Callable]` that lets you replace dependency factories at test time, mirroring FastAPI's `app.dependency_overrides`.
+
+```python
+def get_db() -> RealDatabase:
+    return RealDatabase(url="postgresql://...")
+
+# In production — handler receives RealDatabase
+@kb.answer_ki(name="my-ki", graph_pattern="...")
+def handler(
+    binding_set, info,
+    db: Annotated[RealDatabase, Depends(get_db)],
+): ...
+
+# In tests — swap the factory
+kb.dependency_overrides[get_db] = lambda: FakeDatabase()
+
+# Clear when done
+kb.dependency_overrides.clear()
+```
+
+**Behaviour:**
+- Overrides are **transitive**: overriding a leaf factory (e.g. `get_config`) propagates to all factories that depend on it.
+- Override factories **inherit the `cache` setting** from the original `Depends()` declaration.
+- Overrides apply to all KI handlers on the KB (not per-KI).
+
 Run tests with:
 
 ```bash
@@ -418,3 +445,4 @@ These are excluded from linting (`ruff`) and are kept for historical reference o
 - **Handler introspection**: `KnowledgeInteractionContext.__post_init__` inspects handler signatures to auto-detect binding models, enabling transparent (de)serialization without manual type dispatch. Dispatch logic (validate → call → serialize for ANSWER/REACT; prepare_outgoing + parse_result for ASK/POST) lives in `KnowledgeInteractionContext`, not in `KnowledgeBase`.
 - **`KnowledgeBaseBuilder` wraps `KnowledgeBase`**: Settings-based KI registration belongs to `KnowledgeBaseBuilder`, not to `KnowledgeBase`. `KnowledgeBase.from_settings()` returns a builder; `builder.build()` returns the finished `KnowledgeBase`. `KnowledgeBase` itself has no knowledge of settings. ASK/POST KIs are auto-registered at `build()` time; ANSWER/REACT KIs require a handler attached via `builder.handler(name, func)` before `build()` is called.
 - **Dependency injection via `Depends`**: `KnowledgeInteractionContext.dispatch()` calls `resolve_dependencies(handler)` before invoking the handler, passing resolved values as kwargs.  The resolver (`src/dependency_injection.py`) uses `get_type_hints(include_extras=True)` to find `Annotated[T, Depends(factory)]` params, recursively resolves factory deps (transitive), and caches results per invocation when `cache=True`.  `@wraps` on the decorator wrapper preserves `__annotations__`, so the resolver sees the original handler's hints.
+- **`dependency_overrides`**: `KnowledgeBase.dependency_overrides` is a `dict[Callable, Callable]` (à la FastAPI) that substitutes dependency factories at resolution time.  Overrides are checked transitively at every level and inherit the original `Depends(cache=...)` setting.  The dict is passed explicitly from `KnowledgeBase.call()` → `dispatch()` → `resolve_dependencies()` to keep `KnowledgeInteractionContext` decoupled from `KnowledgeBase`.
