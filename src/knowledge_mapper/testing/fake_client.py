@@ -25,6 +25,9 @@ class TestClient(ClientProtocol):
         self._ke_url = fake_url
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
+        self._handle_responses: list[
+            tuple[str, str, int, BindingSet]
+        ] = []
 
     def ke_is_available(self) -> bool:
         return True
@@ -68,6 +71,18 @@ class TestClient(ClientProtocol):
         # This fake client never returns any KI calls to handle, but always asks to
         # repoll.
         return (PollResult.REPOLL, None)
+
+    def post_handle_response(
+        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
+    ) -> None:
+        self._handle_responses.append((kb_id, ki_id, handle_request_id, binding_set))
+
+    @property
+    def last_handle_response(self) -> BindingSet | None:
+        """Return the binding set from the most recent handle response, or ``None``."""
+        if not self._handle_responses:
+            return None
+        return self._handle_responses[-1][3]
 
     def mock_result_binding_set(self, ki_name: str, binding_set: BindingSet) -> None:
         """Store a result binding set to be returned when execute_post_interaction

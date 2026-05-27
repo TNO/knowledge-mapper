@@ -46,6 +46,7 @@ class KnowledgeBase:
     def __init__(self, id: str, name: str, description: str, ke_url: str):
         self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
+        self._ki_registry_by_id: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
         self.client: ClientProtocol = Client(ke_url)
         self.info = KnowledgeBaseInfo(
             id=id,
@@ -115,6 +116,7 @@ class KnowledgeBase:
         )
         self.client.unregister_kb(self.info.id)
         self.state = KnowledgeBaseState.UNREGISTERED
+        self._ki_registry_by_id.clear()
         for ki_ctx in self.ki_registry.values():
             ki_ctx.status = KnowledgeInteractionStatus.UNREGISTERED
         return
@@ -162,6 +164,8 @@ class KnowledgeBase:
         )
         ki_ctx.info = registered_ki
         ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
+        assert registered_ki.id is not None
+        self._ki_registry_by_id[registered_ki.id] = ki_ctx
         return registered_ki
 
     def _register_ki_decorator(
@@ -225,6 +229,8 @@ class KnowledgeBase:
                 ki=ki_ctx.info,
             )
             ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
+            assert ki_ctx.info.id is not None
+            self._ki_registry_by_id[ki_ctx.info.id] = ki_ctx
         return
 
     def ki_from_info(
@@ -527,14 +533,11 @@ class KnowledgeBase:
             match poll_result, maybe_handle_request:
                 case PollResult.HANDLE, _:
                     assert maybe_handle_request is not None
-                    name = next(
-                        ki.info.name
-                        for ki in self.ki_registry.values()
-                        if ki.info.id == maybe_handle_request.knowledge_interaction_id
-                    )
+                    ki_id = maybe_handle_request.knowledge_interaction_id
+                    ki_ctx = self._ki_registry_by_id[ki_id]
                     result_binding_set = self.call(
                         maybe_handle_request.binding_set,
-                        name,
+                        ki_ctx.info.name,
                     )
                     self.client.post_handle_response(
                         kb_id=self.info.id,
