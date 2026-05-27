@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 from collections.abc import Callable, Sequence
@@ -486,6 +487,60 @@ class KnowledgeBase:
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(ask_result.binding_set)
+
+    def _require_loop(self) -> asyncio.AbstractEventLoop:
+        """Return the stored event loop or raise if the handling loop is not running."""
+        try:
+            loop = self._loop
+        except AttributeError:
+            loop = None
+        if loop is None:
+            raise RuntimeError(
+                "ask_sync() / post_sync() are only available from within a sync "
+                "handler running inside the handling loop. Start the handling loop "
+                "with start_handling_loop() first."
+            )
+        return loop
+
+    def ask_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+    ) -> Sequence[BindingModel] | BindingSet:
+        """Blocking bridge to :meth:`ask` for use in sync handlers.
+
+        Schedules the async ``ask()`` coroutine on the event loop stored by
+        :meth:`start_handling_loop` and blocks the calling thread until the
+        result is ready.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.ask(binding_set, ki_name=ki_name), loop
+        )
+        return future.result()
+
+    def post_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+    ) -> Sequence[BindingModel] | BindingSet:
+        """Blocking bridge to :meth:`post` for use in sync handlers.
+
+        Schedules the async ``post()`` coroutine on the event loop stored by
+        :meth:`start_handling_loop` and blocks the calling thread until the
+        result is ready.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.post(binding_set, ki_name=ki_name), loop
+        )
+        return future.result()
 
     async def start_handling_loop(
         self,
