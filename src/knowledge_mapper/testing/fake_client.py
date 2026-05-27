@@ -25,9 +25,7 @@ class TestClient(ClientProtocol):
         self._ke_url = fake_url
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
-        self._handle_responses: list[
-            tuple[str, str, int, BindingSet]
-        ] = []
+        self._handle_responses: list[tuple[str, str, int, BindingSet]] = []
 
     def ke_is_available(self) -> bool:
         return True
