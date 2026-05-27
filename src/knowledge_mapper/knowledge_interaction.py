@@ -36,7 +36,7 @@ class KnowledgeInteractionContext[B, **P]:
                 self.handler
             )
 
-    def dispatch(
+    async def dispatch(
         self,
         binding_set: BindingSet,
         dependency_overrides: (
@@ -50,7 +50,9 @@ class KnowledgeInteractionContext[B, **P]:
         """
         assert self.handler is not None
 
-        dep_kwargs = resolve_dependencies(self.handler, overrides=dependency_overrides)
+        dep_kwargs = await resolve_dependencies(
+            self.handler, overrides=dependency_overrides
+        )
 
         if self.validation_model:
             validated = [self.validation_model.model_validate(b) for b in binding_set]

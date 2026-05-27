@@ -396,13 +396,13 @@ class KnowledgeBase:
             defer_ke_registration=defer_ke_registration,
         )
 
-    def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
+    async def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
         """Invoke the handler of a registered KI by its name.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
         """
-        return self.ki_registry[ki_name].dispatch(
+        return await self.ki_registry[ki_name].dispatch(
             binding_set,
             dependency_overrides=self.dependency_overrides or None,
         )
@@ -498,7 +498,7 @@ class KnowledgeBase:
                     assert maybe_handle_request is not None
                     ki_id = maybe_handle_request.knowledge_interaction_id
                     ki_ctx = self._ki_registry_by_id[ki_id]
-                    result_binding_set = self.call(
+                    result_binding_set = await self.call(
                         maybe_handle_request.binding_set,
                         ki_ctx.info.name,
                     )

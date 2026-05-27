@@ -236,5 +236,5 @@ async def test_call_handler():
 
     ki_info = next(iter(kb.ki_registry.values())).info
     input_binding_set = [{"input": "test:Input1", "value": "Hello"}]
-    result = kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
+    result = await kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
     assert result == input_binding_set

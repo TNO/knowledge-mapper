@@ -32,7 +32,7 @@ class ResultBinding(BindingModel):
 # -- dispatch (ANSWER/REACT) -------------------------------------------------
 
 
-def test_dispatch_untyped_handler():
+async def test_dispatch_untyped_handler():
     """dispatch() with a raw-BindingSet handler passes through without conversion."""
 
     def handler(binding_set: BindingSet, info) -> BindingSet:
@@ -45,11 +45,11 @@ def test_dispatch_untyped_handler():
         handler=handler,
     )
 
-    result = ctx.dispatch([{"sensor": "<http://example.org/s1>"}])
+    result = await ctx.dispatch([{"sensor": "<http://example.org/s1>"}])
     assert result == [{"sensor": "<http://example.org/s1>"}]
 
 
-def test_dispatch_typed_handler():
+async def test_dispatch_typed_handler():
     """dispatch() validates incoming bindings and serializes outgoing ones."""
 
     def handler(binding_set: list[SensorBinding], info) -> list[SensorBinding]:
@@ -63,11 +63,11 @@ def test_dispatch_typed_handler():
     )
 
     raw_input = [{"sensor": "<http://example.org/s1>"}]
-    result = ctx.dispatch(raw_input)
+    result = await ctx.dispatch(raw_input)
     assert result == [{"sensor": "<http://example.org/s1>"}]
 
 
-def test_dispatch_react_typed():
+async def test_dispatch_react_typed():
     """dispatch() works for REACT KIs with typed handlers."""
 
     def handler(binding_set: list[MeasurementBinding], info) -> list[ResultBinding]:
@@ -90,7 +90,7 @@ def test_dispatch_react_typed():
             "value": '"42.0"^^<http://www.w3.org/2001/XMLSchema#float>',
         }
     ]
-    result = ctx.dispatch(raw)
+    result = await ctx.dispatch(raw)
     assert result == [{"measurement": "<http://example.org/m1>"}]
 
 
