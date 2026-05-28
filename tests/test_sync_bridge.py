@@ -34,9 +34,7 @@ async def test_ask_sync_outside_handling_loop_raises(kb: KnowledgeBase):
         kb.ask_sync([{}], ki_name="my-ask")
 
 
-async def test_ask_sync_from_sync_handler(
-    kb: KnowledgeBase, client: TestClient
-):
+async def test_ask_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient):
     """A sync handler can call ask_sync() to query the KE network."""
     kb.ask_ki(name="lookup", graph_pattern="?s ?p ?o .")
     await kb.register()
@@ -86,9 +84,7 @@ async def test_post_sync_outside_handling_loop_raises(kb: KnowledgeBase):
         kb.post_sync([{}], ki_name="my-post")
 
 
-async def test_post_sync_from_sync_handler(
-    kb: KnowledgeBase, client: TestClient
-):
+async def test_post_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient):
     """A sync handler can call post_sync() to push data to the KE network."""
     kb.post_ki(
         name="push",

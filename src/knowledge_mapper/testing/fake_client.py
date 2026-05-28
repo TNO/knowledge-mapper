@@ -27,9 +27,9 @@ class TestClient(ClientProtocol):
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
         self._handle_responses: list[tuple[str, str, int, BindingSet]] = []
-        self._incoming_calls: asyncio.Queue[
-            tuple[PollResult, HandleRequest | None]
-        ] = asyncio.Queue()
+        self._incoming_calls: asyncio.Queue[tuple[PollResult, HandleRequest | None]] = (
+            asyncio.Queue()
+        )
         self._next_handle_request_id: int = 1
 
     async def ke_is_available(self) -> bool:
@@ -72,9 +72,7 @@ class TestClient(ClientProtocol):
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
 
-    async def poll_ki_call(
-        self, kb_id: str
-    ) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         return await self._incoming_calls.get()
 
     async def post_handle_response(

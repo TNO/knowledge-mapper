@@ -47,7 +47,9 @@ async def main():
     result = await kb.ask(
         [
             PersonBinding(
-                person=URIRef("http://example.org/knowledge-mapper/ask-interaction#person1"),
+                person=URIRef(
+                    "http://example.org/knowledge-mapper/ask-interaction#person1"
+                ),
                 name=None,
                 age=None,
             )

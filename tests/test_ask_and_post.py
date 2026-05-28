@@ -24,9 +24,7 @@ async def kb(client: TestClient):
     return kb
 
 
-async def test_ask_interaction_no_binding_models(
-    kb: KnowledgeBase, client: TestClient
-):
+async def test_ask_interaction_no_binding_models(kb: KnowledgeBase, client: TestClient):
     kb.ask_ki(
         name="ask-ki",
         graph_pattern="""
