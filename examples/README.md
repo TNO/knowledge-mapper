@@ -13,7 +13,8 @@ The best way to get started with the Knowledge Mapper is by exploring the exampl
 | **05-custom-settings/** | Shows how to use custom settings to configure your knowledge mapper |
 | **06-dependency_injection.py** | Uses dependency injection to inject resources like configs or database connections |
 | **07-testing/** | Demonstrates how to write tests for your knowledge base using the fake client |
-| **08-async_react_handlers.py** | Demonstrates async REACT handlers and how they differ from sync handlers |
+| **08-async_handlers.py** | Demonstrates async REACT handlers and how they differ from sync handlers |
+| **09-sparql-store/** | Connecting a SPARQL store as a knowledge base |
 
 ## Prerequisites
 
@@ -76,7 +77,8 @@ python -m pytest 07-testing/
 4. Check **05-custom-settings/** for configuration patterns
 5. Study **06-dependency_injection.py** to see how to manage dependencies
 6. Review **07-testing/** to learn testing strategies
-7. Run **08-async_react_handlers.py** to compare async and sync REACT handler behavior
+7. Run **08-async_handlers.py** to compare async and sync REACT handler behavior
+8. Explore **09-sparql-store/** to see how to connect a SPARQL store
 
 ## Tips
 
