@@ -440,7 +440,7 @@ class KnowledgeBase:
         self,
         name: str,
         argument_graph_pattern: str,
-        result_graph_pattern: str,
+        result_graph_pattern: str | None = None,
         argument_binding_model: type[BindingModel] | None = None,
         result_binding_model: type[BindingModel] | None = None,
         prefixes: dict | None = None,
@@ -478,7 +478,7 @@ class KnowledgeBase:
         self,
         name: str,
         argument_graph_pattern: str,
-        result_graph_pattern: str,
+        result_graph_pattern: str | None = None,
         prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:

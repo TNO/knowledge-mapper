@@ -18,6 +18,8 @@ from rdflib.util import from_n3
 
 type BindingSet = Sequence[dict[str, str]]
 
+EMPTY_BINDING_SET: BindingSet = []
+
 # region:    -- Binding Node
 
 
@@ -155,7 +157,7 @@ class AskAnswerInteractionInfo(KnowledgeInteractionInfo):
 
 class PostReactInteractionInfo(KnowledgeInteractionInfo):
     argument_graph_pattern: str
-    result_graph_pattern: str
+    result_graph_pattern: str | None = None
 
 
 class Initiator(StrEnum):
