@@ -12,8 +12,10 @@ from .models import (
     AskResult,
     BindingSet,
     KiTypes,
+    KnowledgeBaseId,
     KnowledgeBaseInfo,
     KnowledgeInteraction,
+    KnowledgeInteractionId,
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
     PostResult,
@@ -35,10 +37,10 @@ class HandleRequest(BaseModel):
         alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True
     )
 
-    knowledge_interaction_id: str
+    knowledge_interaction_id: KnowledgeInteractionId
     handle_request_id: int
     binding_set: list[dict[str, str]]
-    requesting_knowledge_base_id: str
+    requesting_knowledge_base_id: KnowledgeBaseId
 
 
 class ClientProtocol(Protocol):
@@ -57,7 +59,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+    async def get_knowledge_base(self, id: KnowledgeBaseId) -> KnowledgeBaseInfo | None:
         """Return the KB with the given ID, or ``None`` if it does not exist.
 
         Raises:
@@ -87,7 +89,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: KnowledgeBaseId) -> None:
         """Unregister the KB with the given ID from the KE runtime.
 
         Raises:
@@ -99,7 +101,7 @@ class ClientProtocol(Protocol):
         ...
 
     async def get_all_knowledge_interactions(
-        self, kb_id: str
+        self, kb_id: KnowledgeBaseId
     ) -> list[KnowledgeInteractionInfo]:
         """Return all knowledge interactions registered for the given KB.
 
@@ -112,7 +114,7 @@ class ClientProtocol(Protocol):
         ...
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteraction
+        self, kb_id: KnowledgeBaseId, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
         """Register a knowledge interaction for the given KB and return the
         :class:`KnowledgeInteractionInfo` reported by the KE (with its assigned id).
@@ -125,7 +127,9 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+    async def unregister_ki(
+        self, kb_id: KnowledgeBaseId, ki_id: KnowledgeInteractionId
+    ) -> None:
         """Unregister a single knowledge interaction with the given ID from the KB
         with the given ID.
 
@@ -137,7 +141,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+    async def renew_lease(self, kb_id: KnowledgeBaseId) -> SmartConnectorLease:
         """Renew the lease of the smart connector for the given KB and return the
         new lease.
 
@@ -149,7 +153,9 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+    async def load_domain_knowledge(
+        self, kb_id: KnowledgeBaseId, knowledge: str
+    ) -> None:
         """Load domain knowledge (Apache Jena facts/rules) into the smart connector
         for the given KB. Replaces any previously loaded domain knowledge.
 
@@ -167,7 +173,9 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(
+        self, kb_id: KnowledgeBaseId
+    ) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
 
         Raises:
@@ -179,7 +187,11 @@ class ClientProtocol(Protocol):
         ...
 
     async def post_handle_response(
-        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
+        self,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
+        handle_request_id: int,
+        binding_set: BindingSet,
     ) -> None:
         """Post the response to a KI call that was received via ``poll_ki_call``.
 
@@ -193,10 +205,10 @@ class ClientProtocol(Protocol):
 
     async def ask(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
         """Execute an ASK interaction by sending the given binding set as the
         response to the KI call and returning the resulting binding set from the KE.
@@ -211,10 +223,10 @@ class ClientProtocol(Protocol):
 
     async def post(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
         """Execute a POST interaction by sending the given binding set as the
         response to the KI call.
@@ -259,7 +271,7 @@ class Client(ClientProtocol):
         response = await self._http.get(f"{self.ke_url}/version")
         return response.json()["version"]
 
-    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+    async def get_knowledge_base(self, id: KnowledgeBaseId) -> KnowledgeBaseInfo | None:
         response = await self._http.get(
             f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": id}
         )
@@ -298,7 +310,7 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
         return
 
-    async def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: KnowledgeBaseId) -> None:
         logger.debug("Unregistering knowledge base '%s' at %s.", id, self.ke_url)
         response = await self._http.delete(
             f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": id}
@@ -310,7 +322,7 @@ class Client(ClientProtocol):
         return
 
     async def get_all_knowledge_interactions(
-        self, kb_id: str
+        self, kb_id: KnowledgeBaseId
     ) -> list[KnowledgeInteractionInfo]:
         response = await self._http.get(
             f"{self.ke_url}/sc/ki",
@@ -331,7 +343,7 @@ class Client(ClientProtocol):
         return kis
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteraction
+        self, kb_id: KnowledgeBaseId, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
         logger.debug(
             "Registering knowledge interaction '%s' for KB '%s' at %s.",
@@ -351,7 +363,9 @@ class Client(ClientProtocol):
 
         return info_from_definition(ki, response.json()["knowledgeInteractionId"])
 
-    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+    async def unregister_ki(
+        self, kb_id: KnowledgeBaseId, ki_id: KnowledgeInteractionId
+    ) -> None:
         logger.debug(
             "Unregistering knowledge interaction '%s' for KB '%s' at %s.",
             ki_id,
@@ -370,7 +384,7 @@ class Client(ClientProtocol):
         if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
-    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+    async def renew_lease(self, kb_id: KnowledgeBaseId) -> SmartConnectorLease:
         logger.debug("Renewing lease for KB '%s' at %s.", kb_id, self.ke_url)
         response = await self._http.put(
             f"{self.ke_url}/sc/lease/renew",
@@ -383,7 +397,9 @@ class Client(ClientProtocol):
 
         return SmartConnectorLease.model_validate(response.json())
 
-    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+    async def load_domain_knowledge(
+        self, kb_id: KnowledgeBaseId, knowledge: str
+    ) -> None:
         logger.debug("Loading domain knowledge for KB '%s' at %s.", kb_id, self.ke_url)
         response = await self._http.post(
             f"{self.ke_url}/sc/knowledge",
@@ -398,7 +414,9 @@ class Client(ClientProtocol):
         if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
-    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(
+        self, kb_id: KnowledgeBaseId
+    ) -> tuple[PollResult, HandleRequest | None]:
         logger.debug("Polling for KI calls...")
         response = await self._http.get(
             f"{self.ke_url}/sc/handle",
@@ -428,7 +446,11 @@ class Client(ClientProtocol):
             raise UnexpectedHttpResponseError(response)
 
     async def post_handle_response(
-        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
+        self,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
+        handle_request_id: int,
+        binding_set: BindingSet,
     ) -> None:
         logger.debug("Posting handle response for KI call.")
         response = await self._http.post(
@@ -448,10 +470,10 @@ class Client(ClientProtocol):
 
     async def post(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
         if recipient_ids is not None:
             payload = {
@@ -479,10 +501,10 @@ class Client(ClientProtocol):
 
     async def ask(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
         if recipient_ids is not None:
             payload = {

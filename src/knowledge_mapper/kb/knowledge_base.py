@@ -18,9 +18,11 @@ from ..ke.models import (
     KiTypes,
     KnowledgeBaseInfo,
     KnowledgeInteraction,
+    KnowledgeInteractionId,
     KnowledgeInteractionInfo,
     PostReactKnowledgeInteraction,
     SmartConnectorLease,
+    validate_kb_id,
 )
 from ..knowledge_interaction import (
     Handler,
@@ -55,12 +57,15 @@ class KnowledgeBase:
         lease_renewal_time: int | None = None,
         reasoner_level: int | None = None,
     ):
+        kb_id = validate_kb_id(id)
         self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
-        self._ki_registry_by_id: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
+        self._ki_registry_by_id: dict[
+            KnowledgeInteractionId, KnowledgeInteractionContext[Any, ...]
+        ] = {}
         self.client: ClientProtocol = Client(ke_url)
         self.info = KnowledgeBaseInfo(
-            id=id,
+            id=kb_id,
             name=name,
             description=description,
             lease_renewal_time=lease_renewal_time,

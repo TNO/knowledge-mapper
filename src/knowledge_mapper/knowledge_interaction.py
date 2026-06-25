@@ -6,7 +6,13 @@ from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
 from .dependency_injection import resolve_dependencies
-from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteraction
+from .ke.models import (
+    BindingModel,
+    BindingSet,
+    KiTypes,
+    KnowledgeInteraction,
+    KnowledgeInteractionId,
+)
 
 type _HandlerReturn = BindingSet | Sequence[BindingModel]
 
@@ -29,7 +35,7 @@ class KnowledgeInteractionContext[B, **P]:
     definition: KnowledgeInteraction
     handler: Handler[B, P] | None
     status: KnowledgeInteractionStatus = KnowledgeInteractionStatus.UNREGISTERED
-    ke_id: str | None = None
+    ke_id: KnowledgeInteractionId | None = None
     validation_model: type[BindingModel] | None = None
     serialization_model: type[BindingModel] | None = None
 

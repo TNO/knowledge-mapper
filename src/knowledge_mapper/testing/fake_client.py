@@ -10,8 +10,10 @@ from knowledge_mapper.ke.models import (
     BindingSet,
     ExchangeInfo,
     Initiator,
+    KnowledgeBaseId,
     KnowledgeBaseInfo,
     KnowledgeInteraction,
+    KnowledgeInteractionId,
     KnowledgeInteractionInfo,
     PostResult,
     SmartConnectorLease,
@@ -23,22 +25,26 @@ class TestClient(ClientProtocol):
     """A lightweight in-memory stand-in for Client. Always succeeds."""
 
     def __init__(self, fake_url) -> None:
-        self._knowledge_bases: dict[str, KnowledgeBaseInfo] = {}
+        self._knowledge_bases: dict[KnowledgeBaseId, KnowledgeBaseInfo] = {}
         # Maps kb_id -> list of registered KIs
-        self._knowledge_interactions: dict[str, list[KnowledgeInteractionInfo]] = {}
+        self._knowledge_interactions: dict[
+            KnowledgeBaseId, list[KnowledgeInteractionInfo]
+        ] = {}
         self._next_ki_id: int = 1
         self._ke_url = fake_url
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
-        self._handle_responses: list[tuple[str, str, int, BindingSet]] = []
+        self._handle_responses: list[
+            tuple[KnowledgeBaseId, KnowledgeInteractionId, int, BindingSet]
+        ] = []
         self._incoming_calls: asyncio.Queue[tuple[PollResult, HandleRequest | None]] = (
             asyncio.Queue()
         )
         self._next_handle_request_id: int = 1
         # Maps kb_id -> the most recently loaded domain knowledge string.
-        self._domain_knowledge: dict[str, str] = {}
+        self._domain_knowledge: dict[KnowledgeBaseId, str] = {}
         # Maps kb_id -> number of times its lease has been renewed.
-        self._lease_renewals: dict[str, int] = {}
+        self._lease_renewals: dict[KnowledgeBaseId, int] = {}
 
     async def ke_is_available(self) -> bool:
         return True
@@ -46,7 +52,7 @@ class TestClient(ClientProtocol):
     async def ke_version(self) -> str:
         return "0.0.0-fake"
 
-    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+    async def get_knowledge_base(self, id: KnowledgeBaseId) -> KnowledgeBaseInfo | None:
         return self._knowledge_bases.get(id)
 
     async def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
@@ -63,24 +69,28 @@ class TestClient(ClientProtocol):
         self._knowledge_bases[info.id] = info
         self._knowledge_interactions[info.id] = []
 
-    async def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: KnowledgeBaseId) -> None:
         self._knowledge_bases.pop(id)
         self._knowledge_interactions.pop(id, None)
 
     async def get_all_knowledge_interactions(
-        self, kb_id: str
+        self, kb_id: KnowledgeBaseId
     ) -> list[KnowledgeInteractionInfo]:
         return list(self._knowledge_interactions.get(kb_id, []))
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteraction
+        self, kb_id: KnowledgeBaseId, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
-        registered = info_from_definition(ki, f"fake-ki-{self._next_ki_id}")
+        registered = info_from_definition(
+            ki, KnowledgeInteractionId(f"fake-ki-{self._next_ki_id}")
+        )
         self._next_ki_id += 1
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
 
-    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+    async def unregister_ki(
+        self, kb_id: KnowledgeBaseId, ki_id: KnowledgeInteractionId
+    ) -> None:
         if kb_id not in self._knowledge_bases:
             raise SmartConnectorNotFoundError(kb_id, self._ke_url)
         kis = self._knowledge_interactions.get(kb_id, [])
@@ -90,7 +100,7 @@ class TestClient(ClientProtocol):
                 return
         raise SmartConnectorNotFoundError(kb_id, self._ke_url)
 
-    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+    async def renew_lease(self, kb_id: KnowledgeBaseId) -> SmartConnectorLease:
         if kb_id not in self._knowledge_bases:
             raise SmartConnectorNotFoundError(kb_id, self._ke_url)
         self._lease_renewals[kb_id] = self._lease_renewals.get(kb_id, 0) + 1
@@ -102,26 +112,32 @@ class TestClient(ClientProtocol):
             expires=datetime.now(tz=UTC) + timedelta(seconds=renewal_seconds),
         )
 
-    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+    async def load_domain_knowledge(self, kb_id: KnowledgeBaseId, knowledge: str) -> None:
         if kb_id not in self._knowledge_bases:
             raise SmartConnectorNotFoundError(kb_id, self._ke_url)
         self._domain_knowledge[kb_id] = knowledge
 
     @property
-    def loaded_domain_knowledge(self) -> dict[str, str]:
+    def loaded_domain_knowledge(self) -> dict[KnowledgeBaseId, str]:
         """Return the most-recently-loaded domain knowledge per KB id (for tests)."""
         return dict(self._domain_knowledge)
 
     @property
-    def lease_renewals(self) -> dict[str, int]:
+    def lease_renewals(self) -> dict[KnowledgeBaseId, int]:
         """Return the number of lease renewals per KB id (for tests)."""
         return dict(self._lease_renewals)
 
-    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(
+        self, kb_id: KnowledgeBaseId
+    ) -> tuple[PollResult, HandleRequest | None]:
         return await self._incoming_calls.get()
 
     async def post_handle_response(
-        self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
+        self,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
+        handle_request_id: int,
+        binding_set: BindingSet,
     ) -> None:
         self._handle_responses.append((kb_id, ki_id, handle_request_id, binding_set))
 
@@ -141,7 +157,9 @@ class TestClient(ClientProtocol):
         self,
         ki_name: str,
         binding_set: BindingSet,
-        requesting_kb_id: str = "http://example.org/requesting-kb",
+        requesting_kb_id: KnowledgeBaseId = KnowledgeBaseId(
+            "http://example.org/requesting-kb"
+        ),
     ) -> None:
         """Queue an incoming KI call so ``poll_ki_call`` returns HANDLE for it.
 
@@ -185,10 +203,10 @@ class TestClient(ClientProtocol):
 
     async def ask(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
         # Look up KI by ID to find its name, then check for a mocked result.
         ki = next(
@@ -223,10 +241,10 @@ class TestClient(ClientProtocol):
 
     async def post(
         self,
-        kb_id: str,
-        ki_id: str,
+        kb_id: KnowledgeBaseId,
+        ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[str] | None = None,
+        recipient_ids: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
         # Look up KI by ID to find its name, then check for a mocked result.
         ki = next(

@@ -3,7 +3,16 @@ import logging
 from .dependency_injection import Depends
 from .kb.builder import KnowledgeBaseBuilder
 from .kb.knowledge_base import KnowledgeBase
-from .ke.models import BindingModel, BindingSet, KnowledgeInteraction, Literal, Uri
+from .ke.models import (
+    BindingModel,
+    BindingSet,
+    KnowledgeBaseId,
+    KnowledgeInteraction,
+    KnowledgeInteractionId,
+    Literal,
+    Uri,
+    validate_kb_id,
+)
 from .settings import KnowledgeBaseSettings
 
 __version__ = "0.1.0a0"

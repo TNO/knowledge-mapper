@@ -1,5 +1,7 @@
 from httpx import Response
 
+from .models import KnowledgeBaseId
+
 
 class UnexpectedHttpResponseError(Exception):
     def __init__(self, response: Response):
@@ -15,7 +17,7 @@ class KnowledgeEngineNotAvailableError(Exception):
 
 
 class SmartConnectorNotFoundError(Exception):
-    def __init__(self, kb_id: str, ke_url: str):
+    def __init__(self, kb_id: KnowledgeBaseId, ke_url: str):
         super().__init__(
             f"Smart Connector for KB '{kb_id}' not found in KE runtime at {ke_url}."
         )

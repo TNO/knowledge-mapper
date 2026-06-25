@@ -1,7 +1,8 @@
 from collections.abc import Sequence
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Self, TypeVar
+from typing import Annotated, Any, NewType, Self, TypeVar
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel,
@@ -19,6 +20,38 @@ from rdflib.util import from_n3
 type BindingSet = Sequence[dict[str, str]]
 
 EMPTY_BINDING_SET: BindingSet = []
+
+# region:    -- KE identifiers
+
+KnowledgeBaseId = NewType("KnowledgeBaseId", str)
+"""A knowledge base identifier. Must be a valid absolute URI.
+
+Validated once at :class:`~knowledge_mapper.kb.knowledge_base.KnowledgeBase`
+construction via :func:`validate_kb_id`; thereafter the KE guarantees correctness.
+"""
+
+KnowledgeInteractionId = NewType("KnowledgeInteractionId", str)
+"""A knowledge interaction identifier (assigned by the KE).
+
+Not validated locally; the KE is the source of truth.
+"""
+
+
+def validate_kb_id(value: str) -> KnowledgeBaseId:
+    """Return ``value`` as a :data:`KnowledgeBaseId` if it is a valid absolute URI.
+
+    Raises:
+        ValueError: If ``value`` is not a valid absolute URI.
+    """
+    parsed = urlparse(value)
+    if not parsed.scheme or not (parsed.netloc or parsed.path):
+        raise ValueError(
+            f"Knowledge base id must be a valid absolute URI, got {value!r}"
+        )
+    return KnowledgeBaseId(value)
+
+
+# endregion: -- KE identifiers
 
 # region:    -- Binding Node
 
@@ -113,7 +146,7 @@ class BindingModel(BaseModel):
 class KnowledgeBaseInfo(BaseModel):
     model_config = ConfigDict(extra="allow", frozen=True, populate_by_name=True)
 
-    id: Annotated[str, Field(..., alias="knowledgeBaseId")]
+    id: Annotated[KnowledgeBaseId, Field(..., alias="knowledgeBaseId")]
     name: Annotated[str, Field(..., alias="knowledgeBaseName")]
     description: Annotated[str, Field(..., alias="knowledgeBaseDescription")]
     lease_renewal_time: Annotated[
@@ -129,7 +162,7 @@ class SmartConnectorLease(BaseModel):
         alias_generator=to_camel, frozen=True, populate_by_name=True
     )
 
-    knowledge_base_id: str
+    knowledge_base_id: KnowledgeBaseId
     expires: datetime
 
 
@@ -181,7 +214,7 @@ class KnowledgeInteractionInfo(BaseModel):
     )
 
     type: Annotated[KiTypes, Field(..., alias="knowledgeInteractionType")]
-    id: Annotated[str, Field(..., alias="knowledgeInteractionId")]
+    id: Annotated[KnowledgeInteractionId, Field(..., alias="knowledgeInteractionId")]
     name: Annotated[
         str | None, Field(default=None, alias="knowledgeInteractionName")
     ] = None
@@ -198,7 +231,7 @@ class PostReactInteractionInfo(KnowledgeInteractionInfo):
 
 
 def info_from_definition(
-    definition: KnowledgeInteraction, id: str
+    definition: KnowledgeInteraction, id: KnowledgeInteractionId
 ) -> KnowledgeInteractionInfo:
     """Build a :class:`KnowledgeInteractionInfo` from a user-defined
     :class:`KnowledgeInteraction` and the KE-assigned ``id``."""
@@ -222,8 +255,8 @@ class ExchangeInfo(BaseModel):
     )
 
     initiator: Initiator
-    knowledge_base_id: str
-    knowledge_interaction_id: str
+    knowledge_base_id: KnowledgeBaseId
+    knowledge_interaction_id: KnowledgeInteractionId
     exchange_start: datetime
     exchange_end: datetime
     status: str
