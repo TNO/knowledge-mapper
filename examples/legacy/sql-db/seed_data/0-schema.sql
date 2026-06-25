@@ -1,8 +1,0 @@
-USE treedb;
-
-CREATE TABLE trees (
-  id VARCHAR(255) NOT NULL,
-  height INT UNSIGNED NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  PRIMARY KEY(id)
-);
