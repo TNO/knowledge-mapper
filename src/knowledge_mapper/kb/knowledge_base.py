@@ -237,7 +237,7 @@ class KnowledgeBase:
                     *args,
                     **kwargs,
                 ) -> BindingSet | Sequence[BindingModel]:
-                    return func(binding_set, info, *args, **kwargs)
+                    return func(binding_set, info, *args, **kwargs)  # pyright: ignore[reportReturnType]
 
                 self._register_ki_locally(
                     KnowledgeInteractionContext(

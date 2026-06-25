@@ -2,7 +2,7 @@
 
 The Knowledge Mapper is a Python SDK for connecting your applications to the [TNO Knowledge Engine (TKE)](https://docs.knowledge-engine.eu/) network. Define knowledge interactions with decorators, use typed binding models, and let the SDK handle registration, polling, and data exchange with the network.
 
-![architecture diagram](./docs/img/architecture.png)
+The best way to learn to work with the Knowledge Mapper is to check out the [examples](/examples/). Users that are familiar with Python's [FastAPI](https://fastapi.tiangolo.com/) will recognize many concepts from that package.
 
 ## Quick Start
 
