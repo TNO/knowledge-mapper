@@ -2,17 +2,17 @@ import pytest
 
 from knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
 from knowledge_mapper.ke.models import (
-    AskAnswerInteractionInfo,
+    AskAnswerKnowledgeInteraction,
     BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
-    KnowledgeInteractionInfo,
-    PostReactInteractionInfo,
+    KnowledgeInteraction,
+    PostReactKnowledgeInteraction,
 )
 
 
 def settings_factory(
-    ki_infos: list[KnowledgeInteractionInfo] | None = None,
+    ki_infos: list[KnowledgeInteraction] | None = None,
 ) -> KnowledgeBaseSettings:
     return KnowledgeBaseSettings(
         knowledge_base=KnowledgeBaseInfo(
@@ -25,20 +25,20 @@ def settings_factory(
     )
 
 
-def answer_ki_info(name: str = "answer-ki") -> AskAnswerInteractionInfo:
-    return AskAnswerInteractionInfo(
+def answer_ki_info(name: str = "answer-ki") -> AskAnswerKnowledgeInteraction:
+    return AskAnswerKnowledgeInteraction(
         name=name, type=KiTypes.ANSWER, graph_pattern="?s ?p ?o ."
     )
 
 
-def ask_ki_info(name: str = "ask-ki") -> AskAnswerInteractionInfo:
-    return AskAnswerInteractionInfo(
+def ask_ki_info(name: str = "ask-ki") -> AskAnswerKnowledgeInteraction:
+    return AskAnswerKnowledgeInteraction(
         name=name, type=KiTypes.ASK, graph_pattern="?s ?p ?o ."
     )
 
 
-def post_ki_info(name: str = "post-ki") -> PostReactInteractionInfo:
-    return PostReactInteractionInfo(
+def post_ki_info(name: str = "post-ki") -> PostReactKnowledgeInteraction:
+    return PostReactKnowledgeInteraction(
         name=name,
         type=KiTypes.POST,
         argument_graph_pattern="?s ?p ?o .",
@@ -46,8 +46,8 @@ def post_ki_info(name: str = "post-ki") -> PostReactInteractionInfo:
     )
 
 
-def react_ki_info(name: str = "react-ki") -> PostReactInteractionInfo:
-    return PostReactInteractionInfo(
+def react_ki_info(name: str = "react-ki") -> PostReactKnowledgeInteraction:
+    return PostReactKnowledgeInteraction(
         name=name,
         type=KiTypes.REACT,
         argument_graph_pattern="?s ?p ?o .",
@@ -55,9 +55,7 @@ def react_ki_info(name: str = "react-ki") -> PostReactInteractionInfo:
     )
 
 
-def dummy_handler(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo
-) -> BindingSet:
+def dummy_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
     return binding_set
 
 

@@ -2,10 +2,10 @@ import pytest
 
 from knowledge_mapper import KnowledgeBase
 from knowledge_mapper.ke.models import (
-    AskAnswerInteractionInfo,
+    AskAnswerKnowledgeInteraction,
     BindingSet,
     KiTypes,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
 )
 from knowledge_mapper.knowledge_interaction import (
     KnowledgeInteractionContext,
@@ -33,11 +33,11 @@ def shared_prefixes():
 
 
 def ki_ctx_setup() -> KnowledgeInteractionContext:
-    def handler(binding_set: BindingSet, info: KnowledgeInteractionInfo) -> BindingSet:
+    def handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         return binding_set
 
     return KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             name="test-ki",
             type=KiTypes.ANSWER,
             graph_pattern="""?s ?p ?o . """,
@@ -54,7 +54,7 @@ async def test_register_ki():
     await kb.register_ki(ki_ctx=ki_ctx_setup())
     assert len(kb.ki_registry) == 1
     ki_ctx = next(iter(kb.ki_registry.values()))
-    assert ki_ctx.info.name == "test-ki"
+    assert ki_ctx.definition.name == "test-ki"
 
 
 async def test_register_ki_before_kb_registration():
@@ -128,17 +128,15 @@ async def test_register_answer_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def answer_test(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def answer_test(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         return binding_set
 
     await kb.register()
 
     assert len(kb.ki_registry) == 1
-    ki_info = next(iter(kb.ki_registry.values())).info
-    assert ki_info.name == "answer-test"
-    assert ki_info.type == KiTypes.ANSWER
+    ki_def = next(iter(kb.ki_registry.values())).definition
+    assert ki_def.name == "answer-test"
+    assert ki_def.type == KiTypes.ANSWER
 
 
 async def test_register_react_ki():
@@ -156,17 +154,15 @@ async def test_register_react_ki():
         """,
         prefixes=shared_prefixes(),
     )
-    def react_test(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def react_test(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         return binding_set
 
     await kb.register()
 
     assert len(kb.ki_registry) == 1
-    ki_info = next(iter(kb.ki_registry.values())).info
-    assert ki_info.name == "react-test"
-    assert ki_info.type == KiTypes.REACT
+    ki_def = next(iter(kb.ki_registry.values())).definition
+    assert ki_def.name == "react-test"
+    assert ki_def.type == KiTypes.REACT
 
 
 def test_register_ki_with_same_name():
@@ -179,7 +175,7 @@ def test_register_ki_with_same_name():
         """,
     )
     def first_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         return binding_set
 
@@ -191,7 +187,7 @@ def test_register_ki_with_same_name():
             result_graph_pattern="""?s ?p ?o . """,
         )
         def second_handler(
-            binding_set: BindingSet, info: KnowledgeInteractionInfo
+            binding_set: BindingSet, info: KnowledgeInteraction
         ) -> BindingSet:
             return binding_set
 
@@ -227,14 +223,12 @@ async def test_call_handler():
         """,
         prefixes=shared_prefixes(),
     )
-    def echo_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def echo_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         return binding_set
 
     await kb.register()
 
-    ki_info = next(iter(kb.ki_registry.values())).info
+    ki_def = next(iter(kb.ki_registry.values())).definition
     input_binding_set = [{"input": "test:Input1", "value": "Hello"}]
-    result = await kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
+    result = await kb.call(binding_set=input_binding_set, ki_name=ki_def.name)
     assert result == input_binding_set

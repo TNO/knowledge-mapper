@@ -9,8 +9,8 @@ from knowledge_mapper.ke.errors import (
 )
 from knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
+    AskAnswerKnowledgeInteraction,
     KnowledgeBaseInfo,
-    KnowledgeInteractionInfo,
     PostReactInteractionInfo,
     SmartConnectorLease,
 )
@@ -174,10 +174,10 @@ async def test_register_knowledge_interaction(client: Client):
     ):
         registered_ki = await client.register_ki(
             kb_id="http://example.org/test#kb",
-            ki=KnowledgeInteractionInfo(
+            ki=AskAnswerKnowledgeInteraction(
                 type="AskKnowledgeInteraction",
                 name="ask-interaction",
-                graph_pattern="?s ?p ?o . ",  # pyright: ignore[reportCallIssue]
+                graph_pattern="?s ?p ?o . ",
                 prefixes={"test": "http://example.org/test#"},
             ),
         )

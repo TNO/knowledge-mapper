@@ -3,7 +3,7 @@
 import pytest
 
 from knowledge_mapper import KnowledgeBase
-from knowledge_mapper.ke.models import BindingSet, KnowledgeInteractionInfo
+from knowledge_mapper.ke.models import BindingSet, KnowledgeInteraction
 from knowledge_mapper.testing import TestClient
 
 
@@ -52,9 +52,7 @@ async def test_ask_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient)
         argument_graph_pattern="?x a ?t .",
         result_graph_pattern="?x a ?t .",
     )
-    def sync_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def sync_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         result = kb.ask_sync([{}], ki_name="lookup")
         ask_result_capture.append(result)
         return binding_set
@@ -107,9 +105,7 @@ async def test_post_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient
         argument_graph_pattern="?x a ?t .",
         result_graph_pattern="?x a ?t .",
     )
-    def sync_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def sync_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         result = kb.post_sync([{"x": "ex:A", "t": "ex:Thing"}], ki_name="push")
         post_result_capture.append(result)
         return binding_set

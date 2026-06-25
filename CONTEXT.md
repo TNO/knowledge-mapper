@@ -190,7 +190,7 @@ def get_db() -> MyDatabase:
 @kb.answer_ki(name="...", graph_pattern="...")
 def handler(
     binding_set: list[PersonBinding],
-    info: KnowledgeInteractionInfo,
+    info: KnowledgeInteraction,
     db: Annotated[MyDatabase, Depends(get_db)],
 ) -> list[PersonBinding]:
     return db.query(binding_set)
@@ -434,6 +434,7 @@ The pre-overhaul, config-file-driven mapper implementation has been removed from
 - **`KnowledgeBase` ≠ Smart Connector**: The SC is a separate Java process (usually containerized). `KnowledgeBase` is the Python representation of a KB that registers with the SC over REST.
 - **Pydantic throughout**: Models, settings, and binding validation all use Pydantic v2. `BindingModel` uses `alias_generator=to_camel` to match the TKE REST API's camelCase fields.
 - **`ClientProtocol`**: The `Client` (real HTTP) and `TestClient` (fake) both satisfy this Protocol. Injecting a fake client is the standard testing pattern. `ClientProtocol` includes `post_handle_response` — the method that sends a handler's result back to the SC after an incoming KI call.
+- **Split KI definition vs. info**: User-defined KIs (handler arguments, settings, `register_ki` payloads) use `KnowledgeInteraction` (subclassed as `AskAnswerKnowledgeInteraction` and `PostReactKnowledgeInteraction`) where `name: str` is required and there is no `id`. The KE returns `KnowledgeInteractionInfo` (subclassed `AskAnswerInteractionInfo`, `PostReactInteractionInfo`) where `id: str` is required and `name: str | None` (the KE may return KIs without a name). `KnowledgeInteractionContext` holds the user's `definition: KnowledgeInteraction` plus a `ke_id: str | None` populated after registration. The bridge helper `info_from_definition(definition, id)` constructs the matching Info subtype from a definition once the KE assigns an id.
 - **Deferred KI registration**: By default, `answer_ki`/`react_ki` etc. use `defer_ke_registration=True`, meaning KIs are registered locally but not sent to the SC until `kb.register()` or `kb.sync_knowledge_interactions()` is called.
 - **KI registry indexed by ID after registration**: `KnowledgeBase` maintains a secondary index (`_ki_registry_by_id`) populated once a KI is registered with the SC and assigned an ID. The handling loop dispatches by ID using this index.
 - **Handler introspection**: `KnowledgeInteractionContext.__post_init__` inspects handler signatures to auto-detect binding models, enabling transparent (de)serialization without manual type dispatch. Dispatch logic (validate → call → serialize for ANSWER/REACT; prepare_outgoing + parse_result for ASK/POST) lives in `KnowledgeInteractionContext`, not in `KnowledgeBase`.

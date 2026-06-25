@@ -11,9 +11,11 @@ from knowledge_mapper.ke.models import (
     ExchangeInfo,
     Initiator,
     KnowledgeBaseInfo,
+    KnowledgeInteraction,
     KnowledgeInteractionInfo,
     PostResult,
     SmartConnectorLease,
+    info_from_definition,
 )
 
 
@@ -71,9 +73,9 @@ class TestClient(ClientProtocol):
         return list(self._knowledge_interactions.get(kb_id, []))
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteractionInfo
+        self, kb_id: str, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
-        registered = ki.model_copy(update={"id": f"fake-ki-{self._next_ki_id}"})
+        registered = info_from_definition(ki, f"fake-ki-{self._next_ki_id}")
         self._next_ki_id += 1
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
@@ -162,7 +164,7 @@ class TestClient(ClientProtocol):
             ),
             None,
         )
-        if ki is None or ki.id is None:
+        if ki is None:
             raise KeyError(
                 f"No registered KI named '{ki_name}' found in TestClient. "
                 "Register the KI before enqueueing a handle request."

@@ -14,7 +14,7 @@ from knowledge_mapper import (
     BindingModel,
     BindingSet,
     KnowledgeBase,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
     Literal,
     Uri,
 )
@@ -49,7 +49,7 @@ class CurrentTemperatureBinding(BindingModel):
     prefixes={"ex": "http://example.org/knowledge-mapper/binding-models#"},
 )
 def binding_models_answer_ki(
-    binding_set: list[CurrentTemperatureBinding], info: KnowledgeInteractionInfo
+    binding_set: list[CurrentTemperatureBinding], info: KnowledgeInteraction
 ) -> list[CurrentTemperatureBinding]:
     logger.info(
         f"Handling a call to the binding models answer KI with incoming bindings: "
@@ -79,7 +79,7 @@ def binding_models_answer_ki(
     prefixes={"ex": "http://example.org/knowledge-mapper/binding-models#"},
 )
 def binding_models_raw_answer_ki(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo
+    binding_set: BindingSet, info: KnowledgeInteraction
 ) -> BindingSet:
     logger.info(
         f"Handling a call to the binding models raw answer KI with incoming bindings: "

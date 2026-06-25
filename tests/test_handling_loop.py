@@ -8,7 +8,7 @@ import pytest
 from knowledge_mapper import KnowledgeBase
 from knowledge_mapper.ke.models import (
     BindingSet,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
 )
 from knowledge_mapper.testing import TestClient
 
@@ -34,9 +34,7 @@ async def kb(client: TestClient) -> KnowledgeBase:
         name="echo-ki",
         graph_pattern="?s ?p ?o .",
     )
-    def echo_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    def echo_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         captured.append(binding_set)
         return binding_set
 
@@ -114,7 +112,7 @@ async def test_concurrent_dispatch_overlaps_in_time(client: TestClient):
 
     @kb.answer_ki(name="slow-ki", graph_pattern="?s ?p ?o .")
     async def slow_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         handler_entries.append(time.monotonic())
         await asyncio.sleep(0.1)
@@ -151,13 +149,13 @@ async def test_handler_exception_posts_empty_binding_set(client: TestClient):
 
     @kb.answer_ki(name="boom-ki", graph_pattern="?s ?p ?o .")
     async def boom_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         raise RuntimeError("handler exploded")
 
     @kb.answer_ki(name="ok-ki", graph_pattern="?s ?p ?o .")
     async def ok_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         return binding_set
 
@@ -190,7 +188,7 @@ async def test_exit_awaits_in_flight_handlers(client: TestClient):
 
     @kb.answer_ki(name="slow-ki", graph_pattern="?s ?p ?o .")
     async def slow_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         nonlocal handler_completed
         await asyncio.sleep(0.1)
@@ -226,7 +224,7 @@ async def test_semaphore_bounds_concurrency(client: TestClient):
 
     @kb.answer_ki(name="counting-ki", graph_pattern="?s ?p ?o .")
     async def counting_handler(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
+        binding_set: BindingSet, info: KnowledgeInteraction
     ) -> BindingSet:
         nonlocal max_observed, current
         async with lock:
@@ -262,9 +260,7 @@ async def test_event_loop_stored_on_kb(client: TestClient):
     kb.client = client
 
     @kb.answer_ki(name="noop-ki", graph_pattern="?s ?p ?o .")
-    async def noop(
-        binding_set: BindingSet, info: KnowledgeInteractionInfo
-    ) -> BindingSet:
+    async def noop(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
         return binding_set
 
     await kb.register()

@@ -30,7 +30,7 @@ from knowledge_mapper import (
     BindingSet,
     KnowledgeBase,
     KnowledgeBaseSettings,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
 )
 
 EXAMPLE_NAME = "custom-settings"
@@ -69,13 +69,13 @@ settings = AppSettings()  # type: ignore
 
 
 def example_answer_from_settings(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo
+    binding_set: BindingSet, info: KnowledgeInteraction
 ) -> BindingSet:
     return binding_set
 
 
 def example_react_from_settings(
-    binding_set: BindingSet, info: KnowledgeInteractionInfo
+    binding_set: BindingSet, info: KnowledgeInteraction
 ) -> BindingSet:
     return binding_set
 
@@ -101,5 +101,5 @@ if __name__ == "__main__":
     logger.info(f"KB id:          {kb.info.id}")
     logger.info(f"DB host:port:   {settings.db_host}:{settings.db_port}")
     logger.info(f"Debug:          {settings.debug}")
-    logger.info(f"ASK KI name:     {ask_ctx.info.name}")
-    logger.info(f"POST KI name:    {post_ctx.info.name}")
+    logger.info(f"ASK KI name:     {ask_ctx.definition.name}")
+    logger.info(f"POST KI name:    {post_ctx.definition.name}")

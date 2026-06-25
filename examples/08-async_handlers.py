@@ -15,7 +15,7 @@ from shared import get_example_logger
 from knowledge_mapper import (
     BindingModel,
     KnowledgeBase,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
     Literal,
     Uri,
 )
@@ -59,7 +59,7 @@ kb = KnowledgeBase(
 )
 def react_device_sync(
     binding_set: list[DeviceCommandBinding],
-    info: KnowledgeInteractionInfo,
+    info: KnowledgeInteraction,
 ) -> list[DeviceAckBinding]:
     # Sync handlers are executed with asyncio.to_thread(...).
     # That keeps the event loop responsive, but this function itself still blocks
@@ -85,7 +85,7 @@ def react_device_sync(
 )
 async def react_device_async(
     binding_set: list[DeviceCommandBinding],
-    info: KnowledgeInteractionInfo,
+    info: KnowledgeInteraction,
 ) -> list[DeviceAckBinding]:
     # Async handlers are awaited directly on the event loop.
     # Use this style when the handler performs awaitable I/O (HTTP calls, DB

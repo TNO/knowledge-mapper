@@ -10,7 +10,7 @@ import pytest
 from knowledge_mapper import KnowledgeBase
 from knowledge_mapper.ke.errors import SmartConnectorNotFoundError
 from knowledge_mapper.ke.models import (
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
     SmartConnectorLease,
 )
 from knowledge_mapper.testing import TestClient
@@ -34,7 +34,7 @@ async def test_unregister_ki_removes_from_registries_and_calls_client():
         ki_ctx=_ki_ctx("ask-it"),
     )
     assert "ask-it" in kb.ki_registry
-    ki_id = kb.ki_registry["ask-it"].info.id
+    ki_id = kb.ki_registry["ask-it"].ke_id
     assert ki_id is not None and ki_id in kb._ki_registry_by_id
 
     await kb.unregister_ki("ask-it")
@@ -102,14 +102,14 @@ async def test_load_domain_knowledge_when_kb_not_registered_raises():
 
 def _ki_ctx(name: str):
     """Build a registered ASK-style KI context for use in unregister tests."""
-    from knowledge_mapper.ke.models import AskAnswerInteractionInfo, KiTypes
+    from knowledge_mapper.ke.models import AskAnswerKnowledgeInteraction, KiTypes
     from knowledge_mapper.knowledge_interaction import (
         KnowledgeInteractionContext,
         KnowledgeInteractionStatus,
     )
 
-    return KnowledgeInteractionContext[KnowledgeInteractionInfo, ...](
-        info=AskAnswerInteractionInfo(
+    return KnowledgeInteractionContext[KnowledgeInteraction, ...](
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK,
             name=name,
             graph_pattern="?s ?p ?o . ",
