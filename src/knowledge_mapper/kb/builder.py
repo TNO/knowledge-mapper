@@ -51,7 +51,7 @@ class KnowledgeBaseBuilder:
         Args:
             ki_name: Name of the KI as declared in settings.
             func: Handler callable; receives a binding set and
-                :class:`~.ke.models.KnowledgeInteractionInfo` and returns a binding set.
+                :class:`~.ke.models.KnowledgeInteraction` and returns a binding set.
 
         Raises:
             ValueError: If *ki_name* is not declared in settings, or if the KI is of
@@ -59,17 +59,19 @@ class KnowledgeBaseBuilder:
                 automatically).
         """
         try:
-            info = self._settings.get_configured_interaction(ki_name)
+            definition = self._settings.get_configured_interaction(ki_name)
         except ValueError as err:
             raise ValueError(f"KI named '{ki_name}' not found in settings.") from err
 
-        if info.type not in (KiTypes.ANSWER, KiTypes.REACT):
+        if definition.type not in (KiTypes.ANSWER, KiTypes.REACT):
             raise ValueError(
-                f"KI '{ki_name}' is of type {info.type}. Only ANSWER and REACT KIs "
-                f"accept a handler; ASK and POST KIs are registered automatically."
+                f"KI '{ki_name}' is of type {definition.type}. Only ANSWER and REACT "
+                f"KIs accept a handler; ASK and POST KIs are registered automatically."
             )
 
-        self._kb._register_ki_decorator(info=info, defer_ke_registration=True)(func)
+        self._kb._register_ki_decorator(
+            definition=definition, defer_ke_registration=True
+        )(func)
         self._unhandled_incoming.discard(ki_name)
         return self
 
@@ -95,7 +97,7 @@ class KnowledgeBaseBuilder:
             if ki.type in (KiTypes.ASK, KiTypes.POST):
                 self._kb._register_ki_locally(
                     KnowledgeInteractionContext(
-                        info=ki,
+                        definition=ki,
                         handler=None,
                     ),
                 )

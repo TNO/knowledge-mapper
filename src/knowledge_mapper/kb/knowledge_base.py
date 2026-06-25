@@ -12,13 +12,14 @@ from ..ke import Client
 from ..ke.client import ClientProtocol, HandleRequest, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
 from ..ke.models import (
-    AskAnswerInteractionInfo,
+    AskAnswerKnowledgeInteraction,
     BindingModel,
     BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
+    KnowledgeInteraction,
     KnowledgeInteractionInfo,
-    PostReactInteractionInfo,
+    PostReactKnowledgeInteraction,
     SmartConnectorLease,
 )
 from ..knowledge_interaction import (
@@ -144,24 +145,30 @@ class KnowledgeBase:
         async registration, or call this from synchronous code (e.g. decorators)
         followed by :meth:`sync_knowledge_interactions` to push to the KE.
         """
-        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
+        if ki_ctx.definition.name in (
+            ki.definition.name for ki in self.ki_registry.values()
+        ):
             raise ValueError(
-                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
+                f"A KI named '{ki_ctx.definition.name}' is already registered for "
+                f"this KB."
             )
         if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
-                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
-                f"registered."
+                f"Cannot register KI '{ki_ctx.definition.name}' because it is "
+                f"already registered."
             )
-        self.ki_registry[ki_ctx.info.name] = ki_ctx
+        self.ki_registry[ki_ctx.definition.name] = ki_ctx
 
     async def register_ki(
         self,
         ki_ctx: KnowledgeInteractionContext[Any, ...],
         defer_ke_registration: bool = False,
-    ) -> KnowledgeInteractionInfo:
+    ) -> KnowledgeInteractionInfo | None:
         """Register a knowledge interaction for this knowledge base at the KE runtime
         and store it in this object's registry of interactions.
+
+        Returns the :class:`KnowledgeInteractionInfo` reported by the KE, or ``None``
+        if ``defer_ke_registration`` is ``True`` (in which case no KE call was made).
 
         Raises:
             ValueError: If the KB is not yet registered and ``defer_ke_registration`` is
@@ -174,28 +181,27 @@ class KnowledgeBase:
         """
         if self.state != KnowledgeBaseState.REGISTERED and not defer_ke_registration:
             raise ValueError(
-                f"Cannot register KI '{ki_ctx.info.name}' because the KB is not "
-                f"registered. Consider setting defer_ke_registration=True to defer "
-                f"registration until the KB itself is registered."
+                f"Cannot register KI '{ki_ctx.definition.name}' because the KB is "
+                f"not registered. Consider setting defer_ke_registration=True to "
+                f"defer registration until the KB itself is registered."
             )
 
         self._register_ki_locally(ki_ctx)
 
         if defer_ke_registration:
-            return ki_ctx.info
+            return None
 
         registered_ki = await self.client.register_ki(
             kb_id=self.info.id,
-            ki=ki_ctx.info,
+            ki=ki_ctx.definition,
         )
-        ki_ctx.info = registered_ki
+        ki_ctx.ke_id = registered_ki.id
         ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
-        assert registered_ki.id is not None
         self._ki_registry_by_id[registered_ki.id] = ki_ctx
         return registered_ki
 
     def _register_ki_decorator(
-        self, info: KnowledgeInteractionInfo, defer_ke_registration: bool
+        self, definition: KnowledgeInteraction, defer_ke_registration: bool
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as a KI handler.
 
@@ -214,7 +220,7 @@ class KnowledgeBase:
                 @wraps(func)
                 async def async_wrapper(
                     binding_set: BindingSet | list[BindingModel],
-                    info: KnowledgeInteractionInfo,
+                    info: KnowledgeInteraction,
                     *args,
                     **kwargs,
                 ) -> BindingSet | Sequence[BindingModel]:
@@ -222,7 +228,7 @@ class KnowledgeBase:
 
                 self._register_ki_locally(
                     KnowledgeInteractionContext(
-                        info=info,
+                        definition=definition,
                         handler=async_wrapper,
                         status=KnowledgeInteractionStatus.UNREGISTERED,
                     ),
@@ -233,7 +239,7 @@ class KnowledgeBase:
                 @wraps(func)
                 def wrapper(
                     binding_set: BindingSet | list[BindingModel],
-                    info: KnowledgeInteractionInfo,
+                    info: KnowledgeInteraction,
                     *args,
                     **kwargs,
                 ) -> BindingSet | Sequence[BindingModel]:
@@ -241,7 +247,7 @@ class KnowledgeBase:
 
                 self._register_ki_locally(
                     KnowledgeInteractionContext(
-                        info=info,
+                        definition=definition,
                         handler=wrapper,
                         status=KnowledgeInteractionStatus.UNREGISTERED,
                     ),
@@ -270,13 +276,13 @@ class KnowledgeBase:
         for ki_ctx in self.ki_registry.values():
             if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
                 continue
-            ki_ctx.info = await self.client.register_ki(
+            registered_ki = await self.client.register_ki(
                 kb_id=self.info.id,
-                ki=ki_ctx.info,
+                ki=ki_ctx.definition,
             )
+            ki_ctx.ke_id = registered_ki.id
             ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
-            assert ki_ctx.info.id is not None
-            self._ki_registry_by_id[ki_ctx.info.id] = ki_ctx
+            self._ki_registry_by_id[registered_ki.id] = ki_ctx
         return
 
     async def unregister_ki(self, ki_name: str) -> None:
@@ -303,16 +309,16 @@ class KnowledgeBase:
         ki_ctx = self.ki_registry[ki_name]
         if (
             ki_ctx.status != KnowledgeInteractionStatus.REGISTERED
-            or ki_ctx.info.id is None
+            or ki_ctx.ke_id is None
         ):
             raise ValueError(
                 f"Cannot unregister KI '{ki_name}' because it is not currently "
                 f"registered at the KE runtime."
             )
 
-        logger.info("Unregistering KI '%s' (%s).", ki_name, ki_ctx.info.id)
-        await self.client.unregister_ki(kb_id=self.info.id, ki_id=ki_ctx.info.id)
-        self._ki_registry_by_id.pop(ki_ctx.info.id, None)
+        logger.info("Unregistering KI '%s' (%s).", ki_name, ki_ctx.ke_id)
+        await self.client.unregister_ki(kb_id=self.info.id, ki_id=ki_ctx.ke_id)
+        self._ki_registry_by_id.pop(ki_ctx.ke_id, None)
         self.ki_registry.pop(ki_name, None)
 
     async def renew_lease(self) -> SmartConnectorLease:
@@ -353,13 +359,13 @@ class KnowledgeBase:
         logger.debug("Loading domain knowledge for KB '%s'.", self.info.id)
         await self.client.load_domain_knowledge(kb_id=self.info.id, knowledge=knowledge)
 
-    def ki_from_info(
+    def ki_from_definition(
         self,
-        info: KnowledgeInteractionInfo,
+        definition: KnowledgeInteraction,
         defer_ke_registration: bool = True,
     ) -> Callable[[Handler], Handler]:
         """Return a decorator that registers the decorated function as a KI handler
-        based on the provided KnowledgeInteractionInfo.
+        based on the provided :class:`KnowledgeInteraction` definition.
 
         Raises:
             ValueError: Propagated from ``register_ki`` if registration constraints are
@@ -370,7 +376,7 @@ class KnowledgeBase:
               the KE runtime.
         """
         return self._register_ki_decorator(
-            info=info, defer_ke_registration=defer_ke_registration
+            definition=definition, defer_ke_registration=defer_ke_registration
         )
 
     def ask_ki(
@@ -381,8 +387,7 @@ class KnowledgeBase:
         prefixes: dict | None = None,
         defer_ke_registration: bool = True,
     ) -> None:
-        """Return a decorator that registers the decorated function as an ASK KI
-        handler.
+        """Register an ASK KI on this KB. Call :meth:`ask` to query the network.
 
         Raises:
             ValueError: Propagated from ``register_ki`` if registration constraints are
@@ -394,7 +399,7 @@ class KnowledgeBase:
         """
         self._register_ki_locally(
             KnowledgeInteractionContext(
-                info=AskAnswerInteractionInfo(
+                definition=AskAnswerKnowledgeInteraction(
                     type=KiTypes.ASK,
                     name=name,
                     prefixes=prefixes or dict(),
@@ -427,7 +432,7 @@ class KnowledgeBase:
               the KE runtime.
         """
         return self._register_ki_decorator(
-            info=AskAnswerInteractionInfo(
+            definition=AskAnswerKnowledgeInteraction(
                 type=KiTypes.ANSWER,
                 name=name,
                 prefixes=prefixes or dict(),
@@ -459,7 +464,7 @@ class KnowledgeBase:
         """
         self._register_ki_locally(
             KnowledgeInteractionContext(
-                info=PostReactInteractionInfo(
+                definition=PostReactKnowledgeInteraction(
                     type=KiTypes.POST,
                     name=name,
                     prefixes=prefixes or dict(),
@@ -494,7 +499,7 @@ class KnowledgeBase:
               the KE runtime.
         """
         return self._register_ki_decorator(
-            info=PostReactInteractionInfo(
+            definition=PostReactKnowledgeInteraction(
                 type=KiTypes.REACT,
                 name=name,
                 prefixes=prefixes or dict(),
@@ -525,21 +530,21 @@ class KnowledgeBase:
             ValueError: If the KI is not registered at the KE runtime.
         """
         ki_ctx = self.ki_registry[ki_name]
-        if ki_ctx.info.type != KiTypes.POST:
+        if ki_ctx.definition.type != KiTypes.POST:
             raise ValueError(
-                f"KI named '{ki_name}' is of type {ki_ctx.info.type}, not POST, and "
-                f"cannot be called with the post() method."
+                f"KI named '{ki_name}' is of type {ki_ctx.definition.type}, not "
+                f"POST, and cannot be called with the post() method."
             )
         if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
                 f"Cannot call KI '{ki_name}' because it is not registered. Please "
                 f"register the KB and sync KIs first."
             )
-        assert ki_ctx.info.id is not None  # Should always be set for registered KIs
+        assert ki_ctx.ke_id is not None  # Should always be set for registered KIs
 
         post_result = await self.client.post(
             kb_id=self.info.id,
-            ki_id=ki_ctx.info.id,
+            ki_id=ki_ctx.ke_id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(post_result.result_binding_set)
@@ -554,21 +559,21 @@ class KnowledgeBase:
             ValueError: If the KI is not registered at the KE runtime.
         """
         ki_ctx = self.ki_registry[ki_name]
-        if ki_ctx.info.type != KiTypes.ASK:
+        if ki_ctx.definition.type != KiTypes.ASK:
             raise ValueError(
-                f"KI named '{ki_name}' is of type {ki_ctx.info.type}, not ASK, and "
-                f"cannot be called with the ask() method."
+                f"KI named '{ki_name}' is of type {ki_ctx.definition.type}, not "
+                f"ASK, and cannot be called with the ask() method."
             )
         if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
                 f"Cannot call KI '{ki_name}' because it is not registered. Please "
                 f"register the KB and sync KIs first."
             )
-        assert ki_ctx.info.id is not None  # Should always be set for registered KIs
+        assert ki_ctx.ke_id is not None  # Should always be set for registered KIs
 
         ask_result = await self.client.ask(
             kb_id=self.info.id,
-            ki_id=ki_ctx.info.id,
+            ki_id=ki_ctx.ke_id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(ask_result.binding_set)
@@ -684,13 +689,13 @@ class KnowledgeBase:
                             try:
                                 result_binding_set = await self.call(
                                     handle_request.binding_set,
-                                    ki_ctx.info.name,
+                                    ki_ctx.definition.name,
                                 )
                             except Exception:
                                 logger.exception(
                                     "Handler for KI '%s' raised an exception "
                                     "(request %d from %s). Posting empty binding set.",
-                                    ki_ctx.info.name,
+                                    ki_ctx.definition.name,
                                     handle_request.handle_request_id,
                                     handle_request.requesting_knowledge_base_id,
                                 )
@@ -707,7 +712,7 @@ class KnowledgeBase:
                                 logger.exception(
                                     "Failed to post handle response for KI '%s' "
                                     "(request %d from %s).",
-                                    ki_ctx.info.name,
+                                    ki_ctx.definition.name,
                                     handle_request.handle_request_id,
                                     handle_request.requesting_knowledge_base_id,
                                 )

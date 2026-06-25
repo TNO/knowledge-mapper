@@ -1,4 +1,6 @@
-from pydantic import Field
+from typing import Annotated, Any
+
+from pydantic import Discriminator, Field, Tag
 from pydantic_settings import (
     BaseSettings,
     JsonConfigSettingsSource,
@@ -7,7 +9,42 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from .ke.models import KnowledgeBaseInfo, KnowledgeInteractionInfo
+from .ke.models import (
+    AskAnswerKnowledgeInteraction,
+    KiTypes,
+    KnowledgeBaseInfo,
+    KnowledgeInteraction,
+    PostReactKnowledgeInteraction,
+)
+
+
+def _ki_discriminator(v: Any) -> str:
+    if isinstance(v, dict):
+        t = v.get("type") or v.get("knowledgeInteractionType")
+    else:
+        t = getattr(v, "type", None)
+    if t in (
+        KiTypes.ASK,
+        KiTypes.ANSWER,
+        KiTypes.ASK.value,
+        KiTypes.ANSWER.value,
+    ):
+        return "ask_answer"
+    if t in (
+        KiTypes.POST,
+        KiTypes.REACT,
+        KiTypes.POST.value,
+        KiTypes.REACT.value,
+    ):
+        return "post_react"
+    raise ValueError(f"Unknown knowledge interaction type: {t!r}")
+
+
+KnowledgeInteractionUnion = Annotated[
+    Annotated[AskAnswerKnowledgeInteraction, Tag("ask_answer")]
+    | Annotated[PostReactKnowledgeInteraction, Tag("post_react")],
+    Discriminator(_ki_discriminator),
+]
 
 
 class KnowledgeBaseSettings(BaseSettings):
@@ -62,7 +99,9 @@ class KnowledgeBaseSettings(BaseSettings):
 
     knowledge_base: KnowledgeBaseInfo
     knowledge_engine_endpoint: str
-    knowledge_interactions: list[KnowledgeInteractionInfo] = Field(default_factory=list)
+    knowledge_interactions: list[KnowledgeInteractionUnion] = Field(
+        default_factory=list
+    )
 
     @classmethod
     def settings_customise_sources(
@@ -81,7 +120,7 @@ class KnowledgeBaseSettings(BaseSettings):
             JsonConfigSettingsSource(settings_cls),
         )
 
-    def get_configured_interaction(self, name: str) -> KnowledgeInteractionInfo:
+    def get_configured_interaction(self, name: str) -> KnowledgeInteraction:
         for ki in self.knowledge_interactions:
             if ki.name == name:
                 return ki

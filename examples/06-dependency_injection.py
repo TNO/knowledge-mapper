@@ -30,7 +30,7 @@ from knowledge_mapper import (
     BindingModel,
     Depends,
     KnowledgeBase,
-    KnowledgeInteractionInfo,
+    KnowledgeInteraction,
     Literal,
     Uri,
 )
@@ -134,7 +134,7 @@ kb = KnowledgeBase(
 )
 def answer_sensor_readings(
     binding_set: list[SensorReadingBinding],
-    info: KnowledgeInteractionInfo,
+    info: KnowledgeInteraction,
     repo: Annotated[SensorRepository, Depends(get_sensor_repository)],
     config: Annotated[AppConfig, Depends(get_config)],
 ) -> list[SensorReadingBinding]:

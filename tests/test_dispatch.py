@@ -3,12 +3,12 @@
 from rdflib import URIRef
 
 from knowledge_mapper.ke.models import (
-    AskAnswerInteractionInfo,
+    AskAnswerKnowledgeInteraction,
     BindingModel,
     BindingSet,
     KiTypes,
     Literal,
-    PostReactInteractionInfo,
+    PostReactKnowledgeInteraction,
     Uri,
 )
 from knowledge_mapper.knowledge_interaction import KnowledgeInteractionContext
@@ -39,7 +39,7 @@ async def test_dispatch_untyped_handler():
         return [{"sensor": b["sensor"]} for b in binding_set]
 
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=handler,
@@ -56,7 +56,7 @@ async def test_dispatch_typed_handler():
         return binding_set
 
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=handler,
@@ -74,7 +74,7 @@ async def test_dispatch_react_typed():
         return [ResultBinding(measurement=b.measurement) for b in binding_set]
 
     ctx = KnowledgeInteractionContext(
-        info=PostReactInteractionInfo(
+        definition=PostReactKnowledgeInteraction(
             type=KiTypes.REACT,
             name="ki",
             prefixes={},
@@ -100,7 +100,7 @@ async def test_dispatch_react_typed():
 def test_prepare_outgoing_no_model():
     """Without a serialization model, bindings pass through untouched."""
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=None,
@@ -113,7 +113,7 @@ def test_prepare_outgoing_no_model():
 def test_prepare_outgoing_with_model():
     """With a serialization model, BindingModels are dumped to raw dicts."""
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=None,
@@ -131,7 +131,7 @@ def test_prepare_outgoing_with_model():
 def test_parse_result_no_model():
     """Without a validation model, bindings pass through untouched."""
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=None,
@@ -144,7 +144,7 @@ def test_parse_result_no_model():
 def test_parse_result_with_model():
     """With a validation model, raw dicts are validated into BindingModels."""
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=None,
@@ -159,7 +159,7 @@ def test_parse_result_with_model():
 def test_parse_result_empty_binding_set():
     """parse_result with an empty binding set returns it as-is."""
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ASK, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=None,
@@ -179,7 +179,7 @@ async def test_dispatch_async_handler():
         return [{"sensor": b["sensor"]} for b in binding_set]
 
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=handler,
@@ -202,7 +202,7 @@ async def test_dispatch_sync_handler_runs_in_thread():
         return binding_set
 
     ctx = KnowledgeInteractionContext(
-        info=AskAnswerInteractionInfo(
+        definition=AskAnswerKnowledgeInteraction(
             type=KiTypes.ANSWER, name="ki", prefixes={}, graph_pattern=GRAPH_PATTERN
         ),
         handler=handler,

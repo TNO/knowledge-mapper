@@ -49,10 +49,10 @@ def test_configuration_interactions():
     kb = builder.build()
 
     ask_ki = kb.ki_registry["ask-from-settings"]
-    assert ask_ki.info.name == "ask-from-settings"
+    assert ask_ki.definition.name == "ask-from-settings"
     post_ki = kb.ki_registry["post-from-settings"]
-    assert post_ki.info.name == "post-from-settings"
+    assert post_ki.definition.name == "post-from-settings"
     answer_ki = kb.ki_registry["answer-from-settings"]
-    assert answer_ki.info.name == "answer-from-settings"
+    assert answer_ki.definition.name == "answer-from-settings"
     react_ki = kb.ki_registry["react-from-settings"]
-    assert react_ki.info.name == "react-from-settings"
+    assert react_ki.definition.name == "react-from-settings"

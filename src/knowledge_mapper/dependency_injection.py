@@ -20,7 +20,7 @@ class Depends:
         @kb.answer_ki(name="...", graph_pattern="...")
         def handler(
             binding_set: list[PersonBinding],
-            info: KnowledgeInteractionInfo,
+            info: KnowledgeInteraction,
             db: Annotated[MyDatabase, Depends(get_db)],
         ) -> list[PersonBinding]:
             return db.query(binding_set)

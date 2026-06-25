@@ -13,10 +13,12 @@ from .models import (
     BindingSet,
     KiTypes,
     KnowledgeBaseInfo,
+    KnowledgeInteraction,
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
     PostResult,
     SmartConnectorLease,
+    info_from_definition,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,10 +112,10 @@ class ClientProtocol(Protocol):
         ...
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteractionInfo
+        self, kb_id: str, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
-        """Register a knowledge interaction for the given KB and return it with its
-        assigned ID set in the info.
+        """Register a knowledge interaction for the given KB and return the
+        :class:`KnowledgeInteractionInfo` reported by the KE (with its assigned id).
 
         Raises:
             SmartConnectorNotFoundError: If no smart connector exists for the given KB
@@ -329,7 +331,7 @@ class Client(ClientProtocol):
         return kis
 
     async def register_ki(
-        self, kb_id: str, ki: KnowledgeInteractionInfo
+        self, kb_id: str, ki: KnowledgeInteraction
     ) -> KnowledgeInteractionInfo:
         logger.debug(
             "Registering knowledge interaction '%s' for KB '%s' at %s.",
@@ -347,10 +349,7 @@ class Client(ClientProtocol):
         if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
-        registered_ki = ki.model_copy(
-            update={"id": response.json()["knowledgeInteractionId"]}
-        )
-        return registered_ki
+        return info_from_definition(ki, response.json()["knowledgeInteractionId"])
 
     async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
         logger.debug(

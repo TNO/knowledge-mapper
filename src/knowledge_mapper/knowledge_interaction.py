@@ -6,14 +6,14 @@ from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
 from .dependency_injection import resolve_dependencies
-from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteractionInfo
+from .ke.models import BindingModel, BindingSet, KiTypes, KnowledgeInteraction
 
 type _HandlerReturn = BindingSet | Sequence[BindingModel]
 
 type Handler[B, **P] = (
-    Callable[Concatenate[B, KnowledgeInteractionInfo, P], _HandlerReturn]
+    Callable[Concatenate[B, KnowledgeInteraction, P], _HandlerReturn]
     | Callable[
-        Concatenate[B, KnowledgeInteractionInfo, P],
+        Concatenate[B, KnowledgeInteraction, P],
         Coroutine[Any, Any, _HandlerReturn],
     ]
 )
@@ -26,14 +26,15 @@ class KnowledgeInteractionStatus(StrEnum):
 
 @dataclass
 class KnowledgeInteractionContext[B, **P]:
-    info: KnowledgeInteractionInfo
+    definition: KnowledgeInteraction
     handler: Handler[B, P] | None
     status: KnowledgeInteractionStatus = KnowledgeInteractionStatus.UNREGISTERED
+    ke_id: str | None = None
     validation_model: type[BindingModel] | None = None
     serialization_model: type[BindingModel] | None = None
 
     def __post_init__(self):
-        if self.info.type == KiTypes.ANSWER or self.info.type == KiTypes.REACT:
+        if self.definition.type in (KiTypes.ANSWER, KiTypes.REACT):
             if not callable(self.handler):
                 raise ValueError("Handler must be a callable.")
 
@@ -67,10 +68,12 @@ class KnowledgeInteractionContext[B, **P]:
             input_data = binding_set
 
         if inspect.iscoroutinefunction(self.handler):
-            result_bindings = await self.handler(input_data, self.info, **dep_kwargs)
+            result_bindings = await self.handler(
+                input_data, self.definition, **dep_kwargs
+            )
         else:
             result_bindings = await asyncio.to_thread(
-                self.handler, input_data, self.info, **dep_kwargs
+                self.handler, input_data, self.definition, **dep_kwargs
             )
 
         if self.serialization_model and result_bindings:

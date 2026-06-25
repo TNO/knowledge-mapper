@@ -140,14 +140,51 @@ class KiTypes(StrEnum):
     REACT = "ReactKnowledgeInteraction"
 
 
-class KnowledgeInteractionInfo(BaseModel):
+class KnowledgeInteraction(BaseModel):
+    """A knowledge interaction defined by the application.
+
+    Carries the user-supplied identity (``name``, which is required) plus the
+    graph patterns and prefixes that describe the interaction. Used when
+    configuring a KB (from settings or programmatically) and when registering
+    the KI with the KE. The KE-assigned ``id`` lives on
+    :class:`KnowledgeInteractionInfo`, which is returned by the KE.
+    """
+
     model_config = ConfigDict(
         alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True
     )
 
     type: Annotated[KiTypes, Field(..., alias="knowledgeInteractionType")]
-    id: Annotated[str | None, Field(..., alias="knowledgeInteractionId")] = None
     name: Annotated[str, Field(..., alias="knowledgeInteractionName")]
+    prefixes: Annotated[dict[str, str], Field(default_factory=dict)]
+
+
+class AskAnswerKnowledgeInteraction(KnowledgeInteraction):
+    graph_pattern: str
+
+
+class PostReactKnowledgeInteraction(KnowledgeInteraction):
+    argument_graph_pattern: str
+    result_graph_pattern: str | None = None
+
+
+class KnowledgeInteractionInfo(BaseModel):
+    """A knowledge interaction as reported by the KE.
+
+    Always carries a KE-assigned ``id``; ``name`` may be ``None`` because KIs
+    registered by other knowledge bases (not via this knowledge-mapper) may be
+    anonymous on the wire.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel, extra="allow", frozen=True, populate_by_name=True
+    )
+
+    type: Annotated[KiTypes, Field(..., alias="knowledgeInteractionType")]
+    id: Annotated[str, Field(..., alias="knowledgeInteractionId")]
+    name: Annotated[
+        str | None, Field(default=None, alias="knowledgeInteractionName")
+    ] = None
     prefixes: Annotated[dict[str, str], Field(default_factory=dict)]
 
 
@@ -158,6 +195,20 @@ class AskAnswerInteractionInfo(KnowledgeInteractionInfo):
 class PostReactInteractionInfo(KnowledgeInteractionInfo):
     argument_graph_pattern: str
     result_graph_pattern: str | None = None
+
+
+def info_from_definition(
+    definition: KnowledgeInteraction, id: str
+) -> KnowledgeInteractionInfo:
+    """Build a :class:`KnowledgeInteractionInfo` from a user-defined
+    :class:`KnowledgeInteraction` and the KE-assigned ``id``."""
+    data = definition.model_dump(by_alias=True)
+    data["knowledgeInteractionId"] = id
+    if isinstance(definition, AskAnswerKnowledgeInteraction):
+        return AskAnswerInteractionInfo.model_validate(data)
+    if isinstance(definition, PostReactKnowledgeInteraction):
+        return PostReactInteractionInfo.model_validate(data)
+    return KnowledgeInteractionInfo.model_validate(data)
 
 
 class Initiator(StrEnum):
