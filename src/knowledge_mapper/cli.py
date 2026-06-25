@@ -30,9 +30,7 @@ def load_kb(spec: str) -> Any:
     can import sibling modules just like when run directly with ``python``.
     """
     if ":" not in spec:
-        raise ValueError(
-            f"Invalid spec {spec!r}: expected 'path/to/file.py:attr'."
-        )
+        raise ValueError(f"Invalid spec {spec!r}: expected 'path/to/file.py:attr'.")
     path_part, attr = spec.split(":", 1)
     file = Path(path_part).resolve()
 
@@ -94,5 +92,3 @@ def run_command(
     """Run a KnowledgeBase defined in a Python file."""
     kb = load_kb(spec)
     asyncio.run(run_kb(kb))
-
-
