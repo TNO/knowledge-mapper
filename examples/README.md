@@ -15,6 +15,7 @@ The best way to get started with the Knowledge Mapper is by exploring the exampl
 | **07-testing/** | Demonstrates how to write tests for your knowledge base using the fake client |
 | **08-async_handlers.py** | Demonstrates async REACT handlers and how they differ from sync handlers |
 | **09-sparql-store/** | Connecting a SPARQL store as a knowledge base |
+| **10-cli.py** | Start a KB via the `knowledge-mapper run` CLI — no `asyncio.run` boilerplate |
 
 ## Prerequisites
 
@@ -60,6 +61,17 @@ python 01-basic.py
 ```
 
 Most examples will start the knowledge mapper and connect to the Knowledge Engine. Press `Ctrl+C` to stop.
+
+### Running via the CLI
+
+Example **10-cli.py** is started through the `knowledge-mapper` CLI instead of `python`:
+
+```bash
+cd examples
+knowledge-mapper run 10-cli.py:kb
+```
+
+The CLI handles `connect`, `register`, the handling loop, and graceful shutdown on `Ctrl+C`.
 
 ### Running Tests
 

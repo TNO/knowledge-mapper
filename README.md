@@ -50,6 +50,16 @@ For local development (from the repository root):
 pip install -e .
 ```
 
+## CLI
+
+Installing the package also provides a `knowledge-mapper` command. Use `run` to start a `KnowledgeBase` defined in a Python file, replacing the `asyncio.run(...)` boilerplate:
+
+```bash
+knowledge-mapper run my_app.py:kb
+```
+
+Where `my_app.py` is the Python file and `kb` is the name of the `KnowledgeBase` variable. The command connects to the Knowledge Engine, registers the KB, runs the handling loop, and on `SIGINT` or `SIGTERM` unregisters and closes cleanly.
+
 ## Examples
 
 The [`examples/`](./examples/) directory contains runnable examples covering all major features. Each example has inline comments explaining the code.
@@ -65,6 +75,7 @@ The [`examples/`](./examples/) directory contains runnable examples covering all
 | [07-testing/](./examples/07-testing/) | Writing tests with the in-memory `TestClient` |
 | [08-async_handlers.py](./examples/08-async_handlers.py) | Async and sync REACT handlers side by side |
 | [09-sparql-store/](./examples/09-sparql-store/) | Connecting a SPARQL store as a knowledge base |
+| [10-cli.py](./examples/10-cli.py) | Start a KB via the `knowledge-mapper run` CLI |
 
 See the [examples README](./examples/README.md) for prerequisites and setup instructions.
 

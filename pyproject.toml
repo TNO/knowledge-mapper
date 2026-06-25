@@ -9,7 +9,11 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-settings[yaml]>=2.13.1",
     "rdflib>=7.6.0",
+    "typer>=0.15",
 ]
+
+[project.scripts]
+knowledge-mapper = "knowledge_mapper.cli:app"
 
 [dependency-groups]
 dev = [
