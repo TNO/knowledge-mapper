@@ -60,7 +60,7 @@ User's Python app (this library)
   Other KBs in the network
 ```
 
-**Key runtime model**: The `KnowledgeBase` registers itself and its KIs with the SC, then enters a **long-polling loop** (`start_handling_loop()`). On each poll the SC either returns an incoming KI call to handle or asks to re-poll. The KB dispatches calls to registered handler functions, serializes the result, and replies to the SC. For outgoing interactions (`ask()` / `post()`), the KB sends a request to the SC which fans out through the network.
+**Key runtime model**: The `KnowledgeBase` registers itself and its KIs with the SC, then enters a **concurrent long-polling loop** (`start_handling_loop()`). The loop runs multiple poll-dispatch cycles concurrently, bounded by a semaphore (`max_concurrent_handlers`, default 10). Each cycle acquires the semaphore, polls the SC, and on HANDLE spawns an `asyncio.Task` that runs the handler, posts the response, and releases the semaphore. Handler exceptions are caught — an empty binding set is posted back so the SC doesn't hang. On EXIT, the loop stops polling and awaits all in-flight handler tasks. For outgoing interactions (`ask()` / `post()`), the KB sends a request to the SC which fans out through the network.
 
 ---
 
@@ -129,9 +129,10 @@ builder = KnowledgeBase.from_settings(settings)  # settings: KnowledgeBaseSettin
 
 #### Lifecycle
 ```python
-kb.connect()      # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
-kb.register()     # Register KB + sync all KIs with the SC (re-registers if already registered)
-kb.unregister()   # Unregister KB from SC (KIs automatically unregistered)
+await kb.connect()      # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
+await kb.register()     # Register KB + sync all KIs with the SC (re-registers if already registered)
+await kb.unregister()   # Unregister KB from SC (KIs automatically unregistered)
+await kb.close()        # Close the underlying HTTP client and release resources
 ```
 
 #### Registering KIs (decorator pattern)
@@ -163,15 +164,16 @@ kb.post_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...",
 #### Outgoing interactions
 
 ```python
-result = kb.ask(binding_set, ki_name="...")    # Returns BindingSet or list[BindingModel]
-result = kb.post(binding_set, ki_name="...")   # Returns result BindingSet or list[BindingModel]
+result = await kb.ask(binding_set, ki_name="...")    # Returns BindingSet or list[BindingModel]
+result = await kb.post(binding_set, ki_name="...")   # Returns result BindingSet or list[BindingModel]
 ```
 
 #### Handling loop
 
 ```python
-kb.start_handling_loop()           # Blocks, handles incoming KIs forever
-kb.start_handling_loop(loops=10)   # Runs exactly 10 poll iterations (useful for testing)
+await kb.start_handling_loop()                          # Concurrent dispatch, up to 10 in-flight
+await kb.start_handling_loop(max_concurrent_handlers=5) # Limit to 5 concurrent handlers
+await kb.start_handling_loop(loops=10)                  # Runs exactly 10 poll cycles (useful for testing)
 ```
 
 ---
@@ -199,8 +201,8 @@ def handler(
 
 **Behaviour:**
 - The framework inspects handler signatures at registration time and resolves `Depends` params at call time.
-- Dependency factories are **sync-only** (async support is out of scope).
-- Factories can themselves declare `Depends` parameters — nested/transitive resolution is supported.
+- Dependency factories can be **sync (`def`) or async (`async def`)** — async factories are detected via `asyncio.iscoroutinefunction()` and awaited automatically; sync factories are called directly.
+- Factories can themselves declare `Depends` parameters — nested/transitive resolution is supported, including mixed sync/async chains.
 - `cache=True` (default): factory called once per KI-call invocation; result shared across all uses.
 - `cache=False`: factory called fresh every time it is needed.
 
@@ -444,5 +446,5 @@ These are excluded from linting (`ruff`) and are kept for historical reference o
 - **KI registry indexed by ID after registration**: `KnowledgeBase` maintains a secondary index (`_ki_registry_by_id`) populated once a KI is registered with the SC and assigned an ID. The handling loop dispatches by ID using this index.
 - **Handler introspection**: `KnowledgeInteractionContext.__post_init__` inspects handler signatures to auto-detect binding models, enabling transparent (de)serialization without manual type dispatch. Dispatch logic (validate → call → serialize for ANSWER/REACT; prepare_outgoing + parse_result for ASK/POST) lives in `KnowledgeInteractionContext`, not in `KnowledgeBase`.
 - **`KnowledgeBaseBuilder` wraps `KnowledgeBase`**: Settings-based KI registration belongs to `KnowledgeBaseBuilder`, not to `KnowledgeBase`. `KnowledgeBase.from_settings()` returns a builder; `builder.build()` returns the finished `KnowledgeBase`. `KnowledgeBase` itself has no knowledge of settings. ASK/POST KIs are auto-registered at `build()` time; ANSWER/REACT KIs require a handler attached via `builder.handler(name, func)` before `build()` is called.
-- **Dependency injection via `Depends`**: `KnowledgeInteractionContext.dispatch()` calls `resolve_dependencies(handler)` before invoking the handler, passing resolved values as kwargs.  The resolver (`src/dependency_injection.py`) uses `get_type_hints(include_extras=True)` to find `Annotated[T, Depends(factory)]` params, recursively resolves factory deps (transitive), and caches results per invocation when `cache=True`.  `@wraps` on the decorator wrapper preserves `__annotations__`, so the resolver sees the original handler's hints.
+- **Dependency injection via `Depends`**: `KnowledgeInteractionContext.dispatch()` calls `resolve_dependencies(handler)` before invoking the handler, passing resolved values as kwargs.  The resolver (`src/dependency_injection.py`) uses `get_type_hints(include_extras=True)` to find `Annotated[T, Depends(factory)]` params, recursively resolves factory deps (transitive), and caches results per invocation when `cache=True`.  Factories can be sync (`def`) or async (`async def`) — async factories are detected via `asyncio.iscoroutinefunction()` and awaited; sync factories are called directly.  `@wraps` on the decorator wrapper preserves `__annotations__`, so the resolver sees the original handler's hints.
 - **`dependency_overrides`**: `KnowledgeBase.dependency_overrides` is a `dict[Callable, Callable]` (à la FastAPI) that substitutes dependency factories at resolution time.  Overrides are checked transitively at every level and inherit the original `Depends(cache=...)` setting.  The dict is passed explicitly from `KnowledgeBase.call()` → `dispatch()` → `resolve_dependencies()` to keep `KnowledgeInteractionContext` decoupled from `KnowledgeBase`.

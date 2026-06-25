@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, get_args, get_type_hints
@@ -25,9 +26,10 @@ class Depends:
             return db.query(binding_set)
 
     Args:
-        factory: A callable (sync) that returns the dependency value.  The
-            factory may itself declare ``Annotated[T, Depends(...)]`` parameters
-            for nested/transitive resolution.
+        factory: A callable (sync or async) that returns the dependency
+            value.  The factory may itself declare
+            ``Annotated[T, Depends(...)]`` parameters for nested/transitive
+            resolution.
         cache: When ``True`` (the default) the factory is called at most once
             per KI-call invocation and the result is shared across all
             parameters that reference the same factory.  When ``False`` the
@@ -58,7 +60,7 @@ def _get_dep_params(func: Callable[..., Any]) -> dict[str, Depends]:
     return dep_params
 
 
-def resolve_dependencies(
+async def resolve_dependencies(
     func: Callable[..., Any],
     cache: dict[Callable[..., Any], Any] | None = None,
     overrides: dict[Callable[..., Any], Callable[..., Any]] | None = None,
@@ -94,9 +96,13 @@ def resolve_dependencies(
         if dep.cache and actual_factory in cache:
             resolved[param_name] = cache[actual_factory]
         else:
-            # Recursively resolve factory's own dependencies first
-            factory_kwargs = resolve_dependencies(actual_factory, cache, overrides)
-            value = actual_factory(**factory_kwargs)
+            factory_kwargs = await resolve_dependencies(
+                actual_factory, cache, overrides
+            )
+            if inspect.iscoroutinefunction(actual_factory):
+                value = await actual_factory(**factory_kwargs)
+            else:
+                value = actual_factory(**factory_kwargs)
             if dep.cache:
                 cache[actual_factory] = value
             resolved[param_name] = value

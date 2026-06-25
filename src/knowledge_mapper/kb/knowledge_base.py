@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
 from collections.abc import Callable, Sequence
 from enum import StrEnum
@@ -7,7 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any
 
 from ..ke import Client
-from ..ke.client import ClientProtocol, PollResult
+from ..ke.client import ClientProtocol, HandleRequest, PollResult
 from ..ke.errors import KnowledgeEngineNotAvailableError
 from ..ke.models import (
     AskAnswerInteractionInfo,
@@ -68,16 +70,16 @@ class KnowledgeBase:
 
         return KnowledgeBaseBuilder(settings)
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         """Checks whether the KE runtime is available and raises an exception if not.
 
         Raises:
             KnowledgeEngineNotAvailableError: If the KE runtime cannot be reached.
         """
-        if not self.client.ke_is_available():
+        if not await self.client.ke_is_available():
             raise KnowledgeEngineNotAvailableError(self.client.ke_url)
 
-    def register(self) -> None:
+    async def register(self) -> None:
         """Register this knowledge base at the KE runtime, reregister if already
         registered. Automatically syncs knowledge interactions with KE runtime.
 
@@ -88,12 +90,12 @@ class KnowledgeBase:
         logger.info(
             "Registering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.register_kb(self.info, reregister=True)
+        await self.client.register_kb(self.info, reregister=True)
         self.state = KnowledgeBaseState.REGISTERED
-        self.sync_knowledge_interactions()
+        await self.sync_knowledge_interactions()
         return
 
-    def unregister(self) -> None:
+    async def unregister(self) -> None:
         """Unregister this knowledge base at the KE runtime, do nothing if not currently
         registered. Knowledge interactions automatically unregistered.
 
@@ -114,14 +116,35 @@ class KnowledgeBase:
         logger.info(
             "Unregistering knowledge base '%s' (%s).", self.info.id, self.info.name
         )
-        self.client.unregister_kb(self.info.id)
+        await self.client.unregister_kb(self.info.id)
         self.state = KnowledgeBaseState.UNREGISTERED
         self._ki_registry_by_id.clear()
         for ki_ctx in self.ki_registry.values():
             ki_ctx.status = KnowledgeInteractionStatus.UNREGISTERED
         return
 
-    def register_ki(
+    def _register_ki_locally(
+        self,
+        ki_ctx: KnowledgeInteractionContext[Any, ...],
+    ) -> None:
+        """Validate and store a KI context in the local registry (sync).
+
+        Does NOT contact the KE runtime. Use :meth:`register_ki` for full
+        async registration, or call this from synchronous code (e.g. decorators)
+        followed by :meth:`sync_knowledge_interactions` to push to the KE.
+        """
+        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
+            raise ValueError(
+                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
+            )
+        if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
+            raise ValueError(
+                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
+                f"registered."
+            )
+        self.ki_registry[ki_ctx.info.name] = ki_ctx
+
+    async def register_ki(
         self,
         ki_ctx: KnowledgeInteractionContext[Any, ...],
         defer_ke_registration: bool = False,
@@ -144,21 +167,13 @@ class KnowledgeBase:
                 f"registered. Consider setting defer_ke_registration=True to defer "
                 f"registration until the KB itself is registered."
             )
-        if ki_ctx.info.name in (ki.info.name for ki in self.ki_registry.values()):
-            raise ValueError(
-                f"A KI named '{ki_ctx.info.name}' is already registered for this KB."
-            )
-        if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
-            raise ValueError(
-                f"Cannot register KI '{ki_ctx.info.name}' because it is already "
-                f"registered."
-            )
 
-        self.ki_registry[ki_ctx.info.name] = ki_ctx
+        self._register_ki_locally(ki_ctx)
+
         if defer_ke_registration:
             return ki_ctx.info
 
-        registered_ki = self.client.register_ki(
+        registered_ki = await self.client.register_ki(
             kb_id=self.info.id,
             ki=ki_ctx.info,
         )
@@ -183,28 +198,48 @@ class KnowledgeBase:
         """
 
         def decorator(func: Handler) -> Handler:
-            @wraps(func)
-            def wrapper(
-                binding_set: BindingSet | list[BindingModel],
-                info: KnowledgeInteractionInfo,
-                *args,
-                **kwargs,
-            ) -> BindingSet | Sequence[BindingModel]:
-                return func(binding_set, info, *args, **kwargs)
+            if inspect.iscoroutinefunction(func):
 
-            self.register_ki(
-                KnowledgeInteractionContext(
-                    info=info,
-                    handler=wrapper,
-                    status=KnowledgeInteractionStatus.UNREGISTERED,
-                ),
-                defer_ke_registration=defer_ke_registration,
-            )
-            return wrapper
+                @wraps(func)
+                async def async_wrapper(
+                    binding_set: BindingSet | list[BindingModel],
+                    info: KnowledgeInteractionInfo,
+                    *args,
+                    **kwargs,
+                ) -> BindingSet | Sequence[BindingModel]:
+                    return await func(binding_set, info, *args, **kwargs)
+
+                self._register_ki_locally(
+                    KnowledgeInteractionContext(
+                        info=info,
+                        handler=async_wrapper,
+                        status=KnowledgeInteractionStatus.UNREGISTERED,
+                    ),
+                )
+                return async_wrapper
+            else:
+
+                @wraps(func)
+                def wrapper(
+                    binding_set: BindingSet | list[BindingModel],
+                    info: KnowledgeInteractionInfo,
+                    *args,
+                    **kwargs,
+                ) -> BindingSet | Sequence[BindingModel]:
+                    return func(binding_set, info, *args, **kwargs)
+
+                self._register_ki_locally(
+                    KnowledgeInteractionContext(
+                        info=info,
+                        handler=wrapper,
+                        status=KnowledgeInteractionStatus.UNREGISTERED,
+                    ),
+                )
+                return wrapper
 
         return decorator
 
-    def sync_knowledge_interactions(self) -> None:
+    async def sync_knowledge_interactions(self) -> None:
         """Synchronize registration of knowledge interactions in this object's local
         KI registry with the interactions registered at the KE runtime, so all
         unregistered KIs in the local registry are registered.
@@ -224,7 +259,7 @@ class KnowledgeBase:
         for ki_ctx in self.ki_registry.values():
             if ki_ctx.status == KnowledgeInteractionStatus.REGISTERED:
                 continue
-            ki_ctx.info = self.client.register_ki(
+            ki_ctx.info = await self.client.register_ki(
                 kb_id=self.info.id,
                 ki=ki_ctx.info,
             )
@@ -272,7 +307,7 @@ class KnowledgeBase:
             UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
               the KE runtime.
         """
-        self.register_ki(
+        self._register_ki_locally(
             KnowledgeInteractionContext(
                 info=AskAnswerInteractionInfo(
                     type=KiTypes.ASK,
@@ -285,7 +320,6 @@ class KnowledgeBase:
                 validation_model=binding_model,
                 serialization_model=binding_model,
             ),
-            defer_ke_registration=defer_ke_registration,
         )
         return
 
@@ -338,7 +372,7 @@ class KnowledgeBase:
             UnexpectedHttpResponseError: Propagated from ``register_ki`` when contacting
               the KE runtime.
         """
-        self.register_ki(
+        self._register_ki_locally(
             KnowledgeInteractionContext(
                 info=PostReactInteractionInfo(
                     type=KiTypes.POST,
@@ -352,7 +386,6 @@ class KnowledgeBase:
                 validation_model=result_binding_model,
                 serialization_model=argument_binding_model,
             ),
-            defer_ke_registration=defer_ke_registration,
         )
         return
 
@@ -386,18 +419,18 @@ class KnowledgeBase:
             defer_ke_registration=defer_ke_registration,
         )
 
-    def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
+    async def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
         """Invoke the handler of a registered KI by its name.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
         """
-        return self.ki_registry[ki_name].dispatch(
+        return await self.ki_registry[ki_name].dispatch(
             binding_set,
             dependency_overrides=self.dependency_overrides or None,
         )
 
-    def post(
+    async def post(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke a POST KI by its name.
@@ -419,14 +452,14 @@ class KnowledgeBase:
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
 
-        post_result = self.client.post(
+        post_result = await self.client.post(
             kb_id=self.info.id,
             ki_id=ki_ctx.info.id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(post_result.result_binding_set)
 
-    def ask(
+    async def ask(
         self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke an ASK KI by its name.
@@ -448,67 +481,169 @@ class KnowledgeBase:
             )
         assert ki_ctx.info.id is not None  # Should always be set for registered KIs
 
-        ask_result = self.client.ask(
+        ask_result = await self.client.ask(
             kb_id=self.info.id,
             ki_id=ki_ctx.info.id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
         )
         return ki_ctx.parse_result(ask_result.binding_set)
 
-    def start_handling_loop(self, loops: int | None = None) -> None:
-        """Poll the KE runtime for incoming KI calls and dispatch them to handlers.
+    def _require_loop(self) -> asyncio.AbstractEventLoop:
+        """Return the stored event loop or raise if the handling loop is not running."""
+        try:
+            loop = self._loop
+        except AttributeError:
+            loop = None
+        if loop is None:
+            raise RuntimeError(
+                "ask_sync() / post_sync() are only available from within a sync "
+                "handler running inside the handling loop. Start the handling loop "
+                "with start_handling_loop() first."
+            )
+        return loop
 
-        Runs until an EXIT signal is received from the KE runtime, or until
-        ``loops`` iterations have been completed if ``loops`` is specified.
+    def ask_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+    ) -> Sequence[BindingModel] | BindingSet:
+        """Blocking bridge to :meth:`ask` for use in sync handlers.
+
+        Schedules the async ``ask()`` coroutine on the event loop stored by
+        :meth:`start_handling_loop` and blocks the calling thread until the
+        result is ready.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.ask(binding_set, ki_name=ki_name), loop
+        )
+        return future.result()
+
+    def post_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+    ) -> Sequence[BindingModel] | BindingSet:
+        """Blocking bridge to :meth:`post` for use in sync handlers.
+
+        Schedules the async ``post()`` coroutine on the event loop stored by
+        :meth:`start_handling_loop` and blocks the calling thread until the
+        result is ready.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.post(binding_set, ki_name=ki_name), loop
+        )
+        return future.result()
+
+    async def start_handling_loop(
+        self,
+        loops: int | None = None,
+        max_concurrent_handlers: int = 10,
+    ) -> None:
+        """Poll the KE runtime for incoming KI calls and dispatch them concurrently.
+
+        Runs multiple concurrent poll-dispatch cycles, bounded by a semaphore.
+        Each cycle acquires the semaphore, polls, and on HANDLE spawns a task
+        that runs the handler, posts the response, and releases the semaphore.
+
+        Stops when an EXIT signal is received or ``loops`` poll cycles have
+        been completed.  On EXIT, all in-flight handler tasks are awaited
+        before returning.
+
+        Args:
+            loops: If set, limits the total number of poll cycles (useful for
+                testing).  ``None`` means poll indefinitely.
+            max_concurrent_handlers: Maximum number of concurrent handler tasks
+                (semaphore size).  Defaults to 10.
 
         Raises:
             RuntimeError: If the KB is not registered.
-            KeyError: If the KE runtime refers to a KI not found in the local registry.
-            SmartConnectorNotFoundError: If the KB's smart connector is not found in
-            the KE runtime.
-            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
-            response.
-            RuntimeError: If an unknown long-polling result is obtained from the KE
-            client.
         """
+        import asyncio
+
         if self.state != KnowledgeBaseState.REGISTERED:
             raise RuntimeError(
                 "Cannot start handling loop because the KB is not registered. Please "
                 "register the KB first."
             )
 
+        self._loop = asyncio.get_running_loop()
+        semaphore = asyncio.Semaphore(max_concurrent_handlers)
+        in_flight: set[asyncio.Task[None]] = set()
+
         loops_done = 0
         while loops is None or loops_done < loops:
+            await semaphore.acquire()
             loops_done += 1
-            poll_result, maybe_handle_request = self.client.poll_ki_call(
+
+            poll_result, maybe_handle_request = await self.client.poll_ki_call(
                 kb_id=self.info.id
             )
             match poll_result, maybe_handle_request:
                 case PollResult.HANDLE, _:
                     assert maybe_handle_request is not None
-                    ki_id = maybe_handle_request.knowledge_interaction_id
-                    ki_ctx = self._ki_registry_by_id[ki_id]
-                    result_binding_set = self.call(
-                        maybe_handle_request.binding_set,
-                        ki_ctx.info.name,
-                    )
-                    self.client.post_handle_response(
-                        kb_id=self.info.id,
-                        ki_id=maybe_handle_request.knowledge_interaction_id,
-                        handle_request_id=maybe_handle_request.handle_request_id,
-                        binding_set=result_binding_set,
-                    )
+
+                    async def _handle(
+                        handle_request: HandleRequest,
+                    ) -> None:
+                        ki_id = handle_request.knowledge_interaction_id
+                        ki_ctx = self._ki_registry_by_id[ki_id]
+                        try:
+                            result_binding_set = await self.call(
+                                handle_request.binding_set,
+                                ki_ctx.info.name,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Handler for KI '%s' raised an exception "
+                                "(request %d from %s). Posting empty binding set.",
+                                ki_ctx.info.name,
+                                handle_request.handle_request_id,
+                                handle_request.requesting_knowledge_base_id,
+                            )
+                            result_binding_set = []
+
+                        await self.client.post_handle_response(
+                            kb_id=self.info.id,
+                            ki_id=handle_request.knowledge_interaction_id,
+                            handle_request_id=handle_request.handle_request_id,
+                            binding_set=result_binding_set,
+                        )
+                        semaphore.release()
+
+                    task = asyncio.create_task(_handle(maybe_handle_request))
+                    in_flight.add(task)
+                    task.add_done_callback(in_flight.discard)
 
                 case PollResult.REPOLL, None:
+                    semaphore.release()
                     continue
+
                 case PollResult.EXIT, None:
+                    semaphore.release()
                     logger.info("Received exit signal from KE, stopping handling loop.")
-                    return
+                    break
+
                 case _:
+                    semaphore.release()
                     raise RuntimeError(
                         f"Unexpected poll result: {poll_result} or request:"
                         f"{maybe_handle_request}"
                     )
+
+        if in_flight:
+            await asyncio.gather(*in_flight)
+
+    async def close(self) -> None:
+        """Close the underlying client, releasing any held resources."""
+        await self.client.close()
 
     @property
     def is_registered(self) -> bool:

@@ -2,7 +2,7 @@ import logging
 from enum import StrEnum
 from typing import Protocol
 
-import requests
+import httpx
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -41,11 +41,11 @@ class HandleRequest(BaseModel):
 class ClientProtocol(Protocol):
     """Interface for communicating with a Knowledge Engine runtime."""
 
-    def ke_is_available(self) -> bool:
+    async def ke_is_available(self) -> bool:
         """Return ``True`` if the KE runtime is reachable, ``False`` otherwise."""
         ...
 
-    def ke_version(self) -> str:
+    async def ke_version(self) -> str:
         """Return the version string of the KE runtime.
 
         Raises:
@@ -54,7 +54,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
         """Return the KB with the given ID, or ``None`` if it does not exist.
 
         Raises:
@@ -63,7 +63,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
+    async def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
         """Return all KBs registered at the KE runtime.
 
         Raises:
@@ -72,7 +72,9 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def register_kb(self, info: KnowledgeBaseInfo, reregister: bool = True) -> None:
+    async def register_kb(
+        self, info: KnowledgeBaseInfo, reregister: bool = True
+    ) -> None:
         """Register a KB at the KE runtime, optionally re-registering if it already
         exists.
 
@@ -82,7 +84,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: str) -> None:
         """Unregister the KB with the given ID from the KE runtime.
 
         Raises:
@@ -93,7 +95,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def get_all_knowledge_interactions(
+    async def get_all_knowledge_interactions(
         self, kb_id: str
     ) -> list[KnowledgeInteractionInfo]:
         """Return all knowledge interactions registered for the given KB.
@@ -106,7 +108,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def register_ki(
+    async def register_ki(
         self, kb_id: str, ki: KnowledgeInteractionInfo
     ) -> KnowledgeInteractionInfo:
         """Register a knowledge interaction for the given KB and return it with its
@@ -120,7 +122,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         """Poll the KE runtime for an incoming KI call for the given KB.
 
         Raises:
@@ -131,7 +133,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def post_handle_response(
+    async def post_handle_response(
         self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
     ) -> None:
         """Post the response to a KI call that was received via ``poll_ki_call``.
@@ -144,7 +146,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def ask(
+    async def ask(
         self,
         kb_id: str,
         ki_id: str,
@@ -162,7 +164,7 @@ class ClientProtocol(Protocol):
         """
         ...
 
-    def post(
+    async def post(
         self,
         kb_id: str,
         ki_id: str,
@@ -180,6 +182,10 @@ class ClientProtocol(Protocol):
         """
         ...
 
+    async def close(self) -> None:
+        """Close the underlying HTTP client and release resources."""
+        ...
+
     @property
     def ke_url(self) -> str:
         """Return the base URL of the KE runtime this client is communicating with."""
@@ -191,74 +197,79 @@ class Client(ClientProtocol):
 
     def __init__(self, ke_url: str):
         self._ke_url = ke_url
+        self._http = httpx.AsyncClient()
 
-    def ke_is_available(self) -> bool:
+    async def ke_is_available(self) -> bool:
         try:
-            _ = requests.get(f"{self.ke_url}/version")
+            _ = await self._http.get(f"{self.ke_url}/version")
             return True
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             return False
 
-    def ke_version(self) -> str:
-        response = requests.get(f"{self.ke_url}/version")
+    async def ke_version(self) -> str:
+        response = await self._http.get(f"{self.ke_url}/version")
         return response.json()["version"]
 
-    def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
-        response = requests.get(f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": id})
+    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+        response = await self._http.get(
+            f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": id}
+        )
         if response.status_code == 404:
             return None
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         # KE returns a list with only one element here.
         return KnowledgeBaseInfo.model_validate(response.json()[0])
 
-    def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
-        response = requests.get(f"{self.ke_url}/sc")
-        if not response.ok:
+    async def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
+        response = await self._http.get(f"{self.ke_url}/sc")
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         return [
             KnowledgeBaseInfo.model_validate(kb_json) for kb_json in response.json()
         ]
 
-    def register_kb(self, info: KnowledgeBaseInfo, reregister: bool = True) -> None:
-        if self.get_knowledge_base(info.id) is not None:
+    async def register_kb(
+        self, info: KnowledgeBaseInfo, reregister: bool = True
+    ) -> None:
+        if await self.get_knowledge_base(info.id) is not None:
             if reregister:
-                self.unregister_kb(info.id)
+                await self.unregister_kb(info.id)
             else:
                 return
 
         logger.debug("Registering knowledge base '%s' at %s.", info.id, self.ke_url)
-        response = requests.post(
+        response = await self._http.post(
             f"{self.ke_url}/sc",
             json=info.model_dump(by_alias=True),
         )
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
         return
 
-    def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: str) -> None:
         logger.debug("Unregistering knowledge base '%s' at %s.", id, self.ke_url)
-        response = requests.delete(
+        response = await self._http.delete(
             f"{self.ke_url}/sc", headers={"Knowledge-Base-Id": id}
         )
         if response.status_code == 404:
             raise SmartConnectorNotFoundError(id, self.ke_url)
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
         return
 
-    def get_all_knowledge_interactions(
+    async def get_all_knowledge_interactions(
         self, kb_id: str
     ) -> list[KnowledgeInteractionInfo]:
-        response = requests.get(
+        response = await self._http.get(
             f"{self.ke_url}/sc/ki",
             headers={"Knowledge-Base-Id": kb_id},
         )
         if response.status_code == 404:
             raise SmartConnectorNotFoundError(kb_id, self.ke_url)
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         kis = []
@@ -270,7 +281,7 @@ class Client(ClientProtocol):
                     kis.append(PostReactInteractionInfo.model_validate(kb_info))
         return kis
 
-    def register_ki(
+    async def register_ki(
         self, kb_id: str, ki: KnowledgeInteractionInfo
     ) -> KnowledgeInteractionInfo:
         logger.debug(
@@ -279,14 +290,14 @@ class Client(ClientProtocol):
             kb_id,
             self.ke_url,
         )
-        response = requests.post(
+        response = await self._http.post(
             f"{self.ke_url}/sc/ki",
             json=ki.model_dump(by_alias=True),
             headers={"Knowledge-Base-Id": kb_id},
         )
         if response.status_code == 404:
             raise SmartConnectorNotFoundError(kb_id, self.ke_url)
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         registered_ki = ki.model_copy(
@@ -294,10 +305,13 @@ class Client(ClientProtocol):
         )
         return registered_ki
 
-    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         logger.debug("Polling for KI calls...")
-        response = requests.get(
-            f"{self.ke_url}/sc/handle", headers={"Knowledge-Base-Id": kb_id}
+        response = await self._http.get(
+            f"{self.ke_url}/sc/handle",
+            headers={"Knowledge-Base-Id": kb_id},
+            # Set a longer timeout for this request due to the KE 30 second long-polling
+            timeout=httpx.Timeout(35.0, connect=5.0),
         )
 
         if response.status_code == 200:
@@ -320,11 +334,11 @@ class Client(ClientProtocol):
         else:
             raise UnexpectedHttpResponseError(response)
 
-    def post_handle_response(
+    async def post_handle_response(
         self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
     ) -> None:
         logger.debug("Posting handle response for KI call.")
-        response = requests.post(
+        response = await self._http.post(
             f"{self.ke_url}/sc/handle",
             json={
                 "handleRequestId": handle_request_id,
@@ -336,10 +350,10 @@ class Client(ClientProtocol):
             },
         )
 
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
-    def post(
+    async def post(
         self,
         kb_id: str,
         ki_id: str,
@@ -356,7 +370,7 @@ class Client(ClientProtocol):
         else:
             payload = binding_set
 
-        response = requests.post(
+        response = await self._http.post(
             f"{self.ke_url}/sc/post",
             json=payload,
             headers={
@@ -365,12 +379,12 @@ class Client(ClientProtocol):
             },
         )
 
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         return PostResult.model_validate(response.json())
 
-    def ask(
+    async def ask(
         self,
         kb_id: str,
         ki_id: str,
@@ -387,7 +401,7 @@ class Client(ClientProtocol):
         else:
             payload = binding_set
 
-        response = requests.post(
+        response = await self._http.post(
             f"{self.ke_url}/sc/ask",
             json=payload,
             headers={
@@ -396,10 +410,13 @@ class Client(ClientProtocol):
             },
         )
 
-        if not response.ok:
+        if not response.is_success:
             raise UnexpectedHttpResponseError(response)
 
         return AskResult.model_validate(response.json())
+
+    async def close(self) -> None:
+        await self._http.aclose()
 
     @property
     def ke_url(self) -> str:

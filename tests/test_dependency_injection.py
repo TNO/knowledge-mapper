@@ -22,7 +22,7 @@ def kb():
 # ---------------------------------------------------------------------------
 
 
-def test_handler_receives_injected_dependency(kb: KnowledgeBase):
+async def test_handler_receives_injected_dependency(kb: KnowledgeBase):
     """Handler with a Depends-annotated param receives the factory's return value."""
 
     class FakeDb:
@@ -40,7 +40,7 @@ def test_handler_receives_injected_dependency(kb: KnowledgeBase):
     ) -> BindingSet:
         return [{"result": db.query()}]
 
-    result = kb.call([], "test-ki")
+    result = await kb.call([], "test-ki")
     assert result == [{"result": "db-result"}]
 
 
@@ -49,7 +49,7 @@ def test_handler_receives_injected_dependency(kb: KnowledgeBase):
 # ---------------------------------------------------------------------------
 
 
-def test_cached_dependency_factory_called_once(kb: KnowledgeBase):
+async def test_cached_dependency_factory_called_once(kb: KnowledgeBase):
     """With cache=True (default), a shared factory is called only once per KI call."""
     call_count = 0
 
@@ -72,7 +72,7 @@ def test_cached_dependency_factory_called_once(kb: KnowledgeBase):
         assert db is svc
         return []
 
-    kb.call([], "cache-ki")
+    await kb.call([], "cache-ki")
     assert call_count == 1
 
 
@@ -81,7 +81,7 @@ def test_cached_dependency_factory_called_once(kb: KnowledgeBase):
 # ---------------------------------------------------------------------------
 
 
-def test_uncached_dependency_factory_called_each_time(kb: KnowledgeBase):
+async def test_uncached_dependency_factory_called_each_time(kb: KnowledgeBase):
     """With cache=False, the factory is called fresh for every dependent param."""
     call_count = 0
 
@@ -100,7 +100,7 @@ def test_uncached_dependency_factory_called_each_time(kb: KnowledgeBase):
         assert a != b  # different values: factory called twice
         return []
 
-    kb.call([], "nocache-ki")
+    await kb.call([], "nocache-ki")
     assert call_count == 2
 
 
@@ -109,7 +109,7 @@ def test_uncached_dependency_factory_called_each_time(kb: KnowledgeBase):
 # ---------------------------------------------------------------------------
 
 
-def test_transitive_dependency_resolution(kb: KnowledgeBase):
+async def test_transitive_dependency_resolution(kb: KnowledgeBase):
     """A factory that declares its own Depends params is resolved transitively."""
 
     class Config:
@@ -133,7 +133,7 @@ def test_transitive_dependency_resolution(kb: KnowledgeBase):
     ) -> BindingSet:
         return [{"url": db.url}]
 
-    result = kb.call([], "transitive-ki")
+    result = await kb.call([], "transitive-ki")
     assert result == [{"url": "sqlite://:memory:"}]
 
 
@@ -142,7 +142,7 @@ def test_transitive_dependency_resolution(kb: KnowledgeBase):
 # ---------------------------------------------------------------------------
 
 
-def test_dependency_override_replaces_factory(kb: KnowledgeBase):
+async def test_dependency_override_replaces_factory(kb: KnowledgeBase):
     """A factory listed in dependency_overrides is replaced at resolution time."""
 
     class RealDb:
@@ -163,18 +163,18 @@ def test_dependency_override_replaces_factory(kb: KnowledgeBase):
         return [{"db": db.name}]
 
     # Without override — uses real factory
-    assert kb.call([], "override-ki") == [{"db": "real"}]
+    assert await kb.call([], "override-ki") == [{"db": "real"}]
 
     # With override — uses fake factory
     kb.dependency_overrides[get_db] = lambda: FakeDb()
-    assert kb.call([], "override-ki") == [{"db": "fake"}]
+    assert await kb.call([], "override-ki") == [{"db": "fake"}]
 
     # Clear override — back to real
     kb.dependency_overrides.clear()
-    assert kb.call([], "override-ki") == [{"db": "real"}]
+    assert await kb.call([], "override-ki") == [{"db": "real"}]
 
 
-def test_dependency_override_transitive(kb: KnowledgeBase):
+async def test_dependency_override_transitive(kb: KnowledgeBase):
     """Overriding a transitive (nested) factory propagates through the chain."""
 
     class Config:
@@ -203,10 +203,10 @@ def test_dependency_override_transitive(kb: KnowledgeBase):
 
     # Override the leaf dependency — get_db still runs but receives TestConfig
     kb.dependency_overrides[get_config] = lambda: TestConfig()
-    assert kb.call([], "transitive-override-ki") == [{"url": "test://db"}]
+    assert await kb.call([], "transitive-override-ki") == [{"url": "test://db"}]
 
 
-def test_dependency_override_respects_cache(kb: KnowledgeBase):
+async def test_dependency_override_respects_cache(kb: KnowledgeBase):
     """Override factory inherits the cache=True setting from the Depends declaration."""
     call_count = 0
 
@@ -232,6 +232,199 @@ def test_dependency_override_respects_cache(kb: KnowledgeBase):
         return [{"val": val}]
 
     kb.dependency_overrides[get_value] = fake_get_value
-    kb.call([], "cache-override-ki")
+    await kb.call([], "cache-override-ki")
     # fake_get_value should be called only once due to cache=True
     assert call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# Async factory: tracer bullet
+# ---------------------------------------------------------------------------
+
+
+async def test_async_factory_is_awaited(kb: KnowledgeBase):
+    """An async def factory is detected and awaited, handler receives its value."""
+
+    class AsyncDb:
+        def query(self):
+            return "async-db-result"
+
+    async def get_async_db() -> AsyncDb:
+        return AsyncDb()
+
+    @kb.answer_ki(name="async-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        db: Annotated[AsyncDb, Depends(get_async_db)],
+    ) -> BindingSet:
+        return [{"result": db.query()}]
+
+    result = await kb.call([], "async-ki")
+    assert result == [{"result": "async-db-result"}]
+
+
+# ---------------------------------------------------------------------------
+# Mixed sync/async transitive chain
+# ---------------------------------------------------------------------------
+
+
+async def test_mixed_sync_async_transitive_chain(kb: KnowledgeBase):
+    """Async factory depending on sync factory (and vice versa) resolves correctly."""
+
+    class Config:
+        url = "async://:memory:"
+
+    class Db:
+        def __init__(self, config: Config):
+            self.url = config.url
+
+    def get_config() -> Config:
+        return Config()
+
+    async def get_db(config: Annotated[Config, Depends(get_config)]) -> Db:
+        return Db(config)
+
+    @kb.answer_ki(name="mixed-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        db: Annotated[Db, Depends(get_db)],
+    ) -> BindingSet:
+        return [{"url": db.url}]
+
+    result = await kb.call([], "mixed-ki")
+    assert result == [{"url": "async://:memory:"}]
+
+
+# ---------------------------------------------------------------------------
+# cache=True for async factory
+# ---------------------------------------------------------------------------
+
+
+async def test_cached_async_factory_called_once(kb: KnowledgeBase):
+    """With cache=True (default), an async factory is called only once per KI call."""
+    call_count = 0
+
+    async def get_value():
+        nonlocal call_count
+        call_count += 1
+        return object()
+
+    async def get_service(val: Annotated[object, Depends(get_value)]):
+        return val
+
+    @kb.answer_ki(name="async-cache-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        val: Annotated[object, Depends(get_value)],
+        svc: Annotated[object, Depends(get_service)],
+    ) -> BindingSet:
+        assert val is svc
+        return []
+
+    await kb.call([], "async-cache-ki")
+    assert call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# cache=False for async factory
+# ---------------------------------------------------------------------------
+
+
+async def test_uncached_async_factory_called_each_time(kb: KnowledgeBase):
+    """With cache=False, an async factory is called fresh for every dependent param."""
+    call_count = 0
+
+    async def get_value():
+        nonlocal call_count
+        call_count += 1
+        return call_count
+
+    @kb.answer_ki(name="async-nocache-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        a: Annotated[int, Depends(get_value, cache=False)],
+        b: Annotated[int, Depends(get_value, cache=False)],
+    ) -> BindingSet:
+        assert a != b
+        return []
+
+    await kb.call([], "async-nocache-ki")
+    assert call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# dependency_overrides with async replacement factory
+# ---------------------------------------------------------------------------
+
+
+async def test_dependency_override_with_async_replacement(kb: KnowledgeBase):
+    """A sync factory can be overridden by an async factory."""
+
+    class RealDb:
+        name = "real"
+
+    class FakeDb:
+        name = "async-fake"
+
+    def get_db() -> RealDb:
+        return RealDb()
+
+    @kb.answer_ki(name="async-override-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        db: Annotated[RealDb, Depends(get_db)],
+    ) -> BindingSet:
+        return [{"db": db.name}]
+
+    # Override sync factory with async factory
+    async def async_fake_db():
+        return FakeDb()
+
+    kb.dependency_overrides[get_db] = async_fake_db
+    assert await kb.call([], "async-override-ki") == [{"db": "async-fake"}]
+
+
+# ---------------------------------------------------------------------------
+# Transitive override with async
+# ---------------------------------------------------------------------------
+
+
+async def test_dependency_override_transitive_with_async(kb: KnowledgeBase):
+    """Overriding a leaf sync factory with an async factory propagates."""
+
+    class Config:
+        url = "prod://db"
+
+    class AsyncConfig:
+        url = "async-test://db"
+
+    class Db:
+        def __init__(self, config):
+            self.url = config.url
+
+    def get_config() -> Config:
+        return Config()
+
+    def get_db(config: Annotated[Config, Depends(get_config)]) -> Db:
+        return Db(config)
+
+    @kb.answer_ki(name="async-transitive-override-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        db: Annotated[Db, Depends(get_db)],
+    ) -> BindingSet:
+        return [{"url": db.url}]
+
+    async def async_get_config():
+        return AsyncConfig()
+
+    kb.dependency_overrides[get_config] = async_get_config
+    assert await kb.call([], "async-transitive-override-ki") == [
+        {"url": "async-test://db"}
+    ]

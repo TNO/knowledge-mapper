@@ -5,15 +5,16 @@ description = "The Knowledge Mapper makes it easier to share your data in a know
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "httpx>=0.28",
     "pydantic>=2.12.5",
     "pydantic-settings[yaml]>=2.13.1",
     "rdflib>=7.6.0",
-    "requests>=2.32.5",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-asyncio>=0.26",
     "setuptools>=82.0.1",
 ]
 
@@ -21,6 +22,7 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+asyncio_mode = "auto"
 addopts = [
     "--import-mode=importlib",
     "-ra",

@@ -48,76 +48,76 @@ def ki_ctx_setup() -> KnowledgeInteractionContext:
     )
 
 
-def test_register_ki():
+async def test_register_ki():
     kb = kb_setup()
-    kb.register()
-    kb.register_ki(ki_ctx=ki_ctx_setup())
+    await kb.register()
+    await kb.register_ki(ki_ctx=ki_ctx_setup())
     assert len(kb.ki_registry) == 1
     ki_ctx = next(iter(kb.ki_registry.values()))
     assert ki_ctx.info.name == "test-ki"
 
 
-def test_register_ki_before_kb_registration():
+async def test_register_ki_before_kb_registration():
     kb = kb_setup()
     with pytest.raises(ValueError):
-        kb.register_ki(ki_ctx=ki_ctx_setup())
+        await kb.register_ki(ki_ctx=ki_ctx_setup())
 
 
-def test_register_ki_old_name():
+async def test_register_ki_old_name():
     kb = kb_setup()
-    kb.register()
+    await kb.register()
     ki_ctx = ki_ctx_setup()
-    kb.register_ki(ki_ctx=ki_ctx)
+    await kb.register_ki(ki_ctx=ki_ctx)
     with pytest.raises(ValueError):
-        kb.register_ki(ki_ctx=ki_ctx)
+        await kb.register_ki(ki_ctx=ki_ctx)
 
 
-def test_register_ki_already_registered():
+async def test_register_ki_already_registered():
     kb = kb_setup()
-    kb.register()
+    await kb.register()
     ki_ctx = ki_ctx_setup()
     ki_ctx.status = KnowledgeInteractionStatus.REGISTERED
     with pytest.raises(ValueError):
-        kb.register_ki(ki_ctx=ki_ctx)
+        await kb.register_ki(ki_ctx=ki_ctx)
 
 
-def test_sync_ki():
+async def test_sync_ki():
     kb = kb_setup()
-    kb.register()
+    await kb.register()
     ki_ctx = ki_ctx_setup()
-    kb.register_ki(ki_ctx=ki_ctx, defer_ke_registration=True)
+    await kb.register_ki(ki_ctx=ki_ctx, defer_ke_registration=True)
     assert len(kb.ki_registry) == 1
     assert (
         next(iter(kb.ki_registry.values())).status
         == KnowledgeInteractionStatus.UNREGISTERED
     )
 
-    kb.sync_knowledge_interactions()
+    await kb.sync_knowledge_interactions()
     assert (
         next(iter(kb.ki_registry.values())).status
         == KnowledgeInteractionStatus.REGISTERED
     )
 
 
-def test_sync_ki_before_kb_registration():
+async def test_sync_ki_before_kb_registration():
     kb = kb_setup()
     with pytest.raises(ValueError):
-        kb.sync_knowledge_interactions()
+        await kb.sync_knowledge_interactions()
 
 
-def test_unregister_ki_after_kb_unregistration():
+async def test_unregister_ki_after_kb_unregistration():
     kb = kb_setup()
-    kb.register()
+    await kb.register()
     ki_ctx = ki_ctx_setup()
-    kb.register_ki(ki_ctx=ki_ctx)
-    kb.unregister()
+    await kb.register_ki(ki_ctx=ki_ctx)
+    await kb.unregister()
     assert (
         next(iter(kb.ki_registry.values())).status
         == KnowledgeInteractionStatus.UNREGISTERED
     )
 
 
-def test_register_answer_ki():
+async def test_register_answer_ki():
     kb = kb_setup()
 
     @kb.answer_ki(
@@ -133,7 +133,7 @@ def test_register_answer_ki():
     ) -> BindingSet:
         return binding_set
 
-    kb.register()
+    await kb.register()
 
     assert len(kb.ki_registry) == 1
     ki_info = next(iter(kb.ki_registry.values())).info
@@ -141,7 +141,7 @@ def test_register_answer_ki():
     assert ki_info.type == KiTypes.ANSWER
 
 
-def test_register_react_ki():
+async def test_register_react_ki():
     kb = kb_setup()
 
     @kb.react_ki(
@@ -161,7 +161,7 @@ def test_register_react_ki():
     ) -> BindingSet:
         return binding_set
 
-    kb.register()
+    await kb.register()
 
     assert len(kb.ki_registry) == 1
     ki_info = next(iter(kb.ki_registry.values())).info
@@ -216,7 +216,7 @@ def test_handler_registration_no_binding_set_param():
         )
 
 
-def test_call_handler():
+async def test_call_handler():
     kb = kb_setup()
 
     @kb.answer_ki(
@@ -232,9 +232,9 @@ def test_call_handler():
     ) -> BindingSet:
         return binding_set
 
-    kb.register()
+    await kb.register()
 
     ki_info = next(iter(kb.ki_registry.values())).info
     input_binding_set = [{"input": "test:Input1", "value": "Hello"}]
-    result = kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
+    result = await kb.call(binding_set=input_binding_set, ki_name=ki_info.name)
     assert result == input_binding_set

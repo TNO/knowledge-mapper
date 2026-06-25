@@ -1,6 +1,6 @@
 """In-memory FakeClient that satisfies ClientProtocol for use in tests."""
 
-from collections import deque
+import asyncio
 from datetime import UTC, datetime
 
 from knowledge_mapper.ke.client import ClientProtocol, HandleRequest, PollResult
@@ -27,40 +27,44 @@ class TestClient(ClientProtocol):
         # Maps ki_name -> BindingSet to return from execute_post_interaction
         self._mock_interaction_results: dict[str, BindingSet] = {}
         self._handle_responses: list[tuple[str, str, int, BindingSet]] = []
-        self._incoming_calls: deque[tuple[PollResult, HandleRequest | None]] = deque()
+        self._incoming_calls: asyncio.Queue[tuple[PollResult, HandleRequest | None]] = (
+            asyncio.Queue()
+        )
         self._next_handle_request_id: int = 1
 
-    def ke_is_available(self) -> bool:
+    async def ke_is_available(self) -> bool:
         return True
 
-    def ke_version(self) -> str:
+    async def ke_version(self) -> str:
         return "0.0.0-fake"
 
-    def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
+    async def get_knowledge_base(self, id: str) -> KnowledgeBaseInfo | None:
         return self._knowledge_bases.get(id)
 
-    def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
+    async def get_all_knowledge_bases(self) -> list[KnowledgeBaseInfo]:
         return list(self._knowledge_bases.values())
 
-    def register_kb(self, info: KnowledgeBaseInfo, reregister: bool = True) -> None:
+    async def register_kb(
+        self, info: KnowledgeBaseInfo, reregister: bool = True
+    ) -> None:
         if info.id in self._knowledge_bases:
             if reregister:
-                self.unregister_kb(info.id)
+                await self.unregister_kb(info.id)
             else:
                 return
         self._knowledge_bases[info.id] = info
         self._knowledge_interactions[info.id] = []
 
-    def unregister_kb(self, id: str) -> None:
+    async def unregister_kb(self, id: str) -> None:
         self._knowledge_bases.pop(id)
         self._knowledge_interactions.pop(id, None)
 
-    def get_all_knowledge_interactions(
+    async def get_all_knowledge_interactions(
         self, kb_id: str
     ) -> list[KnowledgeInteractionInfo]:
         return list(self._knowledge_interactions.get(kb_id, []))
 
-    def register_ki(
+    async def register_ki(
         self, kb_id: str, ki: KnowledgeInteractionInfo
     ) -> KnowledgeInteractionInfo:
         registered = ki.model_copy(update={"id": f"fake-ki-{self._next_ki_id}"})
@@ -68,12 +72,10 @@ class TestClient(ClientProtocol):
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
 
-    def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
-        if self._incoming_calls:
-            return self._incoming_calls.popleft()
-        return (PollResult.REPOLL, None)
+    async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
+        return await self._incoming_calls.get()
 
-    def post_handle_response(
+    async def post_handle_response(
         self, kb_id: str, ki_id: str, handle_request_id: int, binding_set: BindingSet
     ) -> None:
         self._handle_responses.append((kb_id, ki_id, handle_request_id, binding_set))
@@ -130,13 +132,13 @@ class TestClient(ClientProtocol):
             requesting_knowledge_base_id=requesting_kb_id,
         )
         self._next_handle_request_id += 1
-        self._incoming_calls.append((PollResult.HANDLE, handle_request))
+        self._incoming_calls.put_nowait((PollResult.HANDLE, handle_request))
 
     def enqueue_exit(self) -> None:
         """Queue an EXIT signal so ``poll_ki_call`` terminates the handling loop."""
-        self._incoming_calls.append((PollResult.EXIT, None))
+        self._incoming_calls.put_nowait((PollResult.EXIT, None))
 
-    def ask(
+    async def ask(
         self,
         kb_id: str,
         ki_id: str,
@@ -174,7 +176,7 @@ class TestClient(ClientProtocol):
             ],
         )
 
-    def post(
+    async def post(
         self,
         kb_id: str,
         ki_id: str,
@@ -211,6 +213,9 @@ class TestClient(ClientProtocol):
                 )
             ],
         )
+
+    async def close(self) -> None:
+        pass
 
     @property
     def ke_url(self) -> str:

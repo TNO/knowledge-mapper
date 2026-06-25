@@ -1,4 +1,4 @@
-from requests.models import Response
+from httpx import Response
 
 
 class UnexpectedHttpResponseError(Exception):

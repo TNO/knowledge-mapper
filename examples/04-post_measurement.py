@@ -58,15 +58,15 @@ kb.post_ki(
 )
 
 
-if __name__ == "__main__":
-    # Register KB, wait briefly for manual testing, then execute one POST.
-    kb.register()
+async def main():
+    # Register this KB, wait briefly for manual testing, then execute one POST.
+    await kb.register()
     logger.info("KB registered.")
     time.sleep(
         5
     )  # Sleep for a bit to allow time for testing the POST KI with an external client
     logger.info("Posting...")
-    result_bindings = kb.post(
+    result_bindings = await kb.post(
         [
             MeasurementBinding(
                 measurement=URIRef(
@@ -82,5 +82,11 @@ if __name__ == "__main__":
         "post-measurement-ki",
     )
     logger.info(f"Received result bindings: {result_bindings}")
-    kb.unregister()
+    await kb.unregister()
     logger.info("KB unregistered.")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

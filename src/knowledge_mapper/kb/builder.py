@@ -91,12 +91,11 @@ class KnowledgeBaseBuilder:
 
         for ki in self._settings.knowledge_interactions:
             if ki.type in (KiTypes.ASK, KiTypes.POST):
-                self._kb.register_ki(
+                self._kb._register_ki_locally(
                     KnowledgeInteractionContext(
                         info=ki,
                         handler=None,
                     ),
-                    defer_ke_registration=True,
                 )
 
         return self._kb
