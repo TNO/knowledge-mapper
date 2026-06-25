@@ -74,7 +74,7 @@ class KnowledgeInteractionContext[B, **P]:
             )
 
         if self.serialization_model and result_bindings:
-            return [b.dump_partial_binding() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]
+            return [b.dump_result_binding() for b in result_bindings]  # pyright: ignore[reportAttributeAccessIssue]
         return result_bindings  # pyright: ignore[reportReturnType]
 
     def prepare_outgoing(

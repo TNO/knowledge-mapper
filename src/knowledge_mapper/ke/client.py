@@ -197,7 +197,11 @@ class Client(ClientProtocol):
 
     def __init__(self, ke_url: str):
         self._ke_url = ke_url
-        self._http = httpx.AsyncClient()
+        # The KE pattern (long-poll, dispatch, collate) can legitimately take
+        # well over httpx's 5 s default, especially under concurrent load.
+        self._http = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=5.0),
+        )
 
     async def ke_is_available(self) -> bool:
         try:

@@ -42,7 +42,7 @@ logger = get_example_logger(EXAMPLE_NAME)
 # example and enables CLI argument parsing.
 class AppSettings(KnowledgeBaseSettings):
     model_config = SettingsConfigDict(
-        yaml_file="custom-settings/settings.yaml",
+        yaml_file="05-custom-settings/settings.yaml",
         cli_parse_args=True,
         extra="ignore",
     )

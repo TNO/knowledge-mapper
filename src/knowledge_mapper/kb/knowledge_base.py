@@ -593,30 +593,41 @@ class KnowledgeBase:
                     async def _handle(
                         handle_request: HandleRequest,
                     ) -> None:
-                        ki_id = handle_request.knowledge_interaction_id
-                        ki_ctx = self._ki_registry_by_id[ki_id]
                         try:
-                            result_binding_set = await self.call(
-                                handle_request.binding_set,
-                                ki_ctx.info.name,
-                            )
-                        except Exception:
-                            logger.exception(
-                                "Handler for KI '%s' raised an exception "
-                                "(request %d from %s). Posting empty binding set.",
-                                ki_ctx.info.name,
-                                handle_request.handle_request_id,
-                                handle_request.requesting_knowledge_base_id,
-                            )
-                            result_binding_set = []
+                            ki_id = handle_request.knowledge_interaction_id
+                            ki_ctx = self._ki_registry_by_id[ki_id]
+                            try:
+                                result_binding_set = await self.call(
+                                    handle_request.binding_set,
+                                    ki_ctx.info.name,
+                                )
+                            except Exception:
+                                logger.exception(
+                                    "Handler for KI '%s' raised an exception "
+                                    "(request %d from %s). Posting empty binding set.",
+                                    ki_ctx.info.name,
+                                    handle_request.handle_request_id,
+                                    handle_request.requesting_knowledge_base_id,
+                                )
+                                result_binding_set = []
 
-                        await self.client.post_handle_response(
-                            kb_id=self.info.id,
-                            ki_id=handle_request.knowledge_interaction_id,
-                            handle_request_id=handle_request.handle_request_id,
-                            binding_set=result_binding_set,
-                        )
-                        semaphore.release()
+                            try:
+                                await self.client.post_handle_response(
+                                    kb_id=self.info.id,
+                                    ki_id=handle_request.knowledge_interaction_id,
+                                    handle_request_id=handle_request.handle_request_id,
+                                    binding_set=result_binding_set,
+                                )
+                            except Exception:
+                                logger.exception(
+                                    "Failed to post handle response for KI '%s' "
+                                    "(request %d from %s).",
+                                    ki_ctx.info.name,
+                                    handle_request.handle_request_id,
+                                    handle_request.requesting_knowledge_base_id,
+                                )
+                        finally:
+                            semaphore.release()
 
                     task = asyncio.create_task(_handle(maybe_handle_request))
                     in_flight.add(task)
