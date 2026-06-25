@@ -21,7 +21,7 @@ Both approaches are planned and partially implemented. The SDK path is fully fun
 |------|-------------|---------|
 | Knowledge Engine | KE | The distributed network/platform that enables knowledge exchange between applications |
 | Knowledge Directory | KD | Central service that matches and routes knowledge interactions between Smart Connectors |
-| Smart Connector | SC | A Java runtime process (usually in a container) that acts as a broker between a KB and the KE network; exposes a REST API |
+| Smart Connector | SC | Central service where participants register and that participants query for other participants in the network |
 | Knowledge Base | KB | A user's application that holds or requests knowledge; connects to the KE network via a Smart Connector |
 | Knowledge Interaction | KI | A declared intent to exchange knowledge — either to provide it (ANSWER/REACT) or request it (ASK/POST) |
 | Binding Set | BS | A list of dictionaries mapping SPARQL variable names to RDF N3-encoded values |
