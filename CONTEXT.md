@@ -11,7 +11,7 @@
 1. **A Python SDK** — write Python code, use decorators, implement your own handlers.
 2. **A settings/config-driven approach** (work in progress) — for simple cases where no custom handler logic is needed, a config file (YAML/JSON) plus a CLI should suffice.
 
-Both approaches are planned and partially implemented. The SDK path is fully functional; the config-driven CLI path is tracked under issue #10.
+Both approaches are planned and partially implemented. The SDK path is fully functional, and the `knowledge-mapper run path/to/file.py:kb` CLI starts an SDK-defined KB (issue #10). A future config-driven CLI (loading a `KnowledgeBase` from a YAML/JSON settings file) is tracked separately.
 
 ---
 
@@ -418,7 +418,7 @@ The pre-overhaul, config-file-driven mapper implementation has been removed from
 |---|-------|-------|
 | [#5](https://github.com/TNO/knowledge-mapper/issues/5) | Make `result_pattern` optional for POST interactions | `PostReactInteractionInfo.result_graph_pattern` is currently required; should be optional |
 | [#6](https://github.com/TNO/knowledge-mapper/issues/6) | Allow domain knowledge loading via KE client | Extend `Client`/`ClientProtocol` with methods to load domain knowledge into the SC (supported since KE 1.3.1) |
-| [#10](https://github.com/TNO/knowledge-mapper/issues/10) | Create simple CLI for starting KM | Entry point for the config-driven approach; part of the "both SDK and config-driven" roadmap |
+| [#10](https://github.com/TNO/knowledge-mapper/issues/10) | Create simple CLI for starting KM | ✅ Done — `knowledge-mapper run path/to/file.py:kb` (typer-based, see `src/knowledge_mapper/cli.py`) |
 | [#11](https://github.com/TNO/knowledge-mapper/issues/11) | Add dependency injection system | Allow handlers to declare dependencies (e.g. DB connections) that are injected at call time |
 | [#15](https://github.com/TNO/knowledge-mapper/issues/15) | Create default handlers for POST and ASK interactions | ASK/POST KIs are now auto-registered from settings via `builder.build()` with no handler; outgoing-only KIs need no handler |
 | [#23](https://github.com/TNO/knowledge-mapper/issues/23) | Extract settings-based KI registration out of KnowledgeBase | ✅ Done — moved to `KnowledgeBaseBuilder` in `src/knowledge_base_builder.py` |
