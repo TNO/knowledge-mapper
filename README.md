@@ -1,208 +1,235 @@
 # Knowledge Mapper
 
-The Knowledge Mapper makes it easier to share your data in a knowledge base to the TNO Knowledge Engine (TKE) network. 
-It maps SQL, SPARQL, and Python classes to the format used by Smart Connectors in a TKE network.
-This allows your knowledge base to be connected to the network using only a single configuration file.
-
-The mapper also helps if you use other programming and query languages.
-It provides functions that allow you to easily share data to a TKE network.
-The mapper takes care of connecting to the TKE network and helps in registering your knowledge base and knowledge interactions.
-
-## Current status
-
-The Knowledge mapper is currently undergoing heavy development and an overhaul of its architecture. Expect new versions to be incompatible with projects developed using older versions (<= 0.0.24). The old legacy code can be found at git tag `mapper-legacy`.
-
-## Where does it operate?
-
-Given the configuration of your mappings, it talks to the knowledge engine's REST API to register the relevant knowledge interactions.
-
-When there is an incoming request from the knowledge network (through the REST API), the mapper uses the configuration to retrieve the knowledge from the knowledge base.
-
-The following diagram shows where the Knowledge Mapper operates within the Knowledge Engine ecosystem. As an example, it shows how a SPARQL data source can be connected with a simple configuration file and a single command:
+The Knowledge Mapper is a Python SDK for connecting your applications to the [TNO Knowledge Engine (TKE)](https://docs.knowledge-engine.eu/) network. Define knowledge interactions with decorators, use typed binding models, and let the SDK handle registration, polling, and data exchange with the network.
 
 ![architecture diagram](./docs/img/architecture.png)
 
-## Getting Started with Examples
-
-The easiest way to learn the Knowledge Mapper is by exploring the [examples](./examples/README.md). They demonstrate key features like creating knowledge bases, defining knowledge interactions, using binding models, dependency injection, and testing. Each example includes inline comments and can be run locally with a Knowledge Engine instance. See the [examples README](./examples/README.md) for setup instructions and an overview of all available examples.
-
-## How do I use it?
-
-1. Install `knowledge_mapper` in a Python environment with `pip`:
+## Quick Start
 
 ```bash
 pip install knowledge_mapper
 ```
 
-2. Make a configuration file (e.g. `config.jsonc`) that defines the knowledge interactions and mappings from your data source. (See [the examples linked here](./examples/README.md).)
+```python
+import asyncio
+from knowledge_mapper import KnowledgeBase
 
-3. Start your Knowledge Mapper:
+kb = KnowledgeBase(
+    id="http://example.org/my-kb",
+    name="my-kb",
+    description="A simple example KB.",
+    ke_url="http://localhost:8280/rest",
+)
+
+@kb.answer_ki(
+    name="greeting",
+    graph_pattern='?s <http://example.org/says> ?message .',
+)
+def handle(binding_set, info):
+    return binding_set
+
+async def main():
+    await kb.connect()
+    await kb.register()
+    await kb.start_handling_loop()
+
+asyncio.run(main())
+```
+
+## Installation
+
+Install from PyPI:
 
 ```bash
-python -m knowledge_mapper config.jsonc
+pip install knowledge_mapper
+```
+
+For local development (from the repository root):
+
+```bash
+pip install -e .
+```
+
+## Examples
+
+The [`examples/`](./examples/) directory contains runnable examples covering all major features. Each example has inline comments explaining the code.
+
+| Example | Description |
+|---------|-------------|
+| [01-basic.py](./examples/01-basic.py) | Minimal knowledge base with a simple ANSWER knowledge interaction |
+| [02-binding_models.py](./examples/02-binding_models.py) | Pydantic-style binding models for type-safe bindings |
+| [03-ask_interaction.py](./examples/03-ask_interaction.py) | Outgoing ASK knowledge interactions with typed binding models |
+| [04-post_measurement.py](./examples/04-post_measurement.py) | POST interactions for pushing measurements or data to the network |
+| [05-custom-settings/](./examples/05-custom-settings/) | Custom settings subclass with YAML configuration |
+| [06-dependency_injection.py](./examples/06-dependency_injection.py) | Dependency injection for handlers (database connections, configs, etc.) |
+| [07-testing/](./examples/07-testing/) | Writing tests with the in-memory `TestClient` |
+| [08-async_handlers.py](./examples/08-async_handlers.py) | Async and sync REACT handlers side by side |
+| [09-sparql-store/](./examples/09-sparql-store/) | Connecting a SPARQL store as a knowledge base |
+
+See the [examples README](./examples/README.md) for prerequisites and setup instructions.
+
+## API Reference
+
+### `KnowledgeBase`
+
+The main entry point. Create one, register knowledge interactions with decorators, then connect and start handling.
+
+```python
+from knowledge_mapper import KnowledgeBase
+
+kb = KnowledgeBase(
+    id="http://example.org/my-kb",
+    name="my-kb",
+    description="...",
+    ke_url="http://localhost:8280/rest",
+)
+```
+
+**Lifecycle:**
+
+```python
+await kb.connect()                # Verify the Smart Connector is reachable
+await kb.register()               # Register KB and all KIs with the Smart Connector
+await kb.start_handling_loop()    # Start concurrent long-polling for incoming requests
+await kb.unregister()             # Unregister from the Smart Connector
+await kb.close()                  # Close the HTTP client
+```
+
+**Registering Knowledge Interactions (decorators):**
+
+```python
+# ANSWER — respond to incoming queries
+@kb.answer_ki(name="...", graph_pattern="...", prefixes={...})
+def my_handler(binding_set, info):
+    return binding_set
+
+# REACT — handle incoming POST data
+@kb.react_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+def my_react_handler(binding_set, info):
+    return result_binding_set
+```
+
+**Registering Knowledge Interactions (non-decorator):**
+
+```python
+# ASK — query the network (no handler needed)
+kb.ask_ki(name="...", graph_pattern="...", binding_model=MyModel, prefixes={...})
+
+# POST — push data to the network (no handler needed)
+kb.post_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+```
+
+**Outgoing interactions:**
+
+```python
+result = await kb.ask(binding_set, ki_name="...")
+result = await kb.post(binding_set, ki_name="...")
+```
+
+### `BindingModel`
+
+A Pydantic `BaseModel` subclass that maps Python types to RDF N3 encoding automatically.
+
+```python
+from knowledge_mapper import BindingModel, Uri, Literal
+
+class PersonBinding(BindingModel):
+    person: Uri              # URIRef, serialized as <...>
+    name: Literal[str]       # Python str, serialized as "..."^^xsd:string
+    age: Literal[int]        # Python int, serialized as "..."^^xsd:integer
+```
+
+Use `BindingModel` for type safety and automatic serialization. Use raw `BindingSet` (`Sequence[dict[str, str]]`) for passthrough data.
+
+### `Depends` — Dependency Injection
+
+Handlers can declare dependencies using `Depends()` in `Annotated` type hints. The framework resolves them at call time.
+
+```python
+from typing import Annotated
+from knowledge_mapper import Depends
+
+def get_db() -> MyDatabase:
+    return MyDatabase(url="...")
+
+@kb.answer_ki(name="...", graph_pattern="...")
+def handler(
+    binding_set: list[PersonBinding],
+    info: KnowledgeInteractionInfo,
+    db: Annotated[MyDatabase, Depends(get_db)],
+) -> list[PersonBinding]:
+    return db.query(binding_set)
+```
+
+Dependencies can be sync or async, support nesting, and are cached per invocation by default (`cache=True`).
+
+### `KnowledgeBaseBuilder`
+
+Build a `KnowledgeBase` from settings. Returned by `KnowledgeBase.from_settings()`.
+
+```python
+from knowledge_mapper import KnowledgeBase, KnowledgeBaseSettings
+
+settings = KnowledgeBaseSettings(...)
+builder = KnowledgeBase.from_settings(settings)
+
+# Attach handlers for ANSWER/REACT KIs defined in settings
+builder.handler("my-answer-ki", my_handler_func)
+
+# ASK/POST KIs are auto-registered from settings
+kb = builder.build()
 ```
 
 ## Configuration
 
-The minimal configuration looks like this:
-```jsonc
-{
-  // The endpoint where a knowledge engine is available.
-  "knowledge_engine_endpoint": "http://localhost:8280/rest",
-  "knowledge_base": {
-    // An URL representing the identity of this knowledge base
-    "id": "https://example.org/a-knowledge-base",
-    // A name for this knowledge base
-    "name": "Some knowledge base",
-    // A description for this knowledge base
-    "description": "This is just an example."
-  },
+`KnowledgeBaseSettings` is a Pydantic `BaseSettings` subclass that supports configuration from (highest priority first):
 
-  "knowledge_interactions": [
-    // Several knowledge interaction definitions can be placed here.
-  ]
-}
+1. Keyword arguments
+2. Environment variables (delimiter `__`, e.g. `KNOWLEDGE_BASE__ID`)
+3. YAML config file
+4. JSON config file
+5. Field defaults
+
+Example YAML configuration:
+
+```yaml
+knowledge_base:
+  id: "http://example.org/my-kb"
+  name: "my-kb"
+  description: "My knowledge base"
+knowledge_engine_endpoint: "http://localhost:8280/rest"
+knowledge_interactions:
+  - name: my-answer-ki
+    type: AnswerKnowledgeInteraction
+    prefixes:
+      ex: "http://example.org/"
+    graph_pattern: "?s ?p ?o ."
 ```
 
-In the `knowledge_interaction` property, you can add the definitions of your knowledge interactions, including their graph patterns.
+Subclass `KnowledgeBaseSettings` to add application-specific settings:
 
-Let's add a knowledge interaction that expresses that we have knowledge available about trees:
+```python
+from knowledge_mapper import KnowledgeBaseSettings
 
-```jsonc
-{
-  // ...
-  "knowledge_interactions": [
-    {
-      // The type of this knowledge interaction. If we have knowledge
-      // available that is requestable, the type should be "answer".
-      "type": "answer",
-      // The graph pattern that expresses the 'shape' of our knowledge.
-      "pattern": "?tree <https://example.org/hasHeight> ?height . ?tree <https://example.org/hasName> ?name ."
-    },
-  ]
-}
+class AppSettings(KnowledgeBaseSettings):
+    db_url: str = "sqlite:///./app.db"
 ```
 
-However, at this point the knowledge mapper will not know where to get this knowledge! So let's add this to the configuration too. Let's assume we have the data about the trees in a SQL database.
-
-```jsonc
-{
-  // ...
-
-  // Connection details for the SQL database
-  "sql_host": "sql-db",
-  "sql_port": 3306,
-  "sql_database": "treedb",
-  "sql_user": "user",
-  "sql_password": "password",
-
-  "knowledge_interactions": [
-    {
-      // ...
-
-      // SQL query to query data to be used to fill bindings for the graph pattern.
-      // Note that the column names in the result set "tree" and "height" must 
-      // correspond with the variable names in the graph pattern.
-      "sql_query": "SELECT id AS tree, height, name FROM trees"
-    },
-  ]
-}
-```
-
-Notice the similarity between this SQL-query and the graph pattern defined in the knowledge interaction above.
-The knowledge mapper maps the variables in the SQL results to graph pattern variables in the knowledge interaction.
-For example, SQL variable **height** becomes **?height** in the graph pattern (i.e., objects for predicate <https://example.org/hasHeight>).
-
-With this configuration (see [here](examples/sql-mapper/config.jsonc) for the entire file) we can start the Knowledge Mapper:
-
-```
-python -m knowledge_mapper examples/sql-mapper/config.jsonc
-```
-
-The Knowledge Mapper will now continuously listen for incoming knowledge requests, and answer them by using the given SQL query and mapping them to bindings for the graph pattern.
-
-
-## Additional features
-
-### Authorization with deny-unless-permit policy
-
-In order for another knowledge base to request a knowledge interaction, authorization can be set using the boolean configuration property `authorization_enabled`. This is an optional setting which means that if the property is absent no authorization is being applied and all knowledge interactions are permitted.
-
-If the property is set to `true`, a deny-unless-permit policy is being applied. Then, for every knowledge interaction, a `permitted` list can be added that indicates which knowledge bases are permitted to request that knowledge interaction.
-
-There are some special cases for the values of this `permitted` list:
-- If this list is absent or empty, NO knowledge bases are permitted.
-- If the list equals `*`, ALL knowledge bases are permitted.
-
-For all other cases, the `permitted` list contains the ids of the knowledge bases that are permitted.
-
-The configuration file below gives an example of authorization enabled and a knowledge interaction with a permitted list with a single other knowledge base. 
-
-### Knowledge gaps
-
-The knowledge mapper code also contains operations to register ASK knowledge interactions with an additional option or flag to receive knowledge gaps as part of the result of the ASK to the knowledge network. A knowledge gap exists when the pattern in the ASK knowledge interaction can not be matched to the complete set of knowledge interactions in the network. As a result, the knowledge network returns an empty binding set and a set of triple patterns that need to be solved in order to close the gap.
-
-To use this feature, the ASK knowledge interaction should be registered with the option `knowledge_gaps_enabled` set to true and the knowledge base should be registered with `enable_reasoner` set to true as well. Please look at the `register` operation in `tke_client.py` and the `register_knowledge_interaction` in `knowledge_base.py` how to use this feature.
-
-
-## Configuration
-
-There are multiple possibilities for configuration of the knowledge mapper depending on the type of knowledge base.
-
-### SQL
-
-See [the example config for SQL data sources](examples/sql-mapper/config.jsonc).
-
-### SPARQL
-
-See [the example config for SPARQL data sources](examples/sparql-mapper/config.jsonc).
-
-### Custom data source
-See [the example config for a custom data source](custom-mapper/config.jsonc).
-
-# Development instructions
-
-## Testing
-
-There's unit tests in the Python package that require a TKE runtime to be running at port 8082:
-```bash
-# Start the TKE runtime
-docker run -d --rm -p 8280:8280 --name tke-runtime ci.tno.nl/tke/knowledge-engine/smart-connector-rest-dist:1.1.0
-# Perform the unit tests
-pytest
-
-# Stop the TKE runtime
-docker stop tke-runtime
-```
-
-There's also an example setup that acts like an integration test. See [examples/README.md](examples/README.md).
-
-
-# Developer instructions
-
-These are instructions for developers that work on the Knowledge Mapper project.
-
-## Building a new distribution
-
-- Make sure the `./dist` directory is empty or non-existing.
-- Make sure you use a Python environment with the packages `distutils` and `wheel`  installed.
-- Make sure the version number is correct in `setup.py` *AND* `knowledge_mapper/__init__.py`.
-- Build the project:
+## Development
 
 ```bash
-# this creates a source distribution (`sdist`) and a built distribution (`bdist_wheel`).
-python setup.py sdist bdist_wheel
-```
-- There should now be 2 files under the `./dist` directory.
-
-## Releasing a new distribution
-
-- Make sure you just built a new distribution with a *NEW* version number and have it in `./dist`
-- Use `twine` to upload your new distribution to PyPI:
-
-```
-twine upload dist/*
+uv sync              # Install dependencies
+uv run pytest        # Run tests
+uv run ruff check .  # Lint
+uv run ruff format . # Format
 ```
 
-- Enter your PyPI credentials in the prompt
-- Make sure the new version is working as intended (attempt to upgrade project that use it)
+Tests use `TestClient`, an in-memory fake Smart Connector — no live KE runtime needed for unit tests. For integration tests, start a KE runtime with Docker:
+
+```bash
+docker compose -f examples/compose.yaml up -d
+uv run pytest
+docker compose -f examples/compose.yaml down
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed development and contribution guidelines.
