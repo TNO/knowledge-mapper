@@ -96,7 +96,3 @@ uv publish
 - `tests/` — unit and integration tests
 - `examples/` — runnable examples demonstrating features
 - `docs/` — documentation assets (architecture diagrams)
-
-## Legacy Code
-
-The directories `src/knowledge_mapper/legacy/` and `examples/legacy/` contain pre-overhaul code kept for historical reference. **Do not modify these.**

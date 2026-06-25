@@ -1,4 +1,0 @@
-@prefix : <https://example.org/> .
-
-:easternWhitePine :hasHeight 31 .
-:easternWhitePine :hasName "Eastern White Pine" .
