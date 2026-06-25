@@ -36,6 +36,8 @@ class KnowledgeBaseBuilder:
             name=settings.knowledge_base.name,
             description=settings.knowledge_base.description,
             ke_url=settings.knowledge_engine_endpoint,
+            lease_renewal_time=settings.knowledge_base.lease_renewal_time,
+            reasoner_level=settings.knowledge_base.reasoner_level,
         )
         self._unhandled_incoming: set[str] = {
             ki.name

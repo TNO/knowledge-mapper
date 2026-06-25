@@ -16,6 +16,7 @@ from .models import (
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
     PostResult,
+    SmartConnectorLease,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,48 @@ class ClientProtocol(Protocol):
     ) -> KnowledgeInteractionInfo:
         """Register a knowledge interaction for the given KB and return it with its
         assigned ID set in the info.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+        """Unregister a single knowledge interaction with the given ID from the KB
+        with the given ID.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID, or no knowledge interaction with the given ID exists for that KB.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+        """Renew the lease of the smart connector for the given KB and return the
+        new lease.
+
+        Raises:
+            SmartConnectorNotFoundError: If no smart connector exists for the given KB
+            ID, or it does not have a lease.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+            response.
+        """
+        ...
+
+    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+        """Load domain knowledge (Apache Jena facts/rules) into the smart connector
+        for the given KB. Replaces any previously loaded domain knowledge.
+
+        Args:
+            kb_id: The ID of the KB whose smart connector should be loaded with the
+                given domain knowledge.
+            knowledge: The domain knowledge (both facts and rules) as plain text in
+                the Apache Jena Rules syntax.
 
         Raises:
             SmartConnectorNotFoundError: If no smart connector exists for the given KB
@@ -247,7 +290,7 @@ class Client(ClientProtocol):
         logger.debug("Registering knowledge base '%s' at %s.", info.id, self.ke_url)
         response = await self._http.post(
             f"{self.ke_url}/sc",
-            json=info.model_dump(by_alias=True),
+            json=info.model_dump(by_alias=True, exclude_none=True),
         )
         if not response.is_success:
             raise UnexpectedHttpResponseError(response)
@@ -308,6 +351,53 @@ class Client(ClientProtocol):
             update={"id": response.json()["knowledgeInteractionId"]}
         )
         return registered_ki
+
+    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+        logger.debug(
+            "Unregistering knowledge interaction '%s' for KB '%s' at %s.",
+            ki_id,
+            kb_id,
+            self.ke_url,
+        )
+        response = await self._http.delete(
+            f"{self.ke_url}/sc/ki",
+            headers={
+                "Knowledge-Base-Id": kb_id,
+                "Knowledge-Interaction-Id": ki_id,
+            },
+        )
+        if response.status_code == 404:
+            raise SmartConnectorNotFoundError(kb_id, self.ke_url)
+        if not response.is_success:
+            raise UnexpectedHttpResponseError(response)
+
+    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+        logger.debug("Renewing lease for KB '%s' at %s.", kb_id, self.ke_url)
+        response = await self._http.put(
+            f"{self.ke_url}/sc/lease/renew",
+            headers={"Knowledge-Base-Id": kb_id},
+        )
+        if response.status_code == 404:
+            raise SmartConnectorNotFoundError(kb_id, self.ke_url)
+        if not response.is_success:
+            raise UnexpectedHttpResponseError(response)
+
+        return SmartConnectorLease.model_validate(response.json())
+
+    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+        logger.debug("Loading domain knowledge for KB '%s' at %s.", kb_id, self.ke_url)
+        response = await self._http.post(
+            f"{self.ke_url}/sc/knowledge",
+            content=knowledge.encode("utf-8"),
+            headers={
+                "Knowledge-Base-Id": kb_id,
+                "Content-Type": "text/plain; charset=UTF-8",
+            },
+        )
+        if response.status_code == 404:
+            raise SmartConnectorNotFoundError(kb_id, self.ke_url)
+        if not response.is_success:
+            raise UnexpectedHttpResponseError(response)
 
     async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         logger.debug("Polling for KI calls...")

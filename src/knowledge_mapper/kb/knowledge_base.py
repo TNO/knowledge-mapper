@@ -19,6 +19,7 @@ from ..ke.models import (
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,
     PostReactInteractionInfo,
+    SmartConnectorLease,
 )
 from ..knowledge_interaction import (
     Handler,
@@ -44,7 +45,15 @@ class KnowledgeBase:
     Starts in unregistered state.
     """
 
-    def __init__(self, id: str, name: str, description: str, ke_url: str):
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str,
+        ke_url: str,
+        lease_renewal_time: int | None = None,
+        reasoner_level: int | None = None,
+    ):
         self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
         self._ki_registry_by_id: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
@@ -53,6 +62,8 @@ class KnowledgeBase:
             id=id,
             name=name,
             description=description,
+            lease_renewal_time=lease_renewal_time,
+            reasoner_level=reasoner_level,
         )
         self.dependency_overrides: dict[Callable[..., Any], Callable[..., Any]] = {}
 
@@ -267,6 +278,80 @@ class KnowledgeBase:
             assert ki_ctx.info.id is not None
             self._ki_registry_by_id[ki_ctx.info.id] = ki_ctx
         return
+
+    async def unregister_ki(self, ki_name: str) -> None:
+        """Unregister a single knowledge interaction by name from this KB at the KE
+        runtime, and remove it from this object's local registry.
+
+        Raises:
+            ValueError: If the KB is not registered, or if ``ki_name`` is unknown, or
+                if the KI is not currently registered at the KE runtime.
+            SmartConnectorNotFoundError: If the KB's smart connector or the KI is not
+                found in the KE runtime.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+                response.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise ValueError(
+                f"Cannot unregister KI '{ki_name}' because the KB is not registered."
+            )
+        if ki_name not in self.ki_registry:
+            raise ValueError(
+                f"Cannot unregister KI '{ki_name}': no KI with that name is "
+                f"registered for this KB."
+            )
+        ki_ctx = self.ki_registry[ki_name]
+        if (
+            ki_ctx.status != KnowledgeInteractionStatus.REGISTERED
+            or ki_ctx.info.id is None
+        ):
+            raise ValueError(
+                f"Cannot unregister KI '{ki_name}' because it is not currently "
+                f"registered at the KE runtime."
+            )
+
+        logger.info("Unregistering KI '%s' (%s).", ki_name, ki_ctx.info.id)
+        await self.client.unregister_ki(kb_id=self.info.id, ki_id=ki_ctx.info.id)
+        self._ki_registry_by_id.pop(ki_ctx.info.id, None)
+        self.ki_registry.pop(ki_name, None)
+
+    async def renew_lease(self) -> SmartConnectorLease:
+        """Renew this KB's smart connector lease at the KE runtime and return the new
+        lease.
+
+        Raises:
+            ValueError: If the KB is not registered.
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in
+                the KE runtime, or it does not have a lease.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+                response.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise ValueError("Cannot renew lease because the KB is not registered.")
+        logger.debug("Renewing lease for KB '%s'.", self.info.id)
+        return await self.client.renew_lease(kb_id=self.info.id)
+
+    async def load_domain_knowledge(self, knowledge: str) -> None:
+        """Load domain knowledge (Apache Jena facts/rules) into this KB's smart
+        connector. Replaces any previously loaded domain knowledge.
+
+        Args:
+            knowledge: The domain knowledge (facts and rules) as plain text in the
+                Apache Jena Rules syntax.
+
+        Raises:
+            ValueError: If the KB is not registered.
+            SmartConnectorNotFoundError: If the KB's smart connector is not found in
+                the KE runtime.
+            UnexpectedHttpResponseError: If the KE runtime returns an unexpected HTTP
+                response.
+        """
+        if self.state != KnowledgeBaseState.REGISTERED:
+            raise ValueError(
+                "Cannot load domain knowledge because the KB is not registered."
+            )
+        logger.debug("Loading domain knowledge for KB '%s'.", self.info.id)
+        await self.client.load_domain_knowledge(kb_id=self.info.id, knowledge=knowledge)
 
     def ki_from_info(
         self,
