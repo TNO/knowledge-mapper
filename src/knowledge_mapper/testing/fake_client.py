@@ -1,9 +1,10 @@
 """In-memory FakeClient that satisfies ClientProtocol for use in tests."""
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from knowledge_mapper.ke.client import ClientProtocol, HandleRequest, PollResult
+from knowledge_mapper.ke.errors import SmartConnectorNotFoundError
 from knowledge_mapper.ke.models import (
     AskResult,
     BindingSet,
@@ -12,6 +13,7 @@ from knowledge_mapper.ke.models import (
     KnowledgeBaseInfo,
     KnowledgeInteractionInfo,
     PostResult,
+    SmartConnectorLease,
 )
 
 
@@ -31,6 +33,10 @@ class TestClient(ClientProtocol):
             asyncio.Queue()
         )
         self._next_handle_request_id: int = 1
+        # Maps kb_id -> the most recently loaded domain knowledge string.
+        self._domain_knowledge: dict[str, str] = {}
+        # Maps kb_id -> number of times its lease has been renewed.
+        self._lease_renewals: dict[str, int] = {}
 
     async def ke_is_available(self) -> bool:
         return True
@@ -71,6 +77,43 @@ class TestClient(ClientProtocol):
         self._next_ki_id += 1
         self._knowledge_interactions.setdefault(kb_id, []).append(registered)
         return registered
+
+    async def unregister_ki(self, kb_id: str, ki_id: str) -> None:
+        if kb_id not in self._knowledge_bases:
+            raise SmartConnectorNotFoundError(kb_id, self._ke_url)
+        kis = self._knowledge_interactions.get(kb_id, [])
+        for i, ki in enumerate(kis):
+            if ki.id == ki_id:
+                kis.pop(i)
+                return
+        raise SmartConnectorNotFoundError(kb_id, self._ke_url)
+
+    async def renew_lease(self, kb_id: str) -> SmartConnectorLease:
+        if kb_id not in self._knowledge_bases:
+            raise SmartConnectorNotFoundError(kb_id, self._ke_url)
+        self._lease_renewals[kb_id] = self._lease_renewals.get(kb_id, 0) + 1
+        info = self._knowledge_bases[kb_id]
+        # Default to 60 seconds if leaseRenewalTime is unset.
+        renewal_seconds = info.lease_renewal_time or 60
+        return SmartConnectorLease(
+            knowledge_base_id=kb_id,
+            expires=datetime.now(tz=UTC) + timedelta(seconds=renewal_seconds),
+        )
+
+    async def load_domain_knowledge(self, kb_id: str, knowledge: str) -> None:
+        if kb_id not in self._knowledge_bases:
+            raise SmartConnectorNotFoundError(kb_id, self._ke_url)
+        self._domain_knowledge[kb_id] = knowledge
+
+    @property
+    def loaded_domain_knowledge(self) -> dict[str, str]:
+        """Return the most-recently-loaded domain knowledge per KB id (for tests)."""
+        return dict(self._domain_knowledge)
+
+    @property
+    def lease_renewals(self) -> dict[str, int]:
+        """Return the number of lease renewals per KB id (for tests)."""
+        return dict(self._lease_renewals)
 
     async def poll_ki_call(self, kb_id: str) -> tuple[PollResult, HandleRequest | None]:
         return await self._incoming_calls.get()

@@ -114,6 +114,21 @@ class KnowledgeBaseInfo(BaseModel):
     id: Annotated[str, Field(..., alias="knowledgeBaseId")]
     name: Annotated[str, Field(..., alias="knowledgeBaseName")]
     description: Annotated[str, Field(..., alias="knowledgeBaseDescription")]
+    lease_renewal_time: Annotated[
+        int | None, Field(default=None, alias="leaseRenewalTime", ge=30, le=3600)
+    ] = None
+    reasoner_level: Annotated[
+        int | None, Field(default=None, alias="reasonerLevel", ge=1, le=5)
+    ] = None
+
+
+class SmartConnectorLease(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, frozen=True, populate_by_name=True
+    )
+
+    knowledge_base_id: str
+    expires: datetime
 
 
 class KiTypes(StrEnum):
