@@ -112,7 +112,9 @@ class TestClient(ClientProtocol):
             expires=datetime.now(tz=UTC) + timedelta(seconds=renewal_seconds),
         )
 
-    async def load_domain_knowledge(self, kb_id: KnowledgeBaseId, knowledge: str) -> None:
+    async def load_domain_knowledge(
+        self, kb_id: KnowledgeBaseId, knowledge: str
+    ) -> None:
         if kb_id not in self._knowledge_bases:
             raise SmartConnectorNotFoundError(kb_id, self._ke_url)
         self._domain_knowledge[kb_id] = knowledge
@@ -157,9 +159,7 @@ class TestClient(ClientProtocol):
         self,
         ki_name: str,
         binding_set: BindingSet,
-        requesting_kb_id: KnowledgeBaseId = KnowledgeBaseId(
-            "http://example.org/requesting-kb"
-        ),
+        requesting_kb_id: KnowledgeBaseId | None = None,
     ) -> None:
         """Queue an incoming KI call so ``poll_ki_call`` returns HANDLE for it.
 
@@ -173,6 +173,9 @@ class TestClient(ClientProtocol):
         Raises:
             KeyError: If no registered KI with *ki_name* exists.
         """
+        requesting_kb_id = requesting_kb_id or KnowledgeBaseId(
+            "http://example.org/requesting-kb"
+        )
         ki = next(
             (
                 ki
