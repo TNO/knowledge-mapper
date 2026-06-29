@@ -175,3 +175,32 @@ def test_load_kb_allows_sibling_imports(tmp_path: Path):
     result = load_kb(f"{file}:kb")
 
     assert result == "hello"
+
+
+def test_load_kb_supports_relative_imports_when_file_lives_in_package(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    pkg = tmp_path / "my_pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "sibling.py").write_text("MESSAGE = 'relative'\n")
+    file = pkg / "main.py"
+    file.write_text("from .sibling import MESSAGE\n\nkb = MESSAGE\n")
+
+    result = load_kb(f"{file}:kb")
+
+    assert result == "relative"
+
+
+def test_load_kb_accepts_dotted_module_spec(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    pkg = tmp_path / "dotted_pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "main.py").write_text("kb = 'from-dotted'\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    result = load_kb("dotted_pkg.main:kb")
+
+    assert result == "from-dotted"
