@@ -208,7 +208,7 @@ class ClientProtocol(Protocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
         """Execute an ASK interaction by sending the given binding set as the
         response to the KI call and returning the resulting binding set from the KE.
@@ -226,7 +226,7 @@ class ClientProtocol(Protocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
         """Execute a POST interaction by sending the given binding set as the
         response to the KI call.

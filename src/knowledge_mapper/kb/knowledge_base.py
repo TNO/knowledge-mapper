@@ -16,6 +16,7 @@ from ..ke.models import (
     BindingModel,
     BindingSet,
     KiTypes,
+    KnowledgeBaseId,
     KnowledgeBaseInfo,
     KnowledgeInteraction,
     KnowledgeInteractionId,
@@ -526,7 +527,10 @@ class KnowledgeBase:
         )
 
     async def post(
-        self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke a POST KI by its name.
 
@@ -551,11 +555,15 @@ class KnowledgeBase:
             kb_id=self.info.id,
             ki_id=ki_ctx.ke_id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
+            recipients=recipients,
         )
         return ki_ctx.parse_result(post_result.result_binding_set)
 
     async def ask(
-        self, binding_set: Sequence[BindingModel] | BindingSet, ki_name: str
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
         """Invoke an ASK KI by its name.
 
@@ -580,6 +588,7 @@ class KnowledgeBase:
             kb_id=self.info.id,
             ki_id=ki_ctx.ke_id,
             binding_set=ki_ctx.prepare_outgoing(binding_set),
+            recipients=recipients,
         )
         return ki_ctx.parse_result(ask_result.binding_set)
 
@@ -601,6 +610,7 @@ class KnowledgeBase:
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
         """Blocking bridge to :meth:`ask` for use in sync handlers.
 
@@ -613,7 +623,7 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.ask(binding_set, ki_name=ki_name), loop
+            self.ask(binding_set, ki_name=ki_name, recipients=recipients), loop
         )
         return future.result()
 
@@ -621,6 +631,7 @@ class KnowledgeBase:
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
         """Blocking bridge to :meth:`post` for use in sync handlers.
 
@@ -633,7 +644,7 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.post(binding_set, ki_name=ki_name), loop
+            self.post(binding_set, ki_name=ki_name, recipients=recipients), loop
         )
         return future.result()
 
