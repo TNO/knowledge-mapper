@@ -209,7 +209,7 @@ class TestClient(ClientProtocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
         # Look up KI by ID to find its name, then check for a mocked result.
         ki = next(
@@ -247,7 +247,7 @@ class TestClient(ClientProtocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
         # Look up KI by ID to find its name, then check for a mocked result.
         ki = next(
