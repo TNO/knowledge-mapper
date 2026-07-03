@@ -1,0 +1,8 @@
+
+PREFIX ex: <http://example.org/> 
+PREFIX saref: <https://saref.etsi.org/core/>
+
+ex:device 
+    a saref:Device ;
+    saref:hasIdentifier "device-001" ;
+.

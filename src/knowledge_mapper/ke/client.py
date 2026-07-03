@@ -473,13 +473,13 @@ class Client(ClientProtocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> PostResult:
-        if recipient_ids is not None:
+        if recipients is not None:
             payload = {
                 "bindingSet": binding_set,
                 "recipientSelector": {
-                    "knowledgeBases": recipient_ids,
+                    "knowledgeBases": recipients,
                 },
             }
         else:
@@ -504,13 +504,13 @@ class Client(ClientProtocol):
         kb_id: KnowledgeBaseId,
         ki_id: KnowledgeInteractionId,
         binding_set: BindingSet,
-        recipient_ids: list[KnowledgeBaseId] | None = None,
+        recipients: list[KnowledgeBaseId] | None = None,
     ) -> AskResult:
-        if recipient_ids is not None:
+        if recipients is not None:
             payload = {
                 "bindingSet": binding_set,
                 "recipientSelector": {
-                    "knowledgeBases": recipient_ids,
+                    "knowledgeBases": recipients,
                 },
             }
         else:
