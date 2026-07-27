@@ -1,6 +1,6 @@
 [project]
 name = "knowledge-mapper"
-version = "0.1.0a0"
+version = "0.1.0rc1"
 description = "The Knowledge Mapper makes it easier to share your data in a knowledge base to the TNO Knowledge Engine (TKE) network."
 readme = "README.md"
 requires-python = ">=3.13"

@@ -15,7 +15,7 @@ from .ke.models import (
 )
 from .settings import KnowledgeBaseSettings
 
-__version__ = "0.1.0a0"
+__version__ = "0.1.0rc1"
 
 _handler = logging.StreamHandler()
 _handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
