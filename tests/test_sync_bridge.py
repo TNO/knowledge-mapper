@@ -3,7 +3,7 @@
 import pytest
 
 from knowledge_mapper import ExchangeResult, KnowledgeBase
-from knowledge_mapper.ke.models import BindingSet, KnowledgeInteraction
+from knowledge_mapper.ke.models import BindingModel, BindingSet, KnowledgeInteraction
 from knowledge_mapper.testing import TestClient
 
 
@@ -172,3 +172,53 @@ async def test_with_info_sync_from_sync_handler(kb: KnowledgeBase, client: TestC
     assert post_result.binding_set == [{"s": "ex:stored"}]
     assert len(ask_result.exchange_info) == 1
     assert len(post_result.exchange_info) == 1
+
+
+class ThingBinding(BindingModel):
+    s: str
+
+
+async def test_sync_bridges_pass_binding_model_through(
+    kb: KnowledgeBase, client: TestClient
+):
+    """The sync bridges forward binding_model / result_binding_model, so a
+    mismatching model is rejected just like in the async methods."""
+    kb.ask_ki(name="lookup", graph_pattern="?s ?p ?o .")
+    kb.post_ki(
+        name="push",
+        argument_graph_pattern="?s ?p ?o .",
+        result_graph_pattern="?s ?p ?o .",
+    )
+    await kb.register()
+
+    errors: list[Exception] = []
+
+    @kb.react_ki(
+        name="my-react",
+        argument_graph_pattern="?x a ?t .",
+        result_graph_pattern="?x a ?t .",
+    )
+    def sync_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
+        calls = [
+            lambda: kb.ask_sync([{}], "lookup", binding_model=ThingBinding),
+            lambda: kb.ask_with_info_sync([{}], "lookup", binding_model=ThingBinding),
+            lambda: kb.post_sync([{}], "push", result_binding_model=ThingBinding),
+            lambda: kb.post_with_info_sync(
+                [{}], "push", result_binding_model=ThingBinding
+            ),
+        ]
+        for call in calls:
+            try:
+                call()
+            except ValueError as e:
+                errors.append(e)
+        return binding_set
+
+    await kb.sync_knowledge_interactions()
+    client.enqueue_handle_request("my-react", [{"x": "ex:A", "t": "ex:Thing"}])
+    client.enqueue_exit()
+
+    await kb.start_handling_loop()
+
+    assert len(errors) == 4
+    assert all("does not match" in str(e) for e in errors)

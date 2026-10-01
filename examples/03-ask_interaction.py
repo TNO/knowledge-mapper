@@ -45,7 +45,8 @@ async def main():
     await kb.register()
     logger.info("KB registered.")
     # ask_with_info() also returns the exchange info reported by the KE; use
-    # kb.ask() if you only need the bindings.
+    # kb.ask() if you only need the bindings. Passing binding_model types the
+    # result as PersonBindings.
     result = await kb.ask_with_info(
         [
             PersonBinding(
@@ -57,6 +58,7 @@ async def main():
             )
         ],
         "ask-ki",
+        binding_model=PersonBinding,
     )
     logger.info(f"Received result from ASK KI: {result.binding_set}")
     for info in result.exchange_info:

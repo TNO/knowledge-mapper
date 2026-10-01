@@ -33,10 +33,11 @@ class KnowledgeInteractionStatus(StrEnum):
 
 
 @dataclass(frozen=True)
-class ExchangeResult:
+class ExchangeResult[B = BindingModel | dict[str, str]]:
     """Result of an outgoing ASK/POST call, including exchange metadata.
 
-    Returned by ``KnowledgeBase.ask_with_info()`` / ``post_with_info()``.
+    Returned by ``KnowledgeBase.ask_with_info()`` / ``post_with_info()``. ``B``
+    is the (result) binding model passed to those calls, if any.
 
     Attributes:
         binding_set: The (result) bindings, parsed into ``BindingModel``
@@ -45,7 +46,7 @@ class ExchangeResult:
             with, including its status and timing.
     """
 
-    binding_set: Sequence[BindingModel] | BindingSet
+    binding_set: Sequence[B]
     exchange_info: list[ExchangeInfo]
 
 

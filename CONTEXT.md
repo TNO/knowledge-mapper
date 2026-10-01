@@ -179,7 +179,19 @@ result = await kb.post(binding_set, ki_name="...")
 # Return ExchangeResult(binding_set=..., exchange_info=[ExchangeInfo, ...])
 result = await kb.ask_with_info(binding_set, ki_name="...")
 result = await kb.post_with_info(binding_set, ki_name="...")
+
+# Typed results (issue #57): Sequence[MyModel] / ExchangeResult[ResultModel]
+people = await kb.ask(binding_set, ki_name="...", binding_model=MyModel)
+result = await kb.post_with_info(
+    binding_set, ki_name="...", result_binding_model=ResultModel
+)
 ```
+
+The keyword-only `binding_model` (ASK) / `result_binding_model` (POST) argument on all
+outgoing methods (incl. `*_sync`) only types the result; parsing still uses the model
+registered for the KI, and a different model raises `ValueError`. Without it the result is
+`Sequence[BindingModel | dict[str, str]]` (PEP 696 TypeVar default). `ExchangeResult[B]` is
+generic in the binding type.
 
 `ask()` / `post()` delegate to `ask_with_info()` / `post_with_info()` and drop the exchange
 info (issue #49).  `ExchangeResult` is a frozen dataclass defined in `knowledge_interaction.py`
