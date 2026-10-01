@@ -1,7 +1,13 @@
 import pytest
 from rdflib import URIRef
 
-from knowledge_mapper import ExchangeInfo, ExchangeResult, KnowledgeBase
+from knowledge_mapper import (
+    AskExchangeInfo,
+    ExchangeInfo,
+    ExchangeResult,
+    KnowledgeBase,
+    PostExchangeInfo,
+)
 from knowledge_mapper.ke.models import BindingModel, Literal, Uri
 from knowledge_mapper.testing import TestClient
 
@@ -262,8 +268,13 @@ async def test_ask_with_info_returns_bindings_and_exchange_info(
     assert len(result.exchange_info) == 1
     info = result.exchange_info[0]
     assert isinstance(info, ExchangeInfo)
+    assert isinstance(info, AskExchangeInfo)
     assert info.knowledge_interaction_id == kb.ki_registry["ask-info-ki"].ke_id
     assert info.status == "OK"
+    # Exchange info bindings stay raw: they belong to the answering KI.
+    assert info.binding_set == [
+        {"person": "<http://example.org/test#p1>", "name": '"Alice"^^xsd:string'}
+    ]
 
 
 async def test_post_with_info_returns_bindings_and_exchange_info(
@@ -296,8 +307,15 @@ async def test_post_with_info_returns_bindings_and_exchange_info(
     ]
     assert len(result.exchange_info) == 1
     info = result.exchange_info[0]
+    assert isinstance(info, PostExchangeInfo)
     assert info.knowledge_interaction_id == kb.ki_registry["post-info-ki"].ke_id
     assert info.status == "OK"
+    assert info.argument_binding_set == [
+        {"person": "<http://example.org/test#p1>", "name": '"Bob"'}
+    ]
+    assert info.result_binding_set == [
+        {"person": "<http://example.org/test#p1>", "name": '"Bob"^^xsd:string'}
+    ]
 
 
 async def test_ask_with_info_rejects_non_ask_ki(kb: KnowledgeBase):

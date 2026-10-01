@@ -154,13 +154,22 @@ people = await kb.ask(binding_set, ki_name="...", binding_model=MyModel)
 results = await kb.post(binding_set, ki_name="...", result_binding_model=ResultModel)
 ```
 
-To also get the exchange info reported by the Knowledge Engine (which knowledge bases were involved, with status and timing), use the `*_with_info` variants. They return an `ExchangeResult` with `binding_set` and `exchange_info` (a list of `ExchangeInfo`):
+To also get the exchange info reported by the Knowledge Engine (which knowledge interactions were involved, with status, timing and the bindings they exchanged), use the `*_with_info` variants. They return an `ExchangeResult` with `binding_set` and `exchange_info`, a list of `AskExchangeInfo` (exchanges with ANSWER KIs) and `PostExchangeInfo` (exchanges with REACT KIs). Both kinds can occur for either ASK or POST, because the reasoner may combine KIs:
 
 ```python
+from knowledge_mapper import AskExchangeInfo, PostExchangeInfo
+
 result = await kb.ask_with_info(binding_set, ki_name="...", binding_model=MyModel)
 for info in result.exchange_info:
     print(info.knowledge_base_id, info.status, info.failed_message)
+    match info:
+        case AskExchangeInfo():
+            print("answered:", info.binding_set)
+        case PostExchangeInfo():
+            print("reacted:", info.argument_binding_set, info.result_binding_set)
 ```
+
+The bindings in the exchange info are raw (`dict[str, str]`), because they follow the other KI's graph pattern rather than your binding model.
 
 Sync handlers can use `ask_sync()` / `post_sync()` and `ask_with_info_sync()` / `post_with_info_sync()`.
 

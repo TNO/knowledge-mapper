@@ -176,7 +176,7 @@ result = await kb.ask(binding_set, ki_name="...")
 # Returns result BindingSet or list[BindingModel]
 result = await kb.post(binding_set, ki_name="...")
 
-# Return ExchangeResult(binding_set=..., exchange_info=[ExchangeInfo, ...])
+# Return ExchangeResult(binding_set=..., exchange_info=[AskExchangeInfo | PostExchangeInfo, ...])
 result = await kb.ask_with_info(binding_set, ki_name="...")
 result = await kb.post_with_info(binding_set, ki_name="...")
 
@@ -198,6 +198,16 @@ info (issue #49).  `ExchangeResult` is a frozen dataclass defined in `knowledge_
 (KB level, parsed bindings); `AskResult` / `PostResult` in `ke/models.py` remain the raw client
 (wire) models.  Blocking bridges for sync handlers: `ask_sync()`, `post_sync()`,
 `ask_with_info_sync()`, `post_with_info_sync()`.
+
+Exchange info entries are `AskExchangeInfo` (exchange with an ANSWER KI, raw `binding_set`)
+or `PostExchangeInfo` (exchange with a REACT KI, raw `argument_binding_set` /
+`result_binding_set`), both subclasses of `ExchangeInfo` (issue #45).  A single ASK or POST
+result may mix both, since the reasoner can combine KIs.  The KE tags entries with
+`knowledgeInteractionType` (`AnswerKnowledgeInteraction` / `ReactKnowledgeInteraction`) only
+after 1.5.0; for older KEs the subtype is inferred from the binding set fields present,
+falling back to the result kind (ASK → `AskExchangeInfo`, POST → `PostExchangeInfo`).  The
+bindings stay raw because they follow the other KI's graph pattern, not the local binding
+model.
 
 #### Handling loop
 

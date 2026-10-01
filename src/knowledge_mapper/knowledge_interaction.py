@@ -7,9 +7,9 @@ from typing import Any, Concatenate, get_args
 
 from .dependency_injection import REQUESTING_KB_ID_PARAM, resolve_dependencies
 from .ke.models import (
+    AnyExchangeInfo,
     BindingModel,
     BindingSet,
-    ExchangeInfo,
     KiTypes,
     KnowledgeBaseId,
     KnowledgeInteraction,
@@ -42,12 +42,15 @@ class ExchangeResult[B = BindingModel | dict[str, str]]:
     Attributes:
         binding_set: The (result) bindings, parsed into ``BindingModel``
             instances when the KI has a binding model, otherwise raw.
-        exchange_info: One entry per knowledge base the KE exchanged data
-            with, including its status and timing.
+        exchange_info: One entry per knowledge interaction the KE exchanged
+            data with, including its status, timing and raw bindings: an
+            ``AskExchangeInfo`` for ANSWER KIs and a ``PostExchangeInfo`` for
+            REACT KIs. Both can occur for either ASK or POST, because the
+            reasoner may combine KIs of both kinds.
     """
 
     binding_set: Sequence[B]
-    exchange_info: list[ExchangeInfo]
+    exchange_info: list[AnyExchangeInfo]
 
 
 @dataclass
