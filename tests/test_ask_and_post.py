@@ -1,7 +1,7 @@
 import pytest
 from rdflib import URIRef
 
-from knowledge_mapper import KnowledgeBase
+from knowledge_mapper import ExchangeInfo, ExchangeResult, KnowledgeBase
 from knowledge_mapper.ke.models import BindingModel, Literal, Uri
 from knowledge_mapper.testing import TestClient
 
@@ -224,3 +224,89 @@ async def test_post_measurement_with_binding_models(
             kb=URIRef("http://example.org/test#kb"),
         )
     ]
+
+
+# ---------------------------------------------------------------------------
+# ask_with_info / post_with_info: bindings plus exchange info
+# ---------------------------------------------------------------------------
+
+
+class PersonBinding(BindingModel):
+    person: Uri
+    name: Literal[str]
+
+
+async def test_ask_with_info_returns_bindings_and_exchange_info(
+    kb: KnowledgeBase, client: TestClient
+):
+    kb.ask_ki(
+        name="ask-info-ki",
+        graph_pattern="?person ex:hasName ?name .",
+        prefixes={"ex": "http://example.org/test#"},
+        binding_model=PersonBinding,
+    )
+    await kb.sync_knowledge_interactions()
+    client.mock_result_binding_set(
+        ki_name="ask-info-ki",
+        binding_set=[
+            {"person": "<http://example.org/test#p1>", "name": '"Alice"^^xsd:string'}
+        ],
+    )
+
+    result = await kb.ask_with_info([], "ask-info-ki")
+
+    assert isinstance(result, ExchangeResult)
+    assert result.binding_set == [
+        PersonBinding(person=URIRef("http://example.org/test#p1"), name="Alice")
+    ]
+    assert len(result.exchange_info) == 1
+    info = result.exchange_info[0]
+    assert isinstance(info, ExchangeInfo)
+    assert info.knowledge_interaction_id == kb.ki_registry["ask-info-ki"].ke_id
+    assert info.status == "OK"
+
+
+async def test_post_with_info_returns_bindings_and_exchange_info(
+    kb: KnowledgeBase, client: TestClient
+):
+    kb.post_ki(
+        name="post-info-ki",
+        argument_graph_pattern="?person ex:hasName ?name .",
+        result_graph_pattern="?person ex:hasName ?name .",
+        prefixes={"ex": "http://example.org/test#"},
+        argument_binding_model=PersonBinding,
+        result_binding_model=PersonBinding,
+    )
+    await kb.sync_knowledge_interactions()
+    client.mock_result_binding_set(
+        ki_name="post-info-ki",
+        binding_set=[
+            {"person": "<http://example.org/test#p1>", "name": '"Bob"^^xsd:string'}
+        ],
+    )
+
+    result = await kb.post_with_info(
+        [PersonBinding(person=URIRef("http://example.org/test#p1"), name="Bob")],
+        "post-info-ki",
+    )
+
+    assert isinstance(result, ExchangeResult)
+    assert result.binding_set == [
+        PersonBinding(person=URIRef("http://example.org/test#p1"), name="Bob")
+    ]
+    assert len(result.exchange_info) == 1
+    info = result.exchange_info[0]
+    assert info.knowledge_interaction_id == kb.ki_registry["post-info-ki"].ke_id
+    assert info.status == "OK"
+
+
+async def test_ask_with_info_rejects_non_ask_ki(kb: KnowledgeBase):
+    kb.post_ki(
+        name="not-an-ask",
+        argument_graph_pattern="?s ?p ?o .",
+        result_graph_pattern="?s ?p ?o .",
+    )
+    await kb.sync_knowledge_interactions()
+
+    with pytest.raises(ValueError, match="not ASK"):
+        await kb.ask_with_info([], "not-an-ask")

@@ -7,6 +7,7 @@ from .ke.models import (
     BindingModel,
     BindingSet,
     Datatype,
+    ExchangeInfo,
     KnowledgeBaseId,
     KnowledgeInteraction,
     KnowledgeInteractionId,
@@ -15,6 +16,7 @@ from .ke.models import (
     Uri,
     validate_kb_id,
 )
+from .knowledge_interaction import ExchangeResult
 from .settings import KnowledgeBaseSettings
 
 __version__ = "0.1.0rc1"

@@ -44,7 +44,9 @@ async def main():
     # Register this KB, execute one ASK request, and then unregister.
     await kb.register()
     logger.info("KB registered.")
-    result = await kb.ask(
+    # ask_with_info() also returns the exchange info reported by the KE; use
+    # kb.ask() if you only need the bindings.
+    result = await kb.ask_with_info(
         [
             PersonBinding(
                 person=URIRef(
@@ -56,7 +58,12 @@ async def main():
         ],
         "ask-ki",
     )
-    logger.info(f"Received result from ASK KI: {result}")
+    logger.info(f"Received result from ASK KI: {result.binding_set}")
+    for info in result.exchange_info:
+        logger.info(
+            f"Exchanged with {info.knowledge_base_id}: {info.status} "
+            f"({info.exchange_end - info.exchange_start})"
+        )
 
     await kb.unregister()
     logger.info("KB unregistered.")
