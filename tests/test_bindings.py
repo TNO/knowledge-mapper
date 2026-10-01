@@ -287,3 +287,18 @@ def test_datatype_accepts_string_iri():
     assert Binding(temperature=1.5).dump_result_binding() == {
         "temperature": '"1.5"^^<http://example.org/units#celsius>'
     }
+
+
+def test_datatype_and_rdf_literal_validate_on_assignment():
+    class Binding(BindingModel):
+        temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+        remark: RdfLiteral
+
+    binding = Binding()
+    binding.temperature = '"12.5"^^<http://example.org/units#celsius>'
+    binding.remark = '"foo"@de'
+
+    assert binding.temperature == 12.5
+    assert binding.remark == RDFLiteral("foo", lang="de")
+    with pytest.raises(ValidationError, match="datatype"):
+        binding.temperature = '"12.5"^^<http://example.org/units#fahrenheit>'
