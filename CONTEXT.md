@@ -220,6 +220,15 @@ def handler(
 - `cache=True` (default): factory called once per KI-call invocation; result shared across all uses.
 - `cache=False`: factory called fresh every time it is needed.
 
+**Requesting knowledge base** (issue #53): the ID of the KB that initiated an incoming
+ANSWER/REACT call is available as a `KnowledgeBaseId`.  Handlers *and* dependency factories
+receive it by declaring a parameter named `requesting_kb_id`; the built-in factory
+`get_requesting_kb_id` exposes the same value via `Annotated[KnowledgeBaseId, Depends(get_requesting_kb_id)]`
+under any parameter name.  A `Depends` annotation on a parameter named `requesting_kb_id` takes
+precedence.  The handling loop passes the ID from the KE `/handle` response; with
+`kb.call()` pass `requesting_kb_id=` explicitly — if omitted, a required `requesting_kb_id`
+parameter raises `TypeError` and a defaulted one keeps its default.
+
 ---
 
 ### `KnowledgeBaseBuilder`
@@ -470,3 +479,4 @@ The pre-overhaul, config-file-driven mapper implementation has been removed from
 - **`KnowledgeBaseBuilder` wraps `KnowledgeBase`**: Settings-based KI registration belongs to `KnowledgeBaseBuilder`, not to `KnowledgeBase`. `KnowledgeBase.from_settings()` returns a builder; `builder.build()` returns the finished `KnowledgeBase`. `KnowledgeBase` itself has no knowledge of settings. ASK/POST KIs are auto-registered at `build()` time; ANSWER/REACT KIs require a handler attached via `builder.handler(name, func)` before `build()` is called.
 - **Dependency injection via `Depends`**: `KnowledgeInteractionContext.dispatch()` calls `resolve_dependencies(handler)` before invoking the handler, passing resolved values as kwargs.  The resolver (`src/dependency_injection.py`) uses `get_type_hints(include_extras=True)` to find `Annotated[T, Depends(factory)]` params, recursively resolves factory deps (transitive), and caches results per invocation when `cache=True`.  Factories can be sync (`def`) or async (`async def`) — async factories are detected via `asyncio.iscoroutinefunction()` and awaited; sync factories are called directly.  `@wraps` on the decorator wrapper preserves `__annotations__`, so the resolver sees the original handler's hints.
 - **`dependency_overrides`**: `KnowledgeBase.dependency_overrides` is a `dict[Callable, Callable]` (à la FastAPI) that substitutes dependency factories at resolution time.  Overrides are checked transitively at every level and inherit the original `Depends(cache=...)` setting.  The dict is passed explicitly from `KnowledgeBase.call()` → `dispatch()` → `resolve_dependencies()` to keep `KnowledgeInteractionContext` decoupled from `KnowledgeBase`.
+- **Per-call values injected by name (`provided`)**: `resolve_dependencies(..., provided=...)` injects values by parameter name into the handler and, transitively, into every dependency factory (`Depends` annotations win on name clashes).  `dispatch()` uses this for `requesting_kb_id`, taken from `HandleRequest.requesting_knowledge_base_id` in the handling loop and threaded through `KnowledgeBase.call()`.  Values are passed explicitly (no `ContextVar`) so they also reach sync handlers run via `asyncio.to_thread`.

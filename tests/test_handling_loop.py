@@ -8,6 +8,7 @@ import pytest
 from knowledge_mapper import KnowledgeBase
 from knowledge_mapper.ke.models import (
     BindingSet,
+    KnowledgeBaseId,
     KnowledgeInteraction,
 )
 from knowledge_mapper.testing import TestClient
@@ -52,6 +53,28 @@ async def test_handle_dispatches_to_handler(kb: KnowledgeBase, client: TestClien
 
     assert kb._test_captured == [input_bs]  # type: ignore[attr-defined]
     assert client.last_handle_response == input_bs
+
+
+async def test_handler_receives_requesting_kb_id(kb: KnowledgeBase, client: TestClient):
+    """The requesting KB ID from the HANDLE request is injected into the handler."""
+    received: list[KnowledgeBaseId] = []
+
+    @kb.answer_ki(name="requester-ki", graph_pattern="?a ?b ?c .")
+    def handler(
+        binding_set: BindingSet,
+        info: KnowledgeInteraction,
+        requesting_kb_id: KnowledgeBaseId,
+    ) -> BindingSet:
+        received.append(requesting_kb_id)
+        return []
+
+    await kb.sync_knowledge_interactions()
+    requester = KnowledgeBaseId("http://example.org/requester#kb")
+    client.enqueue_handle_request("requester-ki", [], requesting_kb_id=requester)
+
+    await kb.start_handling_loop(loops=1)
+
+    assert received == [requester]
 
 
 async def test_exit_stops_loop(kb: KnowledgeBase, client: TestClient):
