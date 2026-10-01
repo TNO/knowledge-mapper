@@ -76,6 +76,7 @@ The [`examples/`](./examples/) directory contains runnable examples covering all
 | [08-async_handlers.py](./examples/08-async_handlers.py) | Async and sync REACT handlers side by side |
 | [09-sparql-store/](./examples/09-sparql-store/) | Connecting a SPARQL store as a knowledge base |
 | [10-cli.py](./examples/10-cli.py) | Start a KB via the `knowledge-mapper run` CLI |
+| [11-custom_datatypes.py](./examples/11-custom_datatypes.py) | Literals with custom (non-XSD) datatypes in binding models |
 
 See the [examples README](./examples/README.md) for prerequisites and setup instructions.
 
@@ -151,6 +152,19 @@ class PersonBinding(BindingModel):
 ```
 
 Use `BindingModel` for type safety and automatic serialization. Use raw `BindingSet` (`Sequence[dict[str, str]]`) for passthrough data.
+
+`Literal[T]` infers an XSD datatype from the Python value. For custom (non-XSD) datatypes:
+
+```python
+from typing import Annotated
+from knowledge_mapper import BindingModel, Datatype, Literal, RdfLiteral
+
+class ObservationBinding(BindingModel):
+    # Python float, serialized as "..."^^ex:celsius; other incoming datatypes are rejected
+    temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")]
+    # rdflib.Literal kept as-is; any datatype or language tag is preserved
+    remark: RdfLiteral
+```
 
 ### `Depends` — Dependency Injection
 

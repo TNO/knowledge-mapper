@@ -78,7 +78,7 @@ src/
   ke/
     __init__.py
     client.py                  # Client (real HTTP) + ClientProtocol (interface) + PollResult
-    models.py                  # All Pydantic models: BindingModel, Uri, Literal, KiTypes, etc.
+    models.py                  # All Pydantic models: BindingModel, Uri, Literal, RdfLiteral, Datatype, KiTypes, etc.
     errors.py                  # Custom exceptions
     testing/
       fake_client.py           # TestClient — in-memory fake SC for unit tests
@@ -88,6 +88,7 @@ examples/
   binding_models.py            # Typed BindingModels vs raw BindingSet usage
   ask_interaction.py           # ASK KI with a typed BindingModel
   post_measurement.py          # POST KI with argument and result BindingModels
+  11-custom_datatypes.py       # Custom literal datatypes with Datatype and RdfLiteral
   custom-settings/
     custom_settings.py         # KnowledgeBaseSettings subclass + ki_from_settings pattern
     settings.yaml              # Example YAML config for all four KI types
@@ -249,7 +250,9 @@ class PersonBinding(BindingModel):
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
-- **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`.
+- **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`. The datatype is inferred from the Python value (XSD); an incoming custom datatype is silently dropped.
+- **`Annotated[Literal[T], Datatype(iri)]`**: Python value of type `T`, always serialized with datatype `iri`. Incoming literals with a different datatype fail validation. Use for custom (non-XSD) datatypes.
+- **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
