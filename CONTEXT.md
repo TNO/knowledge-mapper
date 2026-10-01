@@ -115,10 +115,10 @@ tests/
 from src import KnowledgeBase
 
 kb = KnowledgeBase(
-    id="http://example.org/my-kb",        # URI identifying this KB in the network
+    id="http://example.org/my-kb",  # URI identifying this KB in the network
     name="my-kb",
     description="...",
-    ke_url="http://localhost:8280/rest",   # URL of the Smart Connector REST API
+    ke_url="http://localhost:8280/rest",  # URL of the Smart Connector REST API
 )
 
 # Alternatively, build from settings — returns a KnowledgeBaseBuilder:
@@ -127,10 +127,14 @@ builder = KnowledgeBase.from_settings(settings)  # settings: KnowledgeBaseSettin
 
 #### Lifecycle
 ```python
-await kb.connect()      # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
-await kb.register()     # Register KB + sync all KIs with the SC (re-registers if already registered)
-await kb.unregister()   # Unregister KB from SC (KIs automatically unregistered)
-await kb.close()        # Close the underlying HTTP client and release resources
+# Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
+await kb.connect()
+# Register KB + sync all KIs with the SC (re-registers if already registered)
+await kb.register()
+# Unregister KB from SC (KIs automatically unregistered)
+await kb.unregister()
+# Close the underlying HTTP client and release resources
+await kb.close()
 ```
 
 #### Registering KIs (decorator pattern)
@@ -142,8 +146,11 @@ def my_handler(binding_set, info):
     ...
     return binding_set
 
+
 # REACT KI — handler called when another KB posts matching data
-@kb.react_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+@kb.react_ki(
+    name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...}
+)
 def my_react_handler(binding_set, info):
     ...
     return result_binding_set
@@ -156,22 +163,29 @@ def my_react_handler(binding_set, info):
 kb.ask_ki(name="...", graph_pattern="...", binding_model=MyModel, prefixes={...})
 
 # POST KI — no handler; call kb.post() to push data to the network
-kb.post_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+kb.post_ki(
+    name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...}
+)
 ```
 
 #### Outgoing interactions
 
 ```python
-result = await kb.ask(binding_set, ki_name="...")    # Returns BindingSet or list[BindingModel]
-result = await kb.post(binding_set, ki_name="...")   # Returns result BindingSet or list[BindingModel]
+# Returns BindingSet or list[BindingModel]
+result = await kb.ask(binding_set, ki_name="...")
+# Returns result BindingSet or list[BindingModel]
+result = await kb.post(binding_set, ki_name="...")
 ```
 
 #### Handling loop
 
 ```python
-await kb.start_handling_loop()                          # Concurrent dispatch, up to 10 in-flight
-await kb.start_handling_loop(max_concurrent_handlers=5) # Limit to 5 concurrent handlers
-await kb.start_handling_loop(loops=10)                  # Runs exactly 10 poll cycles (useful for testing)
+# Concurrent dispatch, up to 10 in-flight
+await kb.start_handling_loop()
+# Limit to 5 concurrent handlers
+await kb.start_handling_loop(max_concurrent_handlers=5)
+# Runs exactly 10 poll cycles (useful for testing)
+await kb.start_handling_loop(loops=10)
 ```
 
 ---
@@ -185,8 +199,10 @@ Handlers can declare dependencies (database connections, HTTP clients, config, e
 from typing import Annotated
 from src import Depends
 
+
 def get_db() -> MyDatabase:
     return MyDatabase(url="...")
+
 
 @kb.answer_ki(name="...", graph_pattern="...")
 def handler(
@@ -226,8 +242,9 @@ builder.handler("my-answer-ki", my_handler_func)
 
 # For ASK/POST — no call needed; they are auto-registered from settings
 
-kb = builder.build()   # Returns the configured KnowledgeBase; raises ValueError if any
-                       # ANSWER/REACT KI has no handler
+# Returns the configured KnowledgeBase; raises ValueError if any ANSWER/REACT KI
+# has no handler
+kb = builder.build()
 kb.connect()
 kb.register()
 kb.start_handling_loop()
@@ -243,10 +260,11 @@ kb.start_handling_loop()
 from src.ke.models import BindingModel, Uri, Literal
 from rdflib import URIRef
 
+
 class PersonBinding(BindingModel):
-    person: Uri              # maps to/from URIRef, serialized as <...>
-    name: Literal[str]       # maps to/from Python str, serialized as "..."^^xsd:string
-    age: Literal[int]        # maps to/from Python int, serialized as "..."^^xsd:integer
+    person: Uri  # maps to/from URIRef, serialized as <...>
+    name: Literal[str]  # maps to/from Python str, serialized as "..."^^xsd:string
+    age: Literal[int]  # maps to/from Python int, serialized as "..."^^xsd:integer
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
@@ -264,6 +282,7 @@ Handler type annotation controls automatic (de)serialization:
 ```python
 # Typed — framework validates incoming bindings and serializes outgoing ones
 def my_handler(binding_set: list[PersonBinding], info) -> list[PersonBinding]: ...
+
 
 # Raw — no automatic conversion, you get/return raw N3 strings
 def my_handler(binding_set: BindingSet, info) -> BindingSet: ...
@@ -286,14 +305,17 @@ Subclass to add application-specific settings:
 from src import KnowledgeBaseSettings
 from pydantic_settings import SettingsConfigDict, CliSettingsSource
 
+
 class AppSettings(KnowledgeBaseSettings):
     model_config = SettingsConfigDict(yaml_file="config.yaml", cli_parse_args=True)
     db_url: str = "sqlite:///./app.db"
 
     @classmethod
     def settings_customise_sources(cls, settings_cls, **kwargs):
-        return (CliSettingsSource(settings_cls, cli_parse_args=True),
-                *super().settings_customise_sources(settings_cls, **kwargs))
+        return (
+            CliSettingsSource(settings_cls, cli_parse_args=True),
+            *super().settings_customise_sources(settings_cls, **kwargs),
+        )
 ```
 
 YAML config structure:
@@ -336,7 +358,7 @@ from src.ke.testing import TestClient
 
 client = TestClient(fake_url="http://fake-ke")
 kb = KnowledgeBase(id="...", name="...", description="...", ke_url="http://fake-ke")
-kb.client = client   # inject fake client
+kb.client = client  # inject fake client
 kb.register()
 
 # Mock a result for an ASK or POST KI
@@ -359,12 +381,15 @@ assert client.last_handle_response == [...]
 def get_db() -> RealDatabase:
     return RealDatabase(url="postgresql://...")
 
+
 # In production — handler receives RealDatabase
 @kb.answer_ki(name="my-ki", graph_pattern="...")
 def handler(
-    binding_set, info,
+    binding_set,
+    info,
     db: Annotated[RealDatabase, Depends(get_db)],
 ): ...
+
 
 # In tests — swap the factory
 kb.dependency_overrides[get_db] = lambda: FakeDatabase()
