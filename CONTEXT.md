@@ -271,6 +271,7 @@ class PersonBinding(BindingModel):
 - **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`. The datatype is inferred from the Python value (XSD); an incoming custom datatype is silently dropped.
 - **`Annotated[Literal[T], Datatype(iri)]`**: Python value of type `T`, always serialized with datatype `iri`. Incoming literals with a different datatype fail validation. Use for custom (non-XSD) datatypes.
 - **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
+- Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
