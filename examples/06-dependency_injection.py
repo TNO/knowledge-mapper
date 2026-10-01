@@ -16,6 +16,10 @@ dependencies are wired together:
 
 Because both the handler and the repository factory depend on the same
 ``get_config`` factory, the config object is built only once per KI call.
+
+The handler also receives the ID of the knowledge base that sent the query
+by declaring a ``requesting_kb_id`` parameter (dependency factories can do
+the same, or use ``Depends(get_requesting_kb_id)``).
 """
 
 import sys
@@ -30,6 +34,7 @@ from knowledge_mapper import (
     BindingModel,
     Depends,
     KnowledgeBase,
+    KnowledgeBaseId,
     KnowledgeInteraction,
     Literal,
     Uri,
@@ -137,6 +142,7 @@ def answer_sensor_readings(
     info: KnowledgeInteraction,
     repo: Annotated[SensorRepository, Depends(get_sensor_repository)],
     config: Annotated[AppConfig, Depends(get_config)],
+    requesting_kb_id: KnowledgeBaseId,
 ) -> list[SensorReadingBinding]:
     """Answer queries about sensor temperatures.
 
@@ -145,11 +151,15 @@ def answer_sensor_readings(
     passed to both ``get_sensor_repository`` and directly to this handler — it
     is constructed only once.
 
+    ``requesting_kb_id`` is injected by name: the ID of the KB that sent the
+    query.
+
     ``binding_set`` may contain partial bindings (sensor URI provided,
     temperature unknown) or be empty (return all sensors).
     """
     logger.info(
-        "Handling sensor-readings query (db=%s, incoming=%d bindings)",
+        "Handling sensor-readings query from %s (db=%s, incoming=%d bindings)",
+        requesting_kb_id,
         config.db_url,
         len(binding_set),
     )

@@ -2,9 +2,11 @@ from typing import Annotated
 
 import pytest
 
-from knowledge_mapper import Depends
+from knowledge_mapper import Depends, get_requesting_kb_id
 from knowledge_mapper.kb.knowledge_base import KnowledgeBase
-from knowledge_mapper.ke.models import BindingSet
+from knowledge_mapper.ke.models import BindingSet, KnowledgeBaseId
+
+REQUESTER = KnowledgeBaseId("http://example.org/requester#kb")
 
 
 @pytest.fixture
@@ -427,4 +429,152 @@ async def test_dependency_override_transitive_with_async(kb: KnowledgeBase):
     kb.dependency_overrides[get_config] = async_get_config
     assert await kb.call([], "async-transitive-override-ki") == [
         {"url": "async-test://db"}
+    ]
+
+
+# ---------------------------------------------------------------------------
+# requesting_kb_id: by-name injection and get_requesting_kb_id factory
+# ---------------------------------------------------------------------------
+
+
+async def test_handler_receives_requesting_kb_id_by_name(kb: KnowledgeBase):
+    """A handler parameter named ``requesting_kb_id`` receives the requester's ID."""
+
+    @kb.answer_ki(name="by-name-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet, info, requesting_kb_id: KnowledgeBaseId
+    ) -> BindingSet:
+        return [{"requester": requesting_kb_id}]
+
+    result = await kb.call([], "by-name-ki", requesting_kb_id=REQUESTER)
+    assert result == [{"requester": REQUESTER}]
+
+
+async def test_async_handler_receives_requesting_kb_id_by_name(kb: KnowledgeBase):
+    """By-name injection also works for async handlers."""
+
+    @kb.answer_ki(name="async-by-name-ki", graph_pattern="?s ?p ?o .")
+    async def handler(
+        binding_set: BindingSet, info, requesting_kb_id: KnowledgeBaseId
+    ) -> BindingSet:
+        return [{"requester": requesting_kb_id}]
+
+    result = await kb.call([], "async-by-name-ki", requesting_kb_id=REQUESTER)
+    assert result == [{"requester": REQUESTER}]
+
+
+async def test_handler_receives_requesting_kb_id_via_depends(kb: KnowledgeBase):
+    """``Depends(get_requesting_kb_id)`` injects the requester under any name."""
+
+    @kb.answer_ki(name="depends-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        caller: Annotated[KnowledgeBaseId, Depends(get_requesting_kb_id)],
+    ) -> BindingSet:
+        return [{"requester": caller}]
+
+    result = await kb.call([], "depends-ki", requesting_kb_id=REQUESTER)
+    assert result == [{"requester": REQUESTER}]
+
+
+async def test_dependency_factory_receives_requesting_kb_id(kb: KnowledgeBase):
+    """A (nested) dependency factory can declare ``requesting_kb_id`` by name."""
+
+    def get_caller_role(requesting_kb_id: KnowledgeBaseId) -> str:
+        return "admin" if requesting_kb_id == REQUESTER else "guest"
+
+    def get_greeting(role: Annotated[str, Depends(get_caller_role)]) -> str:
+        return f"hello {role}"
+
+    @kb.answer_ki(name="factory-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        greeting: Annotated[str, Depends(get_greeting)],
+    ) -> BindingSet:
+        return [{"greeting": greeting}]
+
+    assert await kb.call([], "factory-ki", requesting_kb_id=REQUESTER) == [
+        {"greeting": "hello admin"}
+    ]
+    assert await kb.call(
+        [], "factory-ki", requesting_kb_id=KnowledgeBaseId("http://example.org/x")
+    ) == [{"greeting": "hello guest"}]
+
+
+async def test_requesting_kb_id_not_injected_when_not_declared(kb: KnowledgeBase):
+    """Handlers that don't declare ``requesting_kb_id`` keep working unchanged."""
+
+    @kb.answer_ki(name="plain-ki", graph_pattern="?s ?p ?o .")
+    def handler(binding_set: BindingSet, info) -> BindingSet:
+        return [{"ok": "yes"}]
+
+    assert await kb.call([], "plain-ki", requesting_kb_id=REQUESTER) == [{"ok": "yes"}]
+
+
+async def test_requesting_kb_id_default_used_when_not_provided(kb: KnowledgeBase):
+    """Without a requesting KB ID, a defaulted parameter keeps its default."""
+
+    @kb.answer_ki(name="default-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        requesting_kb_id: KnowledgeBaseId | None = None,
+    ) -> BindingSet:
+        return [{"requester": str(requesting_kb_id)}]
+
+    assert await kb.call([], "default-ki") == [{"requester": "None"}]
+
+
+async def test_requesting_kb_id_required_but_not_provided_raises(kb: KnowledgeBase):
+    """A required ``requesting_kb_id`` parameter fails loudly when it is unknown."""
+
+    @kb.answer_ki(name="required-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet, info, requesting_kb_id: KnowledgeBaseId
+    ) -> BindingSet:
+        return []
+
+    with pytest.raises(TypeError, match="requesting_kb_id"):
+        await kb.call([], "required-ki")
+
+
+async def test_depends_takes_precedence_over_requesting_kb_id_by_name(
+    kb: KnowledgeBase,
+):
+    """A ``Depends``-annotated parameter named ``requesting_kb_id`` uses the factory."""
+
+    def get_fixed_id() -> KnowledgeBaseId:
+        return KnowledgeBaseId("http://example.org/fixed")
+
+    @kb.answer_ki(name="precedence-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        requesting_kb_id: Annotated[KnowledgeBaseId, Depends(get_fixed_id)],
+    ) -> BindingSet:
+        return [{"requester": requesting_kb_id}]
+
+    assert await kb.call([], "precedence-ki", requesting_kb_id=REQUESTER) == [
+        {"requester": "http://example.org/fixed"}
+    ]
+
+
+async def test_requesting_kb_id_factory_can_be_overridden(kb: KnowledgeBase):
+    """``get_requesting_kb_id`` can be replaced via ``dependency_overrides``."""
+
+    @kb.answer_ki(name="override-requester-ki", graph_pattern="?s ?p ?o .")
+    def handler(
+        binding_set: BindingSet,
+        info,
+        caller: Annotated[KnowledgeBaseId, Depends(get_requesting_kb_id)],
+    ) -> BindingSet:
+        return [{"requester": caller}]
+
+    kb.dependency_overrides[get_requesting_kb_id] = lambda: KnowledgeBaseId(
+        "http://example.org/override"
+    )
+    assert await kb.call([], "override-requester-ki") == [
+        {"requester": "http://example.org/override"}
     ]

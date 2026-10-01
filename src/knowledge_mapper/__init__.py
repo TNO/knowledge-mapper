@@ -1,6 +1,6 @@
 import logging
 
-from .dependency_injection import Depends
+from .dependency_injection import Depends, get_requesting_kb_id
 from .kb.builder import KnowledgeBaseBuilder
 from .kb.knowledge_base import KnowledgeBase
 from .ke.models import (

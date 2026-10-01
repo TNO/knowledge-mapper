@@ -5,11 +5,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Concatenate, get_args
 
-from .dependency_injection import resolve_dependencies
+from .dependency_injection import REQUESTING_KB_ID_PARAM, resolve_dependencies
 from .ke.models import (
     BindingModel,
     BindingSet,
     KiTypes,
+    KnowledgeBaseId,
     KnowledgeInteraction,
     KnowledgeInteractionId,
 )
@@ -55,16 +56,26 @@ class KnowledgeInteractionContext[B, **P]:
         dependency_overrides: (
             dict[Callable[..., Any], Callable[..., Any]] | None
         ) = None,
+        requesting_kb_id: KnowledgeBaseId | None = None,
     ) -> BindingSet:
         """Validate incoming bindings, call the handler (with DI), and serialize
         the result back to a raw BindingSet.
 
         Used by the handling loop for incoming ANSWER/REACT KI calls.
+
+        ``requesting_kb_id`` is injected into the handler and its dependency
+        factories when they declare a parameter of that name.  When it is
+        ``None`` it is not injected, so such a parameter must have a default.
         """
         assert self.handler is not None
 
+        provided = (
+            {REQUESTING_KB_ID_PARAM: requesting_kb_id}
+            if requesting_kb_id is not None
+            else {}
+        )
         dep_kwargs = await resolve_dependencies(
-            self.handler, overrides=dependency_overrides
+            self.handler, overrides=dependency_overrides, provided=provided
         )
 
         if self.validation_model:

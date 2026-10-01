@@ -200,6 +200,30 @@ def handler(
 
 Dependencies can be sync or async, support nesting, and are cached per invocation by default (`cache=True`).
 
+**Requesting knowledge base:** to know which KB initiated an incoming call (e.g. for authorization), declare a parameter named `requesting_kb_id` on a handler or dependency factory, or use the built-in `get_requesting_kb_id` factory:
+
+```python
+from knowledge_mapper import KnowledgeBaseId, get_requesting_kb_id
+
+
+def authorize(requesting_kb_id: KnowledgeBaseId) -> KnowledgeBaseId:
+    if requesting_kb_id not in ALLOWED_KBS:
+        raise PermissionError(requesting_kb_id)
+    return requesting_kb_id
+
+
+@kb.answer_ki(name="...", graph_pattern="...")
+def handler(
+    binding_set: BindingSet,
+    info: KnowledgeInteraction,
+    requesting_kb_id: KnowledgeBaseId,  # injected by name
+    caller: Annotated[KnowledgeBaseId, Depends(get_requesting_kb_id)],  # same value
+    authorized: Annotated[KnowledgeBaseId, Depends(authorize)],
+) -> BindingSet: ...
+```
+
+In tests, pass it explicitly: `await kb.call(binding_set, "ki-name", requesting_kb_id=...)`.
+
 ### `KnowledgeBaseBuilder`
 
 Build a `KnowledgeBase` from settings. Returned by `KnowledgeBase.from_settings()`.

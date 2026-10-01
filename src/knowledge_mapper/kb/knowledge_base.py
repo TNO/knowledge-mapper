@@ -515,8 +515,20 @@ class KnowledgeBase:
             defer_ke_registration=defer_ke_registration,
         )
 
-    async def call(self, binding_set: BindingSet, ki_name: str) -> BindingSet:
+    async def call(
+        self,
+        binding_set: BindingSet,
+        ki_name: str,
+        requesting_kb_id: KnowledgeBaseId | None = None,
+    ) -> BindingSet:
         """Invoke the handler of a registered KI by its name.
+
+        Args:
+            binding_set: The incoming binding set.
+            ki_name: The name of the KI whose handler is invoked.
+            requesting_kb_id: The ID of the KB that initiated the call.  Injected
+                into handlers and dependency factories that declare a
+                ``requesting_kb_id`` parameter.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
@@ -524,6 +536,7 @@ class KnowledgeBase:
         return await self.ki_registry[ki_name].dispatch(
             binding_set,
             dependency_overrides=self.dependency_overrides or None,
+            requesting_kb_id=requesting_kb_id,
         )
 
     async def post(
@@ -706,6 +719,9 @@ class KnowledgeBase:
                                 result_binding_set = await self.call(
                                     handle_request.binding_set,
                                     ki_ctx.definition.name,
+                                    requesting_kb_id=(
+                                        handle_request.requesting_knowledge_base_id
+                                    ),
                                 )
                             except Exception:
                                 logger.exception(
