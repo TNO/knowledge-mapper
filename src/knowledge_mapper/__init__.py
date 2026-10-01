@@ -10,6 +10,7 @@ from .ke.models import (
     KnowledgeInteraction,
     KnowledgeInteractionId,
     Literal,
+    RdfLiteral,
     Uri,
     validate_kb_id,
 )

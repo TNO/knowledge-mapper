@@ -109,6 +109,37 @@ Literal = Annotated[
     Field(default=None),
 ]
 
+
+def validate_rdf_literal(input: Any) -> RDFLiteral | None:
+    if isinstance(input, RDFLiteral) or input is None:
+        return input
+    if not isinstance(input, str) or not input.startswith(('"', "'")):
+        raise ValueError(f"Expected an rdflib Literal or N3 literal, got {input!r}")
+
+    literal = from_n3(input)
+    if not isinstance(literal, RDFLiteral):
+        raise ValueError(f"Expected a literal value, got {input}")
+    return literal
+
+
+def serialize_rdf_literal(input: RDFLiteral | None) -> str | None:
+    if input is None:
+        return None
+    return input.n3()
+
+
+RdfLiteral = Annotated[
+    RDFLiteral | None,
+    PlainValidator(validate_rdf_literal),
+    PlainSerializer(serialize_rdf_literal),
+    Field(default=None),
+]
+"""A literal kept as an ``rdflib.Literal``, without conversion to a Python value.
+
+Preserves the lexical form, datatype (including custom, non-XSD datatypes) and
+language tag on round-trips.
+"""
+
 # endregion: -- Binding Node
 
 # region:    -- Binding Model

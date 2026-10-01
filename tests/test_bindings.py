@@ -1,15 +1,20 @@
+import pytest
+from pydantic import ValidationError
+from rdflib import XSD, URIRef
 from rdflib import Literal as RDFLiteral
-from rdflib import URIRef
 
 from knowledge_mapper.ke.models import (
     BindingModel,
     Literal,
+    RdfLiteral,
     Uri,
     serialize_literal,
     serialize_uri,
     validate_literal,
     validate_uri,
 )
+
+CELSIUS = URIRef("http://example.org/units#celsius")
 
 
 def test_validate_str_to_uriref():
@@ -91,3 +96,76 @@ def test_validate_binding():
     assert binding.sensor == URIRef("http://example.org/test#sensor")
     assert binding.year_of_manufacture == 2020
     assert binding.manufacturer_name == "Manufacturer Inc."
+
+
+# ---------- RdfLiteral
+
+
+class RdfLiteralBinding(BindingModel):
+    value: RdfLiteral
+
+
+@pytest.mark.parametrize(
+    "n3",
+    [
+        '"12.5"^^<http://example.org/units#celsius>',
+        '"4"^^<http://www.w3.org/2001/XMLSchema#integer>',
+        '"foo"@de',
+        '"plain"',
+    ],
+)
+def test_rdf_literal_round_trip(n3):
+    binding = RdfLiteralBinding.model_validate({"value": n3})
+
+    assert isinstance(binding.value, RDFLiteral)
+    assert binding.dump_result_binding() == {"value": n3}
+
+
+def test_rdf_literal_preserves_datatype_and_language():
+    custom = RdfLiteralBinding.model_validate(
+        {"value": '"12.5"^^<http://example.org/units#celsius>'}
+    )
+    tagged = RdfLiteralBinding.model_validate({"value": '"foo"@de'})
+
+    assert custom.value.datatype == CELSIUS
+    assert str(custom.value) == "12.5"
+    assert tagged.value.language == "de"
+
+
+def test_rdf_literal_from_rdflib_literal():
+    binding = RdfLiteralBinding(value=RDFLiteral("12.5", datatype=CELSIUS))
+
+    assert binding.dump_result_binding() == {
+        "value": '"12.5"^^<http://example.org/units#celsius>'
+    }
+
+
+def test_rdf_literal_keeps_xsd_literal_unconverted():
+    binding = RdfLiteralBinding(value=RDFLiteral(4))
+
+    assert isinstance(binding.value, RDFLiteral)
+    assert binding.value.datatype == XSD.integer
+
+
+def test_rdf_literal_none():
+    binding = RdfLiteralBinding()
+
+    assert binding.value is None
+    assert binding.dump_partial_binding() == {}
+
+
+@pytest.mark.parametrize("value", ["<http://example.org/not-a-literal>", "bare", 4])
+def test_rdf_literal_rejects_non_literals(value):
+    with pytest.raises(ValidationError):
+        RdfLiteralBinding.model_validate({"value": value})
+
+
+def test_plain_literal_still_coerces_custom_datatype():
+    class FloatBinding(BindingModel):
+        value: Literal[float]
+
+    binding = FloatBinding.model_validate(
+        {"value": '"12.5"^^<http://example.org/units#celsius>'}
+    )
+
+    assert binding.value == 12.5
