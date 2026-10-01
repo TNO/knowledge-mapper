@@ -116,7 +116,12 @@ Literal = Annotated[
 
 class BindingModel(BaseModel):
     model_config = ConfigDict(
-        arbitrary_types_allowed=True, alias_generator=to_camel, populate_by_name=True
+        arbitrary_types_allowed=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+        # Without this, assigned values skip type coercion and lose their
+        # RDF datatype on serialization (issue #54).
+        validate_assignment=True,
     )
 
     def dump_result_binding(self) -> dict[str, Any]:

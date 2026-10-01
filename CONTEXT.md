@@ -250,6 +250,7 @@ class PersonBinding(BindingModel):
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
 - **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`.
+- Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
