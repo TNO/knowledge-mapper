@@ -89,6 +89,7 @@ examples/
   ask_interaction.py           # ASK KI with a typed BindingModel
   post_measurement.py          # POST KI with argument and result BindingModels
   11-custom_datatypes.py       # Custom literal datatypes with Datatype and RdfLiteral
+  12-dockerized/               # Dockerfile + compose.yaml for running a KB next to an SC/KD
   custom-settings/
     custom_settings.py         # KnowledgeBaseSettings subclass + ki_from_settings pattern
     settings.yaml              # Example YAML config for all four KI types

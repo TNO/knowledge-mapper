@@ -80,6 +80,7 @@ The [`examples/`](./examples/) directory contains runnable examples covering all
 | [09-sparql-store/](./examples/09-sparql-store/) | Connecting a SPARQL store as a knowledge base |
 | [10-cli.py](./examples/10-cli.py) | Start a KB via the `knowledge-mapper run` CLI |
 | [11-custom_datatypes.py](./examples/11-custom_datatypes.py) | Literals with custom (non-XSD) datatypes in binding models |
+| [12-dockerized/](./examples/12-dockerized/) | Package a KB as a Docker image and run it with a Smart Connector via Docker Compose |
 
 See the [examples README](./examples/README.md) for prerequisites and setup instructions.
 

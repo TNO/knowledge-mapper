@@ -1,0 +1,45 @@
+# Runs the dockerized knowledge base next to a Smart Connector and a Knowledge
+# Directory. Start with `docker compose up --build`; see README.md.
+
+services:
+  knowledge-directory:
+    image: ghcr.io/tno/knowledge-engine/knowledge-directory:1.3.2
+
+  smart-connector:
+    image: ghcr.io/tno/knowledge-engine/smart-connector:1.3.2
+    environment:
+      # Address other Smart Connectors use to reach this one, via the KD.
+      KE_RUNTIME_EXPOSED_URL: http://smart-connector:8081
+      KE_RUNTIME_PORT: 8081
+      KD_URL: http://knowledge-directory:8282
+    depends_on:
+      - knowledge-directory
+    # The REST API (port 8280) is only used by containers on this network, so it
+    # is not published. Add `ports: ["8280:8280"]` to reach it from the host.
+
+  answer-kb:
+    build: .
+    image: km-dockerized-example:local
+    environment:
+      KNOWLEDGE_BASE__ID: http://example.org/knowledge-mapper/dockerized#answer-kb
+      KNOWLEDGE_BASE__NAME: dockerized-answer-kb
+      KNOWLEDGE_BASE__DESCRIPTION: A dockerized KB that answers greeting requests.
+      # Containers reach each other by service name on the compose network.
+      KNOWLEDGE_ENGINE_ENDPOINT: http://smart-connector:8280/rest
+    depends_on:
+      - smart-connector
+    # The KB exits if the Smart Connector is not up yet; restarting retries.
+    restart: unless-stopped
+
+  asker:
+    # Same image as answer-kb, started with a different command.
+    build: .
+    image: km-dockerized-example:local
+    command: ["python", "asker.py"]
+    environment:
+      KNOWLEDGE_BASE__ID: http://example.org/knowledge-mapper/dockerized#asker
+      KNOWLEDGE_BASE__NAME: dockerized-asker
+      KNOWLEDGE_BASE__DESCRIPTION: A one-shot KB that asks the answer-kb for greetings.
+      KNOWLEDGE_ENGINE_ENDPOINT: http://smart-connector:8280/rest
+    depends_on:
+      - answer-kb

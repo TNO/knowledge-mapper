@@ -1,0 +1,12 @@
+[project]
+name = "knowledge-mapper-dockerized-example"
+version = "0.1.0"
+description = "A knowledge base application packaged as a Docker image."
+requires-python = ">=3.13"
+dependencies = [
+    "knowledge-mapper==0.1.0rc1",
+]
+
+[tool.uv]
+# The app is a set of scripts, not an installable package.
+package = false
