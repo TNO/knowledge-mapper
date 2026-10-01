@@ -2,7 +2,7 @@
 
 import pytest
 
-from knowledge_mapper import KnowledgeBase
+from knowledge_mapper import ExchangeResult, KnowledgeBase
 from knowledge_mapper.ke.models import BindingSet, KnowledgeInteraction
 from knowledge_mapper.testing import TestClient
 
@@ -119,3 +119,56 @@ async def test_post_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient
 
     assert len(post_result_capture) == 1
     assert post_result_capture[0] == [{"x": "ex:A", "kb": "ex:myKB"}]
+
+
+async def test_with_info_sync_outside_handling_loop_raises(kb: KnowledgeBase):
+    """ask_with_info_sync() / post_with_info_sync() require the handling loop."""
+    kb.ask_ki(name="my-ask", graph_pattern="?s ?p ?o .")
+    kb.post_ki(
+        name="my-post",
+        argument_graph_pattern="?s ?p ?o .",
+        result_graph_pattern="?s ?p ?o .",
+    )
+    await kb.register()
+
+    with pytest.raises(RuntimeError, match="handling loop"):
+        kb.ask_with_info_sync([{}], ki_name="my-ask")
+    with pytest.raises(RuntimeError, match="handling loop"):
+        kb.post_with_info_sync([{}], ki_name="my-post")
+
+
+async def test_with_info_sync_from_sync_handler(kb: KnowledgeBase, client: TestClient):
+    """A sync handler can get exchange info via the *_with_info_sync() bridges."""
+    kb.ask_ki(name="lookup", graph_pattern="?s ?p ?o .")
+    kb.post_ki(
+        name="push",
+        argument_graph_pattern="?s ?p ?o .",
+        result_graph_pattern="?s ?p ?o .",
+    )
+    await kb.register()
+    client.mock_result_binding_set(ki_name="lookup", binding_set=[{"s": "ex:found"}])
+    client.mock_result_binding_set(ki_name="push", binding_set=[{"s": "ex:stored"}])
+
+    captured: list[ExchangeResult] = []
+
+    @kb.react_ki(
+        name="my-react",
+        argument_graph_pattern="?x a ?t .",
+        result_graph_pattern="?x a ?t .",
+    )
+    def sync_handler(binding_set: BindingSet, info: KnowledgeInteraction) -> BindingSet:
+        captured.append(kb.ask_with_info_sync([{}], ki_name="lookup"))
+        captured.append(kb.post_with_info_sync([{}], ki_name="push"))
+        return binding_set
+
+    await kb.sync_knowledge_interactions()
+    client.enqueue_handle_request("my-react", [{"x": "ex:A", "t": "ex:Thing"}])
+    client.enqueue_exit()
+
+    await kb.start_handling_loop()
+
+    ask_result, post_result = captured
+    assert ask_result.binding_set == [{"s": "ex:found"}]
+    assert post_result.binding_set == [{"s": "ex:stored"}]
+    assert len(ask_result.exchange_info) == 1
+    assert len(post_result.exchange_info) == 1

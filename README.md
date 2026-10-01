@@ -146,6 +146,16 @@ result = await kb.ask(binding_set, ki_name="...")
 result = await kb.post(binding_set, ki_name="...")
 ```
 
+To also get the exchange info reported by the Knowledge Engine (which knowledge bases were involved, with status and timing), use the `*_with_info` variants. They return an `ExchangeResult` with `binding_set` and `exchange_info` (a list of `ExchangeInfo`):
+
+```python
+result = await kb.ask_with_info(binding_set, ki_name="...")
+for info in result.exchange_info:
+    print(info.knowledge_base_id, info.status, info.failed_message)
+```
+
+Sync handlers can use `ask_sync()` / `post_sync()` and `ask_with_info_sync()` / `post_with_info_sync()`.
+
 ### `BindingModel`
 
 A Pydantic `BaseModel` subclass that maps Python types to RDF N3 encoding automatically.

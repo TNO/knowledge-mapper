@@ -26,6 +26,7 @@ from ..ke.models import (
     validate_kb_id,
 )
 from ..knowledge_interaction import (
+    ExchangeResult,
     Handler,
     KnowledgeInteractionContext,
     KnowledgeInteractionStatus,
@@ -545,7 +546,25 @@ class KnowledgeBase:
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
-        """Invoke a POST KI by its name.
+        """Invoke a POST KI by its name and return the result bindings.
+
+        Use :meth:`post_with_info` to also get the exchange info.
+
+        Raises:
+            KeyError: If ``ki_name`` is not found in the local KI registry.
+            ValueError: If the KI is not registered at the KE runtime.
+        """
+        result = await self.post_with_info(binding_set, ki_name, recipients)
+        return result.binding_set
+
+    async def post_with_info(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
+    ) -> ExchangeResult:
+        """Invoke a POST KI by its name and return the result bindings together
+        with the exchange info reported by the KE.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
@@ -570,7 +589,10 @@ class KnowledgeBase:
             binding_set=ki_ctx.prepare_outgoing(binding_set),
             recipients=recipients,
         )
-        return ki_ctx.parse_result(post_result.result_binding_set)
+        return ExchangeResult(
+            binding_set=ki_ctx.parse_result(post_result.result_binding_set),
+            exchange_info=post_result.exchange_info,
+        )
 
     async def ask(
         self,
@@ -578,7 +600,25 @@ class KnowledgeBase:
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
     ) -> Sequence[BindingModel] | BindingSet:
-        """Invoke an ASK KI by its name.
+        """Invoke an ASK KI by its name and return the answer bindings.
+
+        Use :meth:`ask_with_info` to also get the exchange info.
+
+        Raises:
+            KeyError: If ``ki_name`` is not found in the local KI registry.
+            ValueError: If the KI is not registered at the KE runtime.
+        """
+        result = await self.ask_with_info(binding_set, ki_name, recipients)
+        return result.binding_set
+
+    async def ask_with_info(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
+    ) -> ExchangeResult:
+        """Invoke an ASK KI by its name and return the answer bindings together
+        with the exchange info reported by the KE.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
@@ -603,7 +643,10 @@ class KnowledgeBase:
             binding_set=ki_ctx.prepare_outgoing(binding_set),
             recipients=recipients,
         )
-        return ki_ctx.parse_result(ask_result.binding_set)
+        return ExchangeResult(
+            binding_set=ki_ctx.parse_result(ask_result.binding_set),
+            exchange_info=ask_result.exchange_info,
+        )
 
     def _require_loop(self) -> asyncio.AbstractEventLoop:
         """Return the stored event loop or raise if the handling loop is not running."""
@@ -658,6 +701,42 @@ class KnowledgeBase:
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
             self.post(binding_set, ki_name=ki_name, recipients=recipients), loop
+        )
+        return future.result()
+
+    def ask_with_info_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
+    ) -> ExchangeResult:
+        """Blocking bridge to :meth:`ask_with_info` for use in sync handlers.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.ask_with_info(binding_set, ki_name=ki_name, recipients=recipients),
+            loop,
+        )
+        return future.result()
+
+    def post_with_info_sync(
+        self,
+        binding_set: Sequence[BindingModel] | BindingSet,
+        ki_name: str,
+        recipients: list[KnowledgeBaseId] | None = None,
+    ) -> ExchangeResult:
+        """Blocking bridge to :meth:`post_with_info` for use in sync handlers.
+
+        Raises:
+            RuntimeError: If called outside the handling loop context.
+        """
+        loop = self._require_loop()
+        future = asyncio.run_coroutine_threadsafe(
+            self.post_with_info(binding_set, ki_name=ki_name, recipients=recipients),
+            loop,
         )
         return future.result()
 

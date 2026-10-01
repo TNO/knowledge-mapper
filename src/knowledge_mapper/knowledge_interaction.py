@@ -9,6 +9,7 @@ from .dependency_injection import REQUESTING_KB_ID_PARAM, resolve_dependencies
 from .ke.models import (
     BindingModel,
     BindingSet,
+    ExchangeInfo,
     KiTypes,
     KnowledgeBaseId,
     KnowledgeInteraction,
@@ -29,6 +30,23 @@ type Handler[B, **P] = (
 class KnowledgeInteractionStatus(StrEnum):
     REGISTERED = "registered"
     UNREGISTERED = "unregistered"
+
+
+@dataclass(frozen=True)
+class ExchangeResult:
+    """Result of an outgoing ASK/POST call, including exchange metadata.
+
+    Returned by ``KnowledgeBase.ask_with_info()`` / ``post_with_info()``.
+
+    Attributes:
+        binding_set: The (result) bindings, parsed into ``BindingModel``
+            instances when the KI has a binding model, otherwise raw.
+        exchange_info: One entry per knowledge base the KE exchanged data
+            with, including its status and timing.
+    """
+
+    binding_set: Sequence[BindingModel] | BindingSet
+    exchange_info: list[ExchangeInfo]
 
 
 @dataclass

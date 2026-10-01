@@ -175,7 +175,17 @@ kb.post_ki(
 result = await kb.ask(binding_set, ki_name="...")
 # Returns result BindingSet or list[BindingModel]
 result = await kb.post(binding_set, ki_name="...")
+
+# Return ExchangeResult(binding_set=..., exchange_info=[ExchangeInfo, ...])
+result = await kb.ask_with_info(binding_set, ki_name="...")
+result = await kb.post_with_info(binding_set, ki_name="...")
 ```
+
+`ask()` / `post()` delegate to `ask_with_info()` / `post_with_info()` and drop the exchange
+info (issue #49).  `ExchangeResult` is a frozen dataclass defined in `knowledge_interaction.py`
+(KB level, parsed bindings); `AskResult` / `PostResult` in `ke/models.py` remain the raw client
+(wire) models.  Blocking bridges for sync handlers: `ask_sync()`, `post_sync()`,
+`ask_with_info_sync()`, `post_with_info_sync()`.
 
 #### Handling loop
 
