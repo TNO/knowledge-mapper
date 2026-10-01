@@ -78,7 +78,7 @@ src/
   ke/
     __init__.py
     client.py                  # Client (real HTTP) + ClientProtocol (interface) + PollResult
-    models.py                  # All Pydantic models: BindingModel, Uri, Literal, KiTypes, etc.
+    models.py                  # All Pydantic models: BindingModel, Uri, Literal, RdfLiteral, Datatype, KiTypes, etc.
     errors.py                  # Custom exceptions
     testing/
       fake_client.py           # TestClient — in-memory fake SC for unit tests
@@ -88,6 +88,7 @@ examples/
   binding_models.py            # Typed BindingModels vs raw BindingSet usage
   ask_interaction.py           # ASK KI with a typed BindingModel
   post_measurement.py          # POST KI with argument and result BindingModels
+  11-custom_datatypes.py       # Custom literal datatypes with Datatype and RdfLiteral
   custom-settings/
     custom_settings.py         # KnowledgeBaseSettings subclass + ki_from_settings pattern
     settings.yaml              # Example YAML config for all four KI types
@@ -126,14 +127,14 @@ builder = KnowledgeBase.from_settings(settings)  # settings: KnowledgeBaseSettin
 
 #### Lifecycle
 ```python
-await (
-    kb.connect()
-)  # Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
-await (
-    kb.register()
-)  # Register KB + sync all KIs with the SC (re-registers if already registered)
-await kb.unregister()  # Unregister KB from SC (KIs automatically unregistered)
-await kb.close()  # Close the underlying HTTP client and release resources
+# Verify SC is reachable (raises KnowledgeEngineNotAvailableError if not)
+await kb.connect()
+# Register KB + sync all KIs with the SC (re-registers if already registered)
+await kb.register()
+# Unregister KB from SC (KIs automatically unregistered)
+await kb.unregister()
+# Close the underlying HTTP client and release resources
+await kb.close()
 ```
 
 #### Registering KIs (decorator pattern)
@@ -170,24 +171,21 @@ kb.post_ki(
 #### Outgoing interactions
 
 ```python
-result = await kb.ask(
-    binding_set, ki_name="..."
-)  # Returns BindingSet or list[BindingModel]
-result = await kb.post(
-    binding_set, ki_name="..."
-)  # Returns result BindingSet or list[BindingModel]
+# Returns BindingSet or list[BindingModel]
+result = await kb.ask(binding_set, ki_name="...")
+# Returns result BindingSet or list[BindingModel]
+result = await kb.post(binding_set, ki_name="...")
 ```
 
 #### Handling loop
 
 ```python
-await kb.start_handling_loop()  # Concurrent dispatch, up to 10 in-flight
-await kb.start_handling_loop(
-    max_concurrent_handlers=5
-)  # Limit to 5 concurrent handlers
-await kb.start_handling_loop(
-    loops=10
-)  # Runs exactly 10 poll cycles (useful for testing)
+# Concurrent dispatch, up to 10 in-flight
+await kb.start_handling_loop()
+# Limit to 5 concurrent handlers
+await kb.start_handling_loop(max_concurrent_handlers=5)
+# Runs exactly 10 poll cycles (useful for testing)
+await kb.start_handling_loop(loops=10)
 ```
 
 ---
@@ -244,8 +242,9 @@ builder.handler("my-answer-ki", my_handler_func)
 
 # For ASK/POST — no call needed; they are auto-registered from settings
 
-kb = builder.build()  # Returns the configured KnowledgeBase; raises ValueError if any
-# ANSWER/REACT KI has no handler
+# Returns the configured KnowledgeBase; raises ValueError if any ANSWER/REACT KI
+# has no handler
+kb = builder.build()
 kb.connect()
 kb.register()
 kb.start_handling_loop()
@@ -269,7 +268,9 @@ class PersonBinding(BindingModel):
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
-- **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`.
+- **`Literal[T]`**: Accepts Python native types or N3 literals, serializes to N3 `"value"^^type`. The datatype is inferred from the Python value (XSD); an incoming custom datatype is silently dropped.
+- **`Annotated[Literal[T], Datatype(iri)]`**: Python value of type `T`, always serialized with datatype `iri`. Incoming literals with a different datatype fail validation. Use for custom (non-XSD) datatypes.
+- **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
 - Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
 

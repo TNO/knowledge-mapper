@@ -16,6 +16,7 @@ The best way to get started with the Knowledge Mapper is by exploring the exampl
 | **08-async_handlers.py** | Demonstrates async REACT handlers and how they differ from sync handlers |
 | **09-sparql-store/** | Connecting a SPARQL store as a knowledge base |
 | **10-cli.py** | Start a KB via the `knowledge-mapper run` CLI — no `asyncio.run` boilerplate |
+| **11-custom_datatypes.py** | Literals with custom (non-XSD) datatypes using `Datatype` and `RdfLiteral` |
 
 ## Prerequisites
 
@@ -91,6 +92,7 @@ python -m pytest 07-testing/
 6. Review **07-testing/** to learn testing strategies
 7. Run **08-async_handlers.py** to compare async and sync REACT handler behavior
 8. Explore **09-sparql-store/** to see how to connect a SPARQL store
+9. See **11-custom_datatypes.py** for literals with custom datatypes
 
 ## Tips
 
