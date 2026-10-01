@@ -1,3 +1,7 @@
+from datetime import datetime
+
+import pytest
+from pydantic import ValidationError
 from rdflib import Literal as RDFLiteral
 from rdflib import URIRef
 
@@ -91,3 +95,39 @@ def test_validate_binding():
     assert binding.sensor == URIRef("http://example.org/test#sensor")
     assert binding.year_of_manufacture == 2020
     assert binding.manufacturer_name == "Manufacturer Inc."
+
+
+def test_assigned_datetime_string_dumps_with_datetime_datatype():
+    class TestBinding(BindingModel):
+        timestamp: Literal[datetime]
+
+    binding = TestBinding()
+    binding.timestamp = "2026-07-14T20:30:00+0200"
+
+    assert binding.dump_result_binding() == {
+        "timestamp": '"2026-07-14T20:30:00+02:00"'
+        "^^<http://www.w3.org/2001/XMLSchema#dateTime>",
+    }
+
+
+def test_assigned_datetime_dumps_with_datetime_datatype():
+    class TestBinding(BindingModel):
+        timestamp: Literal[datetime]
+
+    binding = TestBinding()
+    binding.timestamp = datetime.fromisoformat("2026-07-14T20:30:00+02:00")
+
+    assert binding.dump_result_binding() == {
+        "timestamp": '"2026-07-14T20:30:00+02:00"'
+        "^^<http://www.w3.org/2001/XMLSchema#dateTime>",
+    }
+
+
+def test_assigning_invalid_value_to_typed_literal_raises():
+    class TestBinding(BindingModel):
+        timestamp: Literal[datetime]
+
+    binding = TestBinding()
+
+    with pytest.raises(ValidationError):
+        binding.timestamp = "not a datetime"

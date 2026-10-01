@@ -21,17 +21,20 @@ kb = KnowledgeBase(
     ke_url="http://localhost:8280/rest",
 )
 
+
 @kb.answer_ki(
     name="greeting",
-    graph_pattern='?s <http://example.org/says> ?message .',
+    graph_pattern="?s <http://example.org/says> ?message .",
 )
 def handle(binding_set, info):
     return binding_set
+
 
 async def main():
     await kb.connect()
     await kb.register()
     await kb.start_handling_loop()
+
 
 asyncio.run(main())
 ```
@@ -99,11 +102,11 @@ kb = KnowledgeBase(
 **Lifecycle:**
 
 ```python
-await kb.connect()                # Verify the Smart Connector is reachable
-await kb.register()               # Register KB and all KIs with the Smart Connector
-await kb.start_handling_loop()    # Start concurrent long-polling for incoming requests
-await kb.unregister()             # Unregister from the Smart Connector
-await kb.close()                  # Close the HTTP client
+await kb.connect()  # Verify the Smart Connector is reachable
+await kb.register()  # Register KB and all KIs with the Smart Connector
+await kb.start_handling_loop()  # Start concurrent long-polling for incoming requests
+await kb.unregister()  # Unregister from the Smart Connector
+await kb.close()  # Close the HTTP client
 ```
 
 **Registering Knowledge Interactions (decorators):**
@@ -114,8 +117,11 @@ await kb.close()                  # Close the HTTP client
 def my_handler(binding_set, info):
     return binding_set
 
+
 # REACT — handle incoming POST data
-@kb.react_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+@kb.react_ki(
+    name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...}
+)
 def my_react_handler(binding_set, info):
     return result_binding_set
 ```
@@ -127,7 +133,9 @@ def my_react_handler(binding_set, info):
 kb.ask_ki(name="...", graph_pattern="...", binding_model=MyModel, prefixes={...})
 
 # POST — push data to the network (no handler needed)
-kb.post_ki(name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...})
+kb.post_ki(
+    name="...", argument_graph_pattern="...", result_graph_pattern="...", prefixes={...}
+)
 ```
 
 **Outgoing interactions:**
@@ -144,10 +152,11 @@ A Pydantic `BaseModel` subclass that maps Python types to RDF N3 encoding automa
 ```python
 from knowledge_mapper import BindingModel, Uri, Literal
 
+
 class PersonBinding(BindingModel):
-    person: Uri              # URIRef, serialized as <...>
-    name: Literal[str]       # Python str, serialized as "..."^^xsd:string
-    age: Literal[int]        # Python int, serialized as "..."^^xsd:integer
+    person: Uri  # URIRef, serialized as <...>
+    name: Literal[str]  # Python str, serialized as "..."^^xsd:string
+    age: Literal[int]  # Python int, serialized as "..."^^xsd:integer
 ```
 
 Use `BindingModel` for type safety and automatic serialization. Use raw `BindingSet` (`Sequence[dict[str, str]]`) for passthrough data.
@@ -160,8 +169,10 @@ Handlers can declare dependencies using `Depends()` in `Annotated` type hints. T
 from typing import Annotated
 from knowledge_mapper import Depends
 
+
 def get_db() -> MyDatabase:
     return MyDatabase(url="...")
+
 
 @kb.answer_ki(name="...", graph_pattern="...")
 def handler(
@@ -221,6 +232,7 @@ Subclass `KnowledgeBaseSettings` to add application-specific settings:
 
 ```python
 from knowledge_mapper import KnowledgeBaseSettings
+
 
 class AppSettings(KnowledgeBaseSettings):
     db_url: str = "sqlite:///./app.db"
