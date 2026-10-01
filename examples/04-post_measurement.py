@@ -80,6 +80,7 @@ async def main():
             )
         ],
         "post-measurement-ki",
+        result_binding_model=ResultBinding,
     )
     logger.info(f"Received result bindings: {result_bindings}")
     await kb.unregister()

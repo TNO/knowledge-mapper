@@ -47,7 +47,7 @@ kb.ask_ki(
 
 
 async def ask_for_values_of_subject(subject_name: str) -> list[str]:
-    result_binding_set: list[ExampleBinding] = await kb.ask(
+    result_binding_set = await kb.ask(
         [
             ExampleBinding(
                 s=URIRef(f"http://example.org/knowledge-mapper/testing#{subject_name}"),
@@ -55,7 +55,8 @@ async def ask_for_values_of_subject(subject_name: str) -> list[str]:
             )
         ],
         "ask-ki-with-binding-model",
-    )  # pyright: ignore[reportAssignmentType]
+        binding_model=ExampleBinding,
+    )
     return (
         [str(binding.value) for binding in result_binding_set]
         if result_binding_set
@@ -98,7 +99,8 @@ async def repeat_value_post(value: str, iterations: int) -> list[URIRef]:
                     )
                 ],
                 "post-ki",
-            )  # type: ignore
+                result_binding_model=ResultBinding,
+            )
         )
     return [cast(URIRef, binding.other) for binding in result_binding_set]
 

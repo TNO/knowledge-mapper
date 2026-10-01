@@ -310,3 +310,110 @@ async def test_ask_with_info_rejects_non_ask_ki(kb: KnowledgeBase):
 
     with pytest.raises(ValueError, match="not ASK"):
         await kb.ask_with_info([], "not-an-ask")
+
+
+# ---------------------------------------------------------------------------
+# binding_model / result_binding_model keyword: typed results
+# ---------------------------------------------------------------------------
+
+
+class StoredByBinding(BindingModel):
+    person: Uri
+    kb: Uri
+
+
+async def test_ask_with_binding_model_returns_parsed_bindings(
+    kb: KnowledgeBase, client: TestClient
+):
+    kb.ask_ki(
+        name="ask-typed-ki",
+        graph_pattern="?person ex:hasName ?name .",
+        prefixes={"ex": "http://example.org/test#"},
+        binding_model=PersonBinding,
+    )
+    await kb.sync_knowledge_interactions()
+    client.mock_result_binding_set(
+        ki_name="ask-typed-ki",
+        binding_set=[
+            {"person": "<http://example.org/test#p1>", "name": '"Alice"^^xsd:string'}
+        ],
+    )
+
+    result = await kb.ask([], "ask-typed-ki", binding_model=PersonBinding)
+    with_info = await kb.ask_with_info([], "ask-typed-ki", binding_model=PersonBinding)
+
+    expected = [
+        PersonBinding(person=URIRef("http://example.org/test#p1"), name="Alice")
+    ]
+    assert result == expected
+    assert with_info.binding_set == expected
+
+
+async def test_post_with_result_binding_model_returns_parsed_bindings(
+    kb: KnowledgeBase, client: TestClient
+):
+    kb.post_ki(
+        name="post-typed-ki",
+        argument_graph_pattern="?person ex:hasName ?name .",
+        result_graph_pattern="?person ex:storedBy ?kb .",
+        prefixes={"ex": "http://example.org/test#"},
+        argument_binding_model=PersonBinding,
+        result_binding_model=StoredByBinding,
+    )
+    await kb.sync_knowledge_interactions()
+    client.mock_result_binding_set(
+        ki_name="post-typed-ki",
+        binding_set=[
+            {
+                "person": "<http://example.org/test#p1>",
+                "kb": "<http://example.org/test#kb>",
+            }
+        ],
+    )
+
+    result = await kb.post(
+        [PersonBinding(person=URIRef("http://example.org/test#p1"), name="Bob")],
+        "post-typed-ki",
+        result_binding_model=StoredByBinding,
+    )
+
+    assert result == [
+        StoredByBinding(
+            person=URIRef("http://example.org/test#p1"),
+            kb=URIRef("http://example.org/test#kb"),
+        )
+    ]
+
+
+async def test_ask_rejects_binding_model_not_registered_for_ki(kb: KnowledgeBase):
+    kb.ask_ki(
+        name="ask-typed-ki",
+        graph_pattern="?person ex:hasName ?name .",
+        prefixes={"ex": "http://example.org/test#"},
+        binding_model=PersonBinding,
+    )
+    kb.ask_ki(name="ask-raw-ki", graph_pattern="?s ?p ?o .")
+    await kb.sync_knowledge_interactions()
+
+    with pytest.raises(ValueError, match="does not match"):
+        await kb.ask([], "ask-typed-ki", binding_model=StoredByBinding)
+    with pytest.raises(ValueError, match="does not match"):
+        await kb.ask([], "ask-raw-ki", binding_model=PersonBinding)
+
+
+async def test_post_rejects_result_binding_model_not_registered_for_ki(
+    kb: KnowledgeBase,
+):
+    kb.post_ki(
+        name="post-typed-ki",
+        argument_graph_pattern="?person ex:hasName ?name .",
+        result_graph_pattern="?person ex:storedBy ?kb .",
+        prefixes={"ex": "http://example.org/test#"},
+        argument_binding_model=PersonBinding,
+        result_binding_model=StoredByBinding,
+    )
+    await kb.sync_knowledge_interactions()
+
+    # The argument model is not the result model.
+    with pytest.raises(ValueError, match="does not match"):
+        await kb.post([], "post-typed-ki", result_binding_model=PersonBinding)

@@ -146,10 +146,18 @@ result = await kb.ask(binding_set, ki_name="...")
 result = await kb.post(binding_set, ki_name="...")
 ```
 
+If the KI has a binding model, pass it to get a typed result (no `cast()` needed). It must be the model the KI was registered with, otherwise a `ValueError` is raised:
+
+```python
+# Sequence[MyModel] / Sequence[ResultModel]
+people = await kb.ask(binding_set, ki_name="...", binding_model=MyModel)
+results = await kb.post(binding_set, ki_name="...", result_binding_model=ResultModel)
+```
+
 To also get the exchange info reported by the Knowledge Engine (which knowledge bases were involved, with status and timing), use the `*_with_info` variants. They return an `ExchangeResult` with `binding_set` and `exchange_info` (a list of `ExchangeInfo`):
 
 ```python
-result = await kb.ask_with_info(binding_set, ki_name="...")
+result = await kb.ask_with_info(binding_set, ki_name="...", binding_model=MyModel)
 for info in result.exchange_info:
     print(info.knowledge_base_id, info.status, info.failed_message)
 ```

@@ -6,7 +6,7 @@ import logging
 from collections.abc import Callable, Sequence
 from enum import StrEnum
 from functools import wraps
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ..ke import Client
 from ..ke.client import ClientProtocol, HandleRequest, PollResult
@@ -37,6 +37,26 @@ if TYPE_CHECKING:
     from .builder import KnowledgeBaseBuilder
 
 logger = logging.getLogger(__name__)
+
+# Item type of an outgoing call's result: a BindingModel subclass or a raw binding.
+type _Binding = BindingModel | dict[str, str]
+
+
+def _check_binding_model(
+    ki_ctx: KnowledgeInteractionContext[Any, ...],
+    ki_name: str,
+    binding_model: type[BindingModel | dict[str, str]] | None,
+) -> None:
+    """Raise if a caller-supplied (result) binding model differs from the one the
+    KI was registered with, since results are parsed with the registered model."""
+    if binding_model is None or binding_model is ki_ctx.validation_model:
+        return
+    registered = ki_ctx.validation_model
+    raise ValueError(
+        f"Binding model {binding_model.__name__} does not match the (result) "
+        f"binding model registered for KI '{ki_name}': "
+        f"{registered.__name__ if registered else None}."
+    )
 
 
 class KnowledgeBaseState(StrEnum):
@@ -540,35 +560,48 @@ class KnowledgeBase:
             requesting_kb_id=requesting_kb_id,
         )
 
-    async def post(
+    async def post[R: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> Sequence[BindingModel] | BindingSet:
+        *,
+        result_binding_model: type[R] | None = None,
+    ) -> Sequence[R]:
         """Invoke a POST KI by its name and return the result bindings.
 
-        Use :meth:`post_with_info` to also get the exchange info.
+        Pass the KI's ``result_binding_model`` to have the result typed as a
+        sequence of that model. Use :meth:`post_with_info` to also get the
+        exchange info.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
-            ValueError: If the KI is not registered at the KE runtime.
+            ValueError: If the KI is not registered at the KE runtime, or
+                ``result_binding_model`` differs from the registered one.
         """
-        result = await self.post_with_info(binding_set, ki_name, recipients)
+        result = await self.post_with_info(
+            binding_set,
+            ki_name,
+            recipients,
+            result_binding_model=result_binding_model,
+        )
         return result.binding_set
 
-    async def post_with_info(
+    async def post_with_info[R: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> ExchangeResult:
+        *,
+        result_binding_model: type[R] | None = None,
+    ) -> ExchangeResult[R]:
         """Invoke a POST KI by its name and return the result bindings together
         with the exchange info reported by the KE.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
-            ValueError: If the KI is not registered at the KE runtime.
+            ValueError: If the KI is not registered at the KE runtime, or
+                ``result_binding_model`` differs from the registered one.
         """
         ki_ctx = self.ki_registry[ki_name]
         if ki_ctx.definition.type != KiTypes.POST:
@@ -576,6 +609,7 @@ class KnowledgeBase:
                 f"KI named '{ki_name}' is of type {ki_ctx.definition.type}, not "
                 f"POST, and cannot be called with the post() method."
             )
+        _check_binding_model(ki_ctx, ki_name, result_binding_model)
         if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
                 f"Cannot call KI '{ki_name}' because it is not registered. Please "
@@ -590,39 +624,52 @@ class KnowledgeBase:
             recipients=recipients,
         )
         return ExchangeResult(
-            binding_set=ki_ctx.parse_result(post_result.result_binding_set),
+            # Safe: parse_result() validates into the registered model, which
+            # _check_binding_model() verified equals R.
+            binding_set=cast(
+                Sequence[R], ki_ctx.parse_result(post_result.result_binding_set)
+            ),
             exchange_info=post_result.exchange_info,
         )
 
-    async def ask(
+    async def ask[B: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> Sequence[BindingModel] | BindingSet:
+        *,
+        binding_model: type[B] | None = None,
+    ) -> Sequence[B]:
         """Invoke an ASK KI by its name and return the answer bindings.
 
-        Use :meth:`ask_with_info` to also get the exchange info.
+        Pass the KI's ``binding_model`` to have the result typed as a sequence
+        of that model. Use :meth:`ask_with_info` to also get the exchange info.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
-            ValueError: If the KI is not registered at the KE runtime.
+            ValueError: If the KI is not registered at the KE runtime, or
+                ``binding_model`` differs from the registered one.
         """
-        result = await self.ask_with_info(binding_set, ki_name, recipients)
+        result = await self.ask_with_info(
+            binding_set, ki_name, recipients, binding_model=binding_model
+        )
         return result.binding_set
 
-    async def ask_with_info(
+    async def ask_with_info[B: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> ExchangeResult:
+        *,
+        binding_model: type[B] | None = None,
+    ) -> ExchangeResult[B]:
         """Invoke an ASK KI by its name and return the answer bindings together
         with the exchange info reported by the KE.
 
         Raises:
             KeyError: If ``ki_name`` is not found in the local KI registry.
-            ValueError: If the KI is not registered at the KE runtime.
+            ValueError: If the KI is not registered at the KE runtime, or
+                ``binding_model`` differs from the registered one.
         """
         ki_ctx = self.ki_registry[ki_name]
         if ki_ctx.definition.type != KiTypes.ASK:
@@ -630,6 +677,7 @@ class KnowledgeBase:
                 f"KI named '{ki_name}' is of type {ki_ctx.definition.type}, not "
                 f"ASK, and cannot be called with the ask() method."
             )
+        _check_binding_model(ki_ctx, ki_name, binding_model)
         if ki_ctx.status != KnowledgeInteractionStatus.REGISTERED:
             raise ValueError(
                 f"Cannot call KI '{ki_name}' because it is not registered. Please "
@@ -644,7 +692,9 @@ class KnowledgeBase:
             recipients=recipients,
         )
         return ExchangeResult(
-            binding_set=ki_ctx.parse_result(ask_result.binding_set),
+            # Safe: parse_result() validates into the registered model, which
+            # _check_binding_model() verified equals B.
+            binding_set=cast(Sequence[B], ki_ctx.parse_result(ask_result.binding_set)),
             exchange_info=ask_result.exchange_info,
         )
 
@@ -662,12 +712,14 @@ class KnowledgeBase:
             )
         return loop
 
-    def ask_sync(
+    def ask_sync[B: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> Sequence[BindingModel] | BindingSet:
+        *,
+        binding_model: type[B] | None = None,
+    ) -> Sequence[B]:
         """Blocking bridge to :meth:`ask` for use in sync handlers.
 
         Schedules the async ``ask()`` coroutine on the event loop stored by
@@ -679,16 +731,24 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.ask(binding_set, ki_name=ki_name, recipients=recipients), loop
+            self.ask(
+                binding_set,
+                ki_name=ki_name,
+                recipients=recipients,
+                binding_model=binding_model,
+            ),
+            loop,
         )
         return future.result()
 
-    def post_sync(
+    def post_sync[R: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> Sequence[BindingModel] | BindingSet:
+        *,
+        result_binding_model: type[R] | None = None,
+    ) -> Sequence[R]:
         """Blocking bridge to :meth:`post` for use in sync handlers.
 
         Schedules the async ``post()`` coroutine on the event loop stored by
@@ -700,16 +760,24 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.post(binding_set, ki_name=ki_name, recipients=recipients), loop
+            self.post(
+                binding_set,
+                ki_name=ki_name,
+                recipients=recipients,
+                result_binding_model=result_binding_model,
+            ),
+            loop,
         )
         return future.result()
 
-    def ask_with_info_sync(
+    def ask_with_info_sync[B: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> ExchangeResult:
+        *,
+        binding_model: type[B] | None = None,
+    ) -> ExchangeResult[B]:
         """Blocking bridge to :meth:`ask_with_info` for use in sync handlers.
 
         Raises:
@@ -717,17 +785,24 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.ask_with_info(binding_set, ki_name=ki_name, recipients=recipients),
+            self.ask_with_info(
+                binding_set,
+                ki_name=ki_name,
+                recipients=recipients,
+                binding_model=binding_model,
+            ),
             loop,
         )
         return future.result()
 
-    def post_with_info_sync(
+    def post_with_info_sync[R: _Binding = _Binding](
         self,
         binding_set: Sequence[BindingModel] | BindingSet,
         ki_name: str,
         recipients: list[KnowledgeBaseId] | None = None,
-    ) -> ExchangeResult:
+        *,
+        result_binding_model: type[R] | None = None,
+    ) -> ExchangeResult[R]:
         """Blocking bridge to :meth:`post_with_info` for use in sync handlers.
 
         Raises:
@@ -735,7 +810,12 @@ class KnowledgeBase:
         """
         loop = self._require_loop()
         future = asyncio.run_coroutine_threadsafe(
-            self.post_with_info(binding_set, ki_name=ki_name, recipients=recipients),
+            self.post_with_info(
+                binding_set,
+                ki_name=ki_name,
+                recipients=recipients,
+                result_binding_model=result_binding_model,
+            ),
             loop,
         )
         return future.result()
