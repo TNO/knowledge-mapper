@@ -1,18 +1,21 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, NewType, Self, TypeVar
+from typing import Literal as TypingLiteral
 from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
+    Discriminator,
     Field,
     GetCoreSchemaHandler,
     PlainSerializer,
     PlainValidator,
+    Tag,
 )
 from pydantic.alias_generators import to_camel
 from pydantic_core import CoreSchema, core_schema
@@ -336,6 +339,8 @@ class Initiator(StrEnum):
 
 
 class ExchangeInfo(BaseModel):
+    """Fields shared by :class:`AskExchangeInfo` and :class:`PostExchangeInfo`."""
+
     model_config = ConfigDict(
         alias_generator=to_camel, frozen=True, populate_by_name=True
     )
@@ -349,13 +354,81 @@ class ExchangeInfo(BaseModel):
     failed_message: str | None = None
 
 
+class AskExchangeInfo(ExchangeInfo):
+    """Exchange with an ANSWER KI of another knowledge base.
+
+    ``binding_set`` holds the raw bindings that KI answered with, in terms of
+    *its* graph pattern (which may differ from the asking KI's pattern).
+    """
+
+    knowledge_interaction_type: TypingLiteral[KiTypes.ANSWER] = KiTypes.ANSWER
+    binding_set: BindingSet = Field(default_factory=list)
+
+
+class PostExchangeInfo(ExchangeInfo):
+    """Exchange with a REACT KI of another knowledge base.
+
+    The binding sets are raw and in terms of the reacting KI's graph patterns.
+    """
+
+    knowledge_interaction_type: TypingLiteral[KiTypes.REACT] = KiTypes.REACT
+    argument_binding_set: BindingSet = Field(default_factory=list)
+    result_binding_set: BindingSet = Field(default_factory=list)
+
+
+type AnyExchangeInfo = AskExchangeInfo | PostExchangeInfo
+
+
+def _exchange_info_tag(default: KiTypes) -> Callable[[Any], str]:
+    """Build a discriminator that picks the exchange info subtype of an entry.
+
+    KE versions up to 1.5.0 omit ``knowledgeInteractionType`` and only return
+    ``AskExchangeInfo`` for ASK and ``PostExchangeInfo`` for POST, so fall back
+    to the binding set fields present, and finally to ``default``.
+    """
+
+    def tag(value: Any) -> str:
+        if not isinstance(value, dict):
+            return getattr(value, "knowledge_interaction_type", default)
+        ki_type = value.get(
+            "knowledgeInteractionType", value.get("knowledge_interaction_type")
+        )
+        if ki_type is not None:
+            return ki_type
+        if value.keys() & {
+            "argumentBindingSet",
+            "resultBindingSet",
+            "argument_binding_set",
+            "result_binding_set",
+        }:
+            return KiTypes.REACT
+        if value.keys() & {"bindingSet", "binding_set"}:
+            return KiTypes.ANSWER
+        return default
+
+    return tag
+
+
+_AskResultExchangeInfo = Annotated[
+    Annotated[AskExchangeInfo, Tag(KiTypes.ANSWER)]
+    | Annotated[PostExchangeInfo, Tag(KiTypes.REACT)],
+    Discriminator(_exchange_info_tag(default=KiTypes.ANSWER)),
+]
+
+_PostResultExchangeInfo = Annotated[
+    Annotated[AskExchangeInfo, Tag(KiTypes.ANSWER)]
+    | Annotated[PostExchangeInfo, Tag(KiTypes.REACT)],
+    Discriminator(_exchange_info_tag(default=KiTypes.REACT)),
+]
+
+
 class AskResult(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, frozen=True, populate_by_name=True
     )
 
     binding_set: BindingSet
-    exchange_info: list[ExchangeInfo]
+    exchange_info: list[_AskResultExchangeInfo]
 
 
 class PostResult(BaseModel):
@@ -364,4 +437,4 @@ class PostResult(BaseModel):
     )
 
     result_binding_set: BindingSet
-    exchange_info: list[ExchangeInfo]
+    exchange_info: list[_PostResultExchangeInfo]

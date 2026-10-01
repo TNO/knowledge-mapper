@@ -6,15 +6,16 @@ from datetime import UTC, datetime, timedelta
 from knowledge_mapper.ke.client import ClientProtocol, HandleRequest, PollResult
 from knowledge_mapper.ke.errors import SmartConnectorNotFoundError
 from knowledge_mapper.ke.models import (
+    AskExchangeInfo,
     AskResult,
     BindingSet,
-    ExchangeInfo,
     Initiator,
     KnowledgeBaseId,
     KnowledgeBaseInfo,
     KnowledgeInteraction,
     KnowledgeInteractionId,
     KnowledgeInteractionInfo,
+    PostExchangeInfo,
     PostResult,
     SmartConnectorLease,
     info_from_definition,
@@ -231,13 +232,14 @@ class TestClient(ClientProtocol):
         return AskResult(
             binding_set=binding_set,
             exchange_info=[
-                ExchangeInfo(
+                AskExchangeInfo(
                     initiator=Initiator.KNOWLEDGE_BASE,
                     knowledge_base_id=kb_id,
                     knowledge_interaction_id=ki_id,
                     exchange_start=now,
                     exchange_end=now,
                     status="OK",
+                    binding_set=binding_set,
                 )
             ],
         )
@@ -269,13 +271,15 @@ class TestClient(ClientProtocol):
         return PostResult(
             result_binding_set=result_binding_set,
             exchange_info=[
-                ExchangeInfo(
+                PostExchangeInfo(
                     initiator=Initiator.KNOWLEDGE_BASE,
                     knowledge_base_id=kb_id,
                     knowledge_interaction_id=ki_id,
                     exchange_start=now,
                     exchange_end=now,
                     status="OK",
+                    argument_binding_set=binding_set,
+                    result_binding_set=result_binding_set,
                 )
             ],
         )

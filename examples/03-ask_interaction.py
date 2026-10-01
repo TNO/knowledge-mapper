@@ -7,7 +7,13 @@ and typed results work end-to-end.
 from rdflib import URIRef
 from shared import get_example_logger
 
-from knowledge_mapper import BindingModel, KnowledgeBase, Literal, Uri
+from knowledge_mapper import (
+    AskExchangeInfo,
+    BindingModel,
+    KnowledgeBase,
+    Literal,
+    Uri,
+)
 
 EXAMPLE_NAME = "ask-interaction"
 logger = get_example_logger(EXAMPLE_NAME)
@@ -66,6 +72,8 @@ async def main():
             f"Exchanged with {info.knowledge_base_id}: {info.status} "
             f"({info.exchange_end - info.exchange_start})"
         )
+        if isinstance(info, AskExchangeInfo):
+            logger.info(f"  answered with: {info.binding_set}")
 
     await kb.unregister()
     logger.info("KB unregistered.")

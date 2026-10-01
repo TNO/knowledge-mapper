@@ -4,6 +4,8 @@ from .dependency_injection import Depends, get_requesting_kb_id
 from .kb.builder import KnowledgeBaseBuilder
 from .kb.knowledge_base import KnowledgeBase
 from .ke.models import (
+    AnyExchangeInfo,
+    AskExchangeInfo,
     BindingModel,
     BindingSet,
     Datatype,
@@ -12,6 +14,7 @@ from .ke.models import (
     KnowledgeInteraction,
     KnowledgeInteractionId,
     Literal,
+    PostExchangeInfo,
     RdfLiteral,
     Uri,
     validate_kb_id,

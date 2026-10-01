@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from knowledge_mapper.ke import Client
 from knowledge_mapper.ke.errors import (
@@ -10,7 +11,12 @@ from knowledge_mapper.ke.errors import (
 from knowledge_mapper.ke.models import (
     AskAnswerInteractionInfo,
     AskAnswerKnowledgeInteraction,
+    AskExchangeInfo,
+    Initiator,
+    KnowledgeBaseId,
     KnowledgeBaseInfo,
+    KnowledgeInteractionId,
+    PostExchangeInfo,
     PostReactInteractionInfo,
     SmartConnectorLease,
 )
@@ -418,4 +424,147 @@ async def test_load_domain_knowledge_not_found(client: Client):
         await client.load_domain_knowledge(
             kb_id="http://example.org/missing#kb",
             knowledge="-> ( a b c ) .",
+        )
+
+
+# ---------- Exchange info
+
+_KB_ID = KnowledgeBaseId("http://example.org/test#kb")
+_KI_ID = KnowledgeInteractionId("http://example.org/test#ki")
+
+_EXCHANGE_INFO_BASE = {
+    "initiator": "knowledgeBase",
+    "knowledgeBaseId": "http://example.org/test#other-kb",
+    "knowledgeInteractionId": "http://example.org/test#other-ki",
+    "exchangeStart": "2026-01-01T12:00:00Z",
+    "exchangeEnd": "2026-01-01T12:00:01Z",
+    "status": "SUCCEEDED",
+}
+
+
+def _ok_response(body: dict) -> MagicMock:
+    response = MagicMock()
+    response.is_success = True
+    response.json.return_value = body
+    return response
+
+
+async def test_ask_parses_exchange_info_without_discriminator(client: Client):
+    # KE <= 1.5.0 omits knowledgeInteractionType.
+    body = {
+        "bindingSet": [{"a": "<http://example.org/test#a>"}],
+        "exchangeInfo": [
+            {
+                **_EXCHANGE_INFO_BASE,
+                "bindingSet": [{"a": "<http://example.org/test#a>"}],
+            }
+        ],
+    }
+
+    with patch.object(
+        client._http, "post", new_callable=AsyncMock, return_value=_ok_response(body)
+    ):
+        result = await client.ask(
+            kb_id=_KB_ID,
+            ki_id=_KI_ID,
+            binding_set=[],
+        )
+
+    [info] = result.exchange_info
+    assert isinstance(info, AskExchangeInfo)
+    assert info.binding_set == [{"a": "<http://example.org/test#a>"}]
+    assert info.knowledge_base_id == "http://example.org/test#other-kb"
+
+
+async def test_ask_parses_mixed_exchange_info_with_discriminator(client: Client):
+    # Newer KEs tag each entry; the reasoner may involve REACT KIs in an ASK.
+    body = {
+        "bindingSet": [],
+        "exchangeInfo": [
+            {
+                **_EXCHANGE_INFO_BASE,
+                "knowledgeInteractionType": "AnswerKnowledgeInteraction",
+                "bindingSet": [{"a": "<http://example.org/test#a>"}],
+            },
+            {
+                **_EXCHANGE_INFO_BASE,
+                "initiator": "reasoner",
+                "knowledgeInteractionType": "ReactKnowledgeInteraction",
+                "argumentBindingSet": [{"b": "<http://example.org/test#b>"}],
+                "resultBindingSet": [{"c": "<http://example.org/test#c>"}],
+            },
+        ],
+    }
+
+    with patch.object(
+        client._http, "post", new_callable=AsyncMock, return_value=_ok_response(body)
+    ):
+        result = await client.ask(
+            kb_id=_KB_ID,
+            ki_id=_KI_ID,
+            binding_set=[],
+        )
+
+    ask_info, post_info = result.exchange_info
+    assert isinstance(ask_info, AskExchangeInfo)
+    assert ask_info.binding_set == [{"a": "<http://example.org/test#a>"}]
+    assert isinstance(post_info, PostExchangeInfo)
+    assert post_info.initiator == Initiator.REASONER
+    assert post_info.argument_binding_set == [{"b": "<http://example.org/test#b>"}]
+    assert post_info.result_binding_set == [{"c": "<http://example.org/test#c>"}]
+
+
+async def test_post_parses_exchange_info_without_discriminator(client: Client):
+    body = {
+        "resultBindingSet": [],
+        "exchangeInfo": [
+            {
+                **_EXCHANGE_INFO_BASE,
+                "argumentBindingSet": [{"b": "<http://example.org/test#b>"}],
+                "resultBindingSet": [],
+            },
+            # No binding sets at all: falls back to the POST subtype.
+            {**_EXCHANGE_INFO_BASE, "status": "FAILED", "failedMessage": "Boom"},
+        ],
+    }
+
+    with patch.object(
+        client._http, "post", new_callable=AsyncMock, return_value=_ok_response(body)
+    ):
+        result = await client.post(
+            kb_id=_KB_ID,
+            ki_id=_KI_ID,
+            binding_set=[{"b": "<http://example.org/test#b>"}],
+        )
+
+    with_bindings, without_bindings = result.exchange_info
+    assert isinstance(with_bindings, PostExchangeInfo)
+    assert with_bindings.argument_binding_set == [{"b": "<http://example.org/test#b>"}]
+    assert with_bindings.result_binding_set == []
+    assert isinstance(without_bindings, PostExchangeInfo)
+    assert without_bindings.argument_binding_set == []
+    assert without_bindings.failed_message == "Boom"
+
+
+async def test_ask_rejects_unknown_exchange_info_type(client: Client):
+    body = {
+        "bindingSet": [],
+        "exchangeInfo": [
+            {**_EXCHANGE_INFO_BASE, "knowledgeInteractionType": "UnknownInteraction"}
+        ],
+    }
+
+    with (
+        patch.object(
+            client._http,
+            "post",
+            new_callable=AsyncMock,
+            return_value=_ok_response(body),
+        ),
+        pytest.raises(ValidationError),
+    ):
+        await client.ask(
+            kb_id=_KB_ID,
+            ki_id=_KI_ID,
+            binding_set=[],
         )
