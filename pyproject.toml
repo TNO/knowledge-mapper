@@ -6,10 +6,10 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28",
-    "pydantic>=2.12.5",
-    "pydantic-settings[yaml]>=2.13.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings[yaml]>=2.15.0",
     "rdflib>=7.6.0",
-    "typer>=0.15",
+    "typer>=0.27.2",
 ]
 
 [project.scripts]
@@ -17,9 +17,9 @@ knowledge-mapper = "knowledge_mapper.cli:app"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
+    "pytest>=9.1.1",
     "pytest-asyncio>=0.26",
-    "setuptools>=82.0.1",
+    "setuptools>=84.0.0",
 ]
 
 # TOOLS - pytest
@@ -71,7 +71,7 @@ select = [
 quote-style = "double"
 
 [build-system]
-requires = ["setuptools>=80"]
+requires = ["setuptools>=84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
