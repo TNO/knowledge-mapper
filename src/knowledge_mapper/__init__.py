@@ -6,6 +6,7 @@ from .kb.knowledge_base import KnowledgeBase
 from .ke.models import (
     BindingModel,
     BindingSet,
+    Datatype,
     KnowledgeBaseId,
     KnowledgeInteraction,
     KnowledgeInteractionId,

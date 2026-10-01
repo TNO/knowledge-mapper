@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, NewType, Self, TypeVar
@@ -9,10 +10,12 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
+    GetCoreSchemaHandler,
     PlainSerializer,
     PlainValidator,
 )
 from pydantic.alias_generators import to_camel
+from pydantic_core import CoreSchema, core_schema
 from rdflib import Literal as RDFLiteral
 from rdflib import URIRef
 from rdflib.util import from_n3
@@ -139,6 +142,53 @@ RdfLiteral = Annotated[
 Preserves the lexical form, datatype (including custom, non-XSD datatypes) and
 language tag on round-trips.
 """
+
+
+@dataclass(frozen=True)
+class Datatype:
+    """Fixes the RDF datatype of a :data:`Literal` field.
+
+    The field holds a plain Python value and is serialized with the given
+    datatype IRI instead of the XSD datatype that rdflib would infer. Incoming
+    literals must carry exactly this datatype::
+
+        temperature: Annotated[Literal[float], Datatype(EX.celsius)]
+    """
+
+    iri: str | URIRef
+
+    def __get_pydantic_core_schema__(
+        self, source: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        # Generate the schema for the bare type, so the XSD-based validator and
+        # serializer of `Literal` are replaced rather than chained.
+        return core_schema.no_info_before_validator_function(
+            self._validate,
+            handler.generate_schema(source),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                self._serialize
+            ),
+        )
+
+    def _validate(self, input: Any) -> Any:
+        if isinstance(input, str) and input.startswith(('"', "'")):
+            input = from_n3(input)
+            if not isinstance(input, RDFLiteral):
+                raise ValueError(f"Expected a literal value, got {input}")
+        if not isinstance(input, RDFLiteral):
+            return input
+        if input.datatype != URIRef(self.iri):
+            raise ValueError(
+                f"Expected literal with datatype <{self.iri}>, "
+                f"got datatype {input.datatype and f'<{input.datatype}>'}"
+            )
+        return str(input)
+
+    def _serialize(self, input: Any) -> str | None:
+        if input is None:
+            return None
+        return RDFLiteral(input, datatype=URIRef(self.iri)).n3()
+
 
 # endregion: -- Binding Node
 

@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Annotated
+
 import pytest
 from pydantic import ValidationError
 from rdflib import XSD, URIRef
@@ -5,6 +8,7 @@ from rdflib import Literal as RDFLiteral
 
 from knowledge_mapper.ke.models import (
     BindingModel,
+    Datatype,
     Literal,
     RdfLiteral,
     Uri,
@@ -169,3 +173,81 @@ def test_plain_literal_still_coerces_custom_datatype():
     )
 
     assert binding.value == 12.5
+
+
+# ---------- Datatype
+
+
+class CelsiusBinding(BindingModel):
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+
+
+def test_datatype_validates_custom_literal():
+    binding = CelsiusBinding.model_validate(
+        {"temperature": '"12.5"^^<http://example.org/units#celsius>'}
+    )
+
+    assert binding.temperature == 12.5
+
+
+def test_datatype_serializes_with_custom_datatype():
+    binding = CelsiusBinding(temperature=12.5)
+
+    assert binding.dump_result_binding() == {
+        "temperature": '"12.5"^^<http://example.org/units#celsius>'
+    }
+
+
+def test_datatype_accepts_rdflib_literal():
+    binding = CelsiusBinding(temperature=RDFLiteral("12.5", datatype=CELSIUS))
+
+    assert binding.temperature == 12.5
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '"12.5"^^<http://example.org/units#fahrenheit>',
+        '"12.5"^^<http://www.w3.org/2001/XMLSchema#double>',
+        '"12.5"',
+        RDFLiteral(12.5),
+    ],
+)
+def test_datatype_mismatch_raises(value):
+    with pytest.raises(ValidationError, match="datatype"):
+        CelsiusBinding.model_validate({"temperature": value})
+
+
+def test_datatype_none():
+    binding = CelsiusBinding()
+
+    assert binding.temperature is None
+    assert binding.dump_partial_binding() == {}
+
+
+def test_datatype_with_str_and_datetime():
+    timestamp_type = URIRef("http://example.org/types#timestamp")
+    code_type = URIRef("http://example.org/types#code")
+
+    class Binding(BindingModel):
+        timestamp: Annotated[Literal[datetime], Datatype(timestamp_type)]
+        code: Annotated[Literal[str], Datatype(code_type)]
+
+    n3 = {
+        "timestamp": '"2020-01-02T03:04:05"^^<http://example.org/types#timestamp>',
+        "code": '"\\"quoted\\""^^<http://example.org/types#code>',
+    }
+    binding = Binding.model_validate(n3)
+
+    assert binding.timestamp == datetime(2020, 1, 2, 3, 4, 5)
+    assert binding.code == '"quoted"'
+    assert binding.dump_result_binding() == n3
+
+
+def test_datatype_accepts_string_iri():
+    class Binding(BindingModel):
+        temperature: Annotated[Literal[float], Datatype(str(CELSIUS))]
+
+    assert Binding(temperature=1.5).dump_result_binding() == {
+        "temperature": '"1.5"^^<http://example.org/units#celsius>'
+    }
