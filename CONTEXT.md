@@ -477,6 +477,12 @@ uv run ruff format . # format
 
 ---
 
+## Logging
+
+`knowledge_mapper` attaches its own `StreamHandler`/formatter to the `knowledge_mapper` logger on import, so log output looks reasonable out of the box even if the host application never calls `logging.basicConfig()`. This logger has `propagate = False`, so records aren't also emitted via ancestor loggers (e.g. the root logger) the host application may configure — otherwise every record would be logged twice, once per handler. Host applications that want full control over formatting/handling of `knowledge_mapper`'s log records can remove its handler (`logging.getLogger("knowledge_mapper").handlers.clear()`) and/or set `propagate = True` to route records through their own logging configuration instead.
+
+---
+
 ## Legacy Code
 
 The pre-overhaul, config-file-driven mapper implementation has been removed from the repository. The `mapper-legacy` git tag marks the last legacy release and preserves the full history.
