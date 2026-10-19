@@ -102,6 +102,22 @@ class KnowledgeBaseSettings(BaseSettings):
     knowledge_interactions: list[KnowledgeInteractionUnion] = Field(
         default_factory=list
     )
+    connect_timeout: float = Field(
+        default=5.0,
+        description=(
+            "Seconds to wait when establishing a connection to the KE runtime "
+            "before giving up. Raise this for environments with slower network "
+            "setup (e.g. behind a VPN or on a congested network)."
+        ),
+    )
+    read_timeout: float = Field(
+        default=30.0,
+        description=(
+            "Seconds to wait for a response from the KE runtime once a request "
+            "has been sent. Raise this for slower environments or under heavy "
+            "load."
+        ),
+    )
 
     @classmethod
     def settings_customise_sources(

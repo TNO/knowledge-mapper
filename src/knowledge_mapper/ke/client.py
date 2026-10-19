@@ -252,12 +252,29 @@ class ClientProtocol(Protocol):
 class Client(ClientProtocol):
     """HTTP client for the Knowledge Engine REST API."""
 
-    def __init__(self, ke_url: str):
+    def __init__(
+        self,
+        ke_url: str,
+        connect_timeout: float = 5.0,
+        read_timeout: float = 30.0,
+    ):
+        """Create a client for the KE runtime at *ke_url*.
+
+        Args:
+            ke_url: Base URL of the KE runtime.
+            connect_timeout: Seconds to wait for a connection to be established.
+                Defaults to 5 s; increase for environments with slow network
+                setup (e.g. behind a VPN or on a congested network).
+            read_timeout: Seconds to wait for a response once a request has been
+                sent. Defaults to 30 s. The KE pattern (long-poll, dispatch,
+                collate) can legitimately take well over httpx's 5 s default,
+                especially under concurrent load.
+        """
         self._ke_url = ke_url
-        # The KE pattern (long-poll, dispatch, collate) can legitimately take
-        # well over httpx's 5 s default, especially under concurrent load.
+        self._connect_timeout = connect_timeout
+        self._read_timeout = read_timeout
         self._http = httpx.AsyncClient(
-            timeout=httpx.Timeout(30.0, connect=5.0),
+            timeout=httpx.Timeout(read_timeout, connect=connect_timeout),
         )
 
     async def ke_is_available(self) -> bool:
@@ -421,8 +438,13 @@ class Client(ClientProtocol):
         response = await self._http.get(
             f"{self.ke_url}/sc/handle",
             headers={"Knowledge-Base-Id": kb_id},
-            # Set a longer timeout for this request due to the KE 30 second long-polling
-            timeout=httpx.Timeout(35.0, connect=5.0),
+            # Set a longer timeout for this request since the KE holds the
+            # connection open for up to `read_timeout` seconds while
+            # long-polling; add a 5 s margin so the client doesn't time out
+            # right as the KE responds.
+            timeout=httpx.Timeout(
+                self._read_timeout + 5.0, connect=self._connect_timeout
+            ),
         )
 
         if response.status_code == 200:
