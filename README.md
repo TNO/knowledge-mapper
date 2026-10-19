@@ -210,7 +210,9 @@ The Knowledge Engine requires every variable in a binding to have a value. When 
 ```python
 from knowledge_mapper import UNDEFINED_LITERAL
 
-person = PersonBinding(person=URIRef("http://example.org/bob"), name="Bob", age=UNDEFINED_LITERAL)
+person = PersonBinding(
+    person=URIRef("http://example.org/bob"), name="Bob", age=UNDEFINED_LITERAL
+)
 person.dump_result_binding()  # {..., "age": "<http://www.knowledge-engine.eu/mapper/undefined>"}
 
 if incoming.age is not None and incoming.age is not UNDEFINED_LITERAL:
