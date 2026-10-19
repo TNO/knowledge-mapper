@@ -28,9 +28,9 @@ kb = KnowledgeBase(
 
 # Binding model for variables used in the ASK graph pattern.
 class PersonBinding(BindingModel):
-    person: Uri
-    name: Literal[str]
-    age: Literal[int]
+    person: Uri = None
+    name: Literal[str] = None
+    age: Literal[int] = None
 
 
 # Register an ASK KI that can be called via kb.ask(...).

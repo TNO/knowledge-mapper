@@ -31,8 +31,8 @@ kb.ask_ki(
 
 
 class ExampleBinding(BindingModel):
-    s: Uri
-    value: Literal[str]
+    s: Uri = None
+    value: Literal[str] = None
 
 
 kb.ask_ki(
@@ -65,8 +65,8 @@ async def ask_for_values_of_subject(subject_name: str) -> list[str]:
 
 
 class ResultBinding(BindingModel):
-    s: Uri
-    other: Uri
+    s: Uri = None
+    other: Uri = None
 
 
 kb.post_ki(

@@ -27,16 +27,16 @@ kb = KnowledgeBase(
 
 # Argument bindings for the POST interaction input pattern.
 class MeasurementBinding(BindingModel):
-    measurement: Uri
-    value: Literal[float]
-    unit: Uri
-    time: Literal[datetime]
+    measurement: Uri = None
+    value: Literal[float] = None
+    unit: Uri = None
+    time: Literal[datetime] = None
 
 
 # Result bindings for the POST interaction result pattern.
 class ResultBinding(BindingModel):
-    measurement: Uri
-    kb: Uri
+    measurement: Uri = None
+    kb: Uri = None
 
 
 # Register a POST KI with separate argument and result graph patterns.

@@ -304,9 +304,9 @@ from rdflib import URIRef
 
 
 class PersonBinding(BindingModel):
-    person: Uri  # maps to/from URIRef, serialized as <...>
-    name: Literal[str]  # maps to/from Python str, serialized as "..."^^xsd:string
-    age: Literal[int]  # maps to/from Python int, serialized as "..."^^xsd:integer
+    person: Uri = None  # maps to/from URIRef, serialized as <...>
+    name: Literal[str] = None  # maps to/from Python str, serialized as "..."^^xsd:string
+    age: Literal[int] = None  # maps to/from Python int, serialized as "..."^^xsd:integer
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
@@ -315,6 +315,7 @@ class PersonBinding(BindingModel):
 - **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
 - Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
+- The `None` default lives in `Field(default=None)` inside each `Annotated` alias. Pyright ignores defaults declared there (it only recognises assigned defaults), so binding model fields are written with an explicit `= None` (issue #77). A custom `__init__` or `dataclass_transform` metaclass on `BindingModel` does not help: pyright still synthesizes `__init__` per subclass from assigned defaults only.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
 - Use `BindingModel` when you want type safety, validation, and automatic N3 serialization.

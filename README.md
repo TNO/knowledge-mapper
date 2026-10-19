@@ -183,10 +183,12 @@ from knowledge_mapper import BindingModel, Uri, Literal
 
 
 class PersonBinding(BindingModel):
-    person: Uri  # URIRef, serialized as <...>
-    name: Literal[str]  # Python str, serialized as "..."^^xsd:string
-    age: Literal[int]  # Python int, serialized as "..."^^xsd:integer
+    person: Uri = None  # URIRef, serialized as <...>
+    name: Literal[str] = None  # Python str, serialized as "..."^^xsd:string
+    age: Literal[int] = None  # Python int, serialized as "..."^^xsd:integer
 ```
+
+All fields default to `None`, so partial bindings such as `PersonBinding(person=...)` (e.g. for ASK queries) work at runtime. Write `= None` explicitly anyway: static type checkers such as pyright do not see defaults declared inside `Annotated`, and would otherwise report every field as a required argument.
 
 Use `BindingModel` for type safety and automatic serialization. Use raw `BindingSet` (`Sequence[dict[str, str]]`) for passthrough data.
 
@@ -199,9 +201,9 @@ from knowledge_mapper import BindingModel, Datatype, Literal, RdfLiteral
 
 class ObservationBinding(BindingModel):
     # Python float, serialized as "..."^^ex:celsius; other incoming datatypes are rejected
-    temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")]
+    temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")] = None
     # rdflib.Literal kept as-is; any datatype or language tag is preserved
-    remark: RdfLiteral
+    remark: RdfLiteral = None
 ```
 
 ### `Depends` — Dependency Injection

@@ -39,13 +39,13 @@ kb = KnowledgeBase(
 
 
 class ObservationBinding(BindingModel):
-    observation: Uri
-    timestamp: Literal[datetime]
+    observation: Uri = None
+    timestamp: Literal[datetime] = None
     # Python float in code, serialized as "..."^^ex:celsius. Incoming literals
     # with any other datatype are rejected.
-    temperature: Annotated[Literal[float], Datatype(EX.celsius)]
+    temperature: Annotated[Literal[float], Datatype(EX.celsius)] = None
     # Raw rdflib Literal: any datatype or language tag is passed through.
-    remark: RdfLiteral
+    remark: RdfLiteral = None
 
 
 @kb.answer_ki(

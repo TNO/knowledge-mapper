@@ -27,8 +27,8 @@ EX = "http://example.org/knowledge-mapper/async-handlers#"
 
 
 class DeviceCommandBinding(BindingModel):
-    device: Uri
-    desired_state: Literal[str]
+    device: Uri = None
+    desired_state: Literal[str] = None
 
 
 class DeviceAckBinding(BindingModel):
