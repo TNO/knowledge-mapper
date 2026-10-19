@@ -315,6 +315,10 @@ class PersonBinding(BindingModel):
 - **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
 - Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
+- **`UNDEFINED` / `UNDEFINED_LITERAL`** (issue #75): The KE has no optional values, so every variable must be bound. Both sentinels serialize as `<http://www.knowledge-engine.eu/mapper/undefined>`; incoming bindings with that URI deserialize to the sentinel matching the field type (test with `is`), never to `None`.
+  - `UNDEFINED = URIRef(...)` is for `Uri` fields.
+  - `UNDEFINED_LITERAL` (single member of enum `UndefinedLiteral`) is for `Literal[T]`, `RdfLiteral` and `Datatype` fields. It is an enum member rather than a `URIRef` so pyright accepts it in literal fields (their hint is `T | UndefinedLiteral | None`) and narrows it away with `is not UNDEFINED_LITERAL`. A wrap validator short-circuits it before the field's own validation; the enum branch is `Strict()` so the bare URI string is not coerced into the sentinel.
+  - Using the wrong sentinel for a field type raises a `ValidationError`. `None` is never converted automatically: `dump_result_binding()` still rejects `None`. In partial bindings and `matches_with`, the sentinels are concrete values, not wildcards.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
 - Use `BindingModel` when you want type safety, validation, and automatic N3 serialization.

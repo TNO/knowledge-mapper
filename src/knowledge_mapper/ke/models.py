@@ -1,8 +1,8 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
-from typing import Annotated, Any, NewType, Self, TypeVar
+from enum import Enum, StrEnum
+from typing import Annotated, Any, Final, NewType, Self, TypeVar
 from typing import Literal as TypingLiteral
 from urllib.parse import urlparse
 
@@ -15,7 +15,10 @@ from pydantic import (
     GetCoreSchemaHandler,
     PlainSerializer,
     PlainValidator,
+    Strict,
     Tag,
+    ValidatorFunctionWrapHandler,
+    WrapValidator,
 )
 from pydantic.alias_generators import to_camel
 from pydantic_core import CoreSchema, core_schema
@@ -61,14 +64,76 @@ def validate_kb_id(value: str) -> KnowledgeBaseId:
 
 # region:    -- Binding Node
 
+UNDEFINED: Final = URIRef("http://www.knowledge-engine.eu/mapper/undefined")
+"""Sentinel for a :data:`Uri` field that is explicitly undefined.
+
+The KE has no notion of optional values in a binding, so a variable without a
+value is bound to this URI instead. Incoming bindings carrying this URI
+deserialize back to :data:`UNDEFINED`. For literal fields, use
+:data:`UNDEFINED_LITERAL`.
+"""
+
+
+class UndefinedLiteral(Enum):
+    """Type of :data:`UNDEFINED_LITERAL`.
+
+    An enum member rather than a ``URIRef``, so that type checkers accept it in
+    literal fields and narrow it away with ``value is not UNDEFINED_LITERAL``.
+    """
+
+    UNDEFINED = str(UNDEFINED)
+
+    def n3(self) -> str:
+        return UNDEFINED.n3()
+
+
+UNDEFINED_LITERAL: Final = UndefinedLiteral.UNDEFINED
+"""Sentinel for a :data:`Literal`, :data:`RdfLiteral` or :class:`Datatype` field
+that is explicitly undefined.
+
+Serialized as the same URI as :data:`UNDEFINED`; incoming bindings carrying
+that URI deserialize to :data:`UNDEFINED_LITERAL` for these fields.
+"""
+
+
+def _is_undefined_literal(value: Any) -> bool:
+    """Return whether ``value`` is :data:`UNDEFINED_LITERAL` or its N3 encoding
+    (as found in incoming bindings).
+
+    Raises:
+        ValueError: If ``value`` is :data:`UNDEFINED`, which is reserved for
+            :data:`Uri` fields.
+    """
+    if isinstance(value, URIRef):
+        if value == UNDEFINED:
+            raise ValueError("Use UNDEFINED_LITERAL instead of UNDEFINED for literals")
+        return False
+    return value is UNDEFINED_LITERAL or (
+        isinstance(value, str) and value == UNDEFINED.n3()
+    )
+
+
+def _pass_undefined_literal(value: Any, handler: ValidatorFunctionWrapHandler) -> Any:
+    # Short-circuits before the field's own validation, which would e.g. try
+    # to parse the N3 encoding of the sentinel as an `int`.
+    if _is_undefined_literal(value):
+        return UNDEFINED_LITERAL
+    return handler(value)
+
 
 def validate_uri(input: str | URIRef | None) -> URIRef | None:
+    if isinstance(input, URIRef) and input == UNDEFINED:
+        return UNDEFINED
     if isinstance(input, URIRef) or input is None:
         return input
+    if isinstance(input, UndefinedLiteral):
+        raise ValueError("Use UNDEFINED instead of UNDEFINED_LITERAL for URIs")
+    if not isinstance(input, str):
+        raise ValueError(f"Expected a URIRef or N3 URI, got {input!r}")
     uri = from_n3(input)
     if not isinstance(uri, URIRef):
         raise ValueError(f"Expected a URIRef value, got {input}")
-    return uri
+    return UNDEFINED if uri == UNDEFINED else uri
 
 
 def serialize_uri(input: URIRef | None) -> str | None:
@@ -88,6 +153,8 @@ Uri = Annotated[
 def serialize_literal(input: Any) -> str | None:
     if input is None:
         return None
+    if input is UNDEFINED_LITERAL:
+        return UNDEFINED.n3()
     return RDFLiteral(input).n3()
 
 
@@ -108,17 +175,24 @@ def validate_literal(input: Any) -> Any:
 
 
 T = TypeVar("T")
+# Strict, so that only the sentinel itself (already short-circuited by
+# `_pass_undefined_literal`) and not its bare URI string matches this branch.
+_StrictUndefinedLiteral = Annotated[UndefinedLiteral, Strict()]
+
 Literal = Annotated[
-    T | None,
+    T | _StrictUndefinedLiteral | None,
     PlainSerializer(serialize_literal),
     BeforeValidator(validate_literal),
+    WrapValidator(_pass_undefined_literal),
     Field(default=None),
 ]
 
 
-def validate_rdf_literal(input: Any) -> RDFLiteral | None:
+def validate_rdf_literal(input: Any) -> RDFLiteral | UndefinedLiteral | None:
     if isinstance(input, RDFLiteral) or input is None:
         return input
+    if _is_undefined_literal(input):
+        return UNDEFINED_LITERAL
     if not isinstance(input, str) or not input.startswith(('"', "'")):
         raise ValueError(f"Expected an rdflib Literal or N3 literal, got {input!r}")
 
@@ -128,14 +202,14 @@ def validate_rdf_literal(input: Any) -> RDFLiteral | None:
     return literal
 
 
-def serialize_rdf_literal(input: RDFLiteral | None) -> str | None:
+def serialize_rdf_literal(input: RDFLiteral | UndefinedLiteral | None) -> str | None:
     if input is None:
         return None
     return input.n3()
 
 
 RdfLiteral = Annotated[
-    RDFLiteral | None,
+    RDFLiteral | UndefinedLiteral | None,
     PlainValidator(validate_rdf_literal),
     PlainSerializer(serialize_rdf_literal),
     Field(default=None),
@@ -165,7 +239,7 @@ class Datatype:
     ) -> CoreSchema:
         # Generate the schema for the bare type, so the XSD-based validator and
         # serializer of `Literal` are replaced rather than chained.
-        return core_schema.no_info_before_validator_function(
+        return core_schema.no_info_wrap_validator_function(
             self._validate,
             handler.generate_schema(source),
             serialization=core_schema.plain_serializer_function_ser_schema(
@@ -173,7 +247,12 @@ class Datatype:
             ),
         )
 
-    def _validate(self, input: Any) -> Any:
+    def _validate(self, input: Any, handler: ValidatorFunctionWrapHandler) -> Any:
+        if _is_undefined_literal(input):
+            return UNDEFINED_LITERAL
+        return handler(self._to_python(input))
+
+    def _to_python(self, input: Any) -> Any:
         if isinstance(input, str) and input.startswith(('"', "'")):
             input = from_n3(input)
             if not isinstance(input, RDFLiteral):
@@ -190,6 +269,8 @@ class Datatype:
     def _serialize(self, input: Any) -> str | None:
         if input is None:
             return None
+        if input is UNDEFINED_LITERAL:
+            return UNDEFINED.n3()
         return RDFLiteral(input, datatype=URIRef(self.iri)).n3()
 
 
