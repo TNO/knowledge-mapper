@@ -71,6 +71,29 @@ def test_build_returns_knowledge_base_with_correct_info():
     assert kb.info.name == settings.knowledge_base.name
 
 
+def test_build_propagates_default_timeouts_to_client():
+    settings = settings_factory()
+    kb = KnowledgeBase.from_settings(settings).build()
+    assert kb.client._connect_timeout == 5.0
+    assert kb.client._read_timeout == 30.0
+
+
+def test_build_propagates_configured_timeouts_to_client():
+    settings = KnowledgeBaseSettings(
+        knowledge_base=KnowledgeBaseInfo(
+            id="http://example.org/test#builder-kb",
+            name="builder-kb",
+            description="A KB for testing the builder.",
+        ),
+        knowledge_engine_endpoint="http://fake-ke",
+        connect_timeout=15.0,
+        read_timeout=90.0,
+    )
+    kb = KnowledgeBase.from_settings(settings).build()
+    assert kb.client._connect_timeout == 15.0
+    assert kb.client._read_timeout == 90.0
+
+
 def test_build_with_only_outgoing_kis_succeeds():
     """ASK and POST KIs need no handler; build() should succeed and register them."""
     settings = settings_factory([ask_ki_info(), post_ki_info()])

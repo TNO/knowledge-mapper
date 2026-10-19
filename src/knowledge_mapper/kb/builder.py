@@ -38,6 +38,8 @@ class KnowledgeBaseBuilder:
             ke_url=settings.knowledge_engine_endpoint,
             lease_renewal_time=settings.knowledge_base.lease_renewal_time,
             reasoner_level=settings.knowledge_base.reasoner_level,
+            connect_timeout=settings.connect_timeout,
+            read_timeout=settings.read_timeout,
         )
         self._unhandled_incoming: set[str] = {
             ki.name

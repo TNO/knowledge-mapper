@@ -78,14 +78,34 @@ class KnowledgeBase:
         ke_url: str,
         lease_renewal_time: int | None = None,
         reasoner_level: int | None = None,
+        connect_timeout: float = 5.0,
+        read_timeout: float = 30.0,
     ):
+        """Create a knowledge base.
+
+        Args:
+            id: The knowledge base's IRI.
+            name: Human-readable name.
+            description: Human-readable description.
+            ke_url: Base URL of the KE runtime's Smart Connector to connect to.
+            lease_renewal_time: Optional lease renewal time, in seconds.
+            reasoner_level: Optional reasoner level.
+            connect_timeout: Seconds to wait when establishing a connection to the
+                KE runtime before giving up. Defaults to 5 s; raise this in
+                environments with slower network setup.
+            read_timeout: Seconds to wait for a response from the KE runtime once
+                a request has been sent. Defaults to 30 s; raise this in slower
+                environments or under heavy load.
+        """
         kb_id = validate_kb_id(id)
         self.state = KnowledgeBaseState.UNREGISTERED
         self.ki_registry: dict[str, KnowledgeInteractionContext[Any, ...]] = {}
         self._ki_registry_by_id: dict[
             KnowledgeInteractionId, KnowledgeInteractionContext[Any, ...]
         ] = {}
-        self.client: ClientProtocol = Client(ke_url)
+        self.client: ClientProtocol = Client(
+            ke_url, connect_timeout=connect_timeout, read_timeout=read_timeout
+        )
         self.info = KnowledgeBaseInfo(
             id=kb_id,
             name=name,

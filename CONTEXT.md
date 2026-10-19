@@ -369,6 +369,10 @@ knowledge_base:
   name: "my-kb"
   description: "..."
 knowledge_engine_endpoint: "http://localhost:8280/rest"
+# Optional; defaults shown. Raise these for slower environments (e.g. a
+# congested network or a KE runtime under heavy load).
+connect_timeout: 5.0
+read_timeout: 30.0
 knowledge_interactions:
   - name: my-answer-ki
     type: AnswerKnowledgeInteraction

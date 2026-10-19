@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from pydantic import ValidationError
 
@@ -568,3 +569,38 @@ async def test_ask_rejects_unknown_exchange_info_type(client: Client):
             ki_id=_KI_ID,
             binding_set=[],
         )
+
+
+def test_client_uses_default_timeouts():
+    default_client = Client(ke_url="http://fake-ke")
+
+    timeout = default_client._http.timeout
+    assert timeout.connect == 5.0
+    assert timeout.read == 30.0
+
+
+def test_client_accepts_configurable_timeouts():
+    configured_client = Client(
+        ke_url="http://fake-ke", connect_timeout=15.0, read_timeout=90.0
+    )
+
+    timeout = configured_client._http.timeout
+    assert timeout.connect == 15.0
+    assert timeout.read == 90.0
+
+
+async def test_poll_ki_call_long_poll_timeout_scales_with_read_timeout():
+    configured_client = Client(
+        ke_url="http://fake-ke", connect_timeout=15.0, read_timeout=90.0
+    )
+
+    with patch.object(
+        configured_client._http,
+        "get",
+        new_callable=AsyncMock,
+        return_value=MagicMock(status_code=202),
+    ) as mock_get:
+        await configured_client.poll_ki_call(kb_id=_KB_ID)
+
+    _, kwargs = mock_get.call_args
+    assert kwargs["timeout"] == httpx.Timeout(95.0, connect=15.0)
