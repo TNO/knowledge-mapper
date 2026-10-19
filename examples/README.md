@@ -18,6 +18,7 @@ The best way to get started with the Knowledge Mapper is by exploring the exampl
 | **10-cli.py** | Start a KB via the `knowledge-mapper run` CLI — no `asyncio.run` boilerplate |
 | **11-custom_datatypes.py** | Literals with custom (non-XSD) datatypes using `Datatype` and `RdfLiteral` |
 | **12-dockerized/** | Package a KB as a Docker image and run it with a Smart Connector via Docker Compose |
+| **13-undefined_values.py** | Bindings where some variables have no value, using the `UNDEFINED` and `UNDEFINED_LITERAL` sentinels |
 
 ## Prerequisites
 
@@ -95,6 +96,7 @@ python -m pytest 07-testing/
 8. Explore **09-sparql-store/** to see how to connect a SPARQL store
 9. See **11-custom_datatypes.py** for literals with custom datatypes
 10. Read **12-dockerized/** to package and deploy your KB with Docker
+11. See **13-undefined_values.py** for bindings where some values are unknown
 
 ## Tips
 

@@ -81,6 +81,7 @@ The [`examples/`](./examples/) directory contains runnable examples covering all
 | [10-cli.py](./examples/10-cli.py) | Start a KB via the `knowledge-mapper run` CLI |
 | [11-custom_datatypes.py](./examples/11-custom_datatypes.py) | Literals with custom (non-XSD) datatypes in binding models |
 | [12-dockerized/](./examples/12-dockerized/) | Package a KB as a Docker image and run it with a Smart Connector via Docker Compose |
+| [13-undefined_values.py](./examples/13-undefined_values.py) | Bindings where some variables have no value, using `UNDEFINED` and `UNDEFINED_LITERAL` |
 
 See the [examples README](./examples/README.md) for prerequisites and setup instructions.
 

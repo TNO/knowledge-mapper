@@ -90,6 +90,7 @@ examples/
   post_measurement.py          # POST KI with argument and result BindingModels
   11-custom_datatypes.py       # Custom literal datatypes with Datatype and RdfLiteral
   12-dockerized/               # Dockerfile + compose.yaml for running a KB next to an SC/KD
+  13-undefined_values.py       # UNDEFINED / UNDEFINED_LITERAL sentinels for variables without a value
   custom-settings/
     custom_settings.py         # KnowledgeBaseSettings subclass + ki_from_settings pattern
     settings.yaml              # Example YAML config for all four KI types
