@@ -306,6 +306,74 @@ def test_datatype_and_rdf_literal_validate_on_assignment():
         binding.temperature = '"12.5"^^<http://example.org/units#fahrenheit>'
 
 
+# ---------- matches_with
+
+
+class MatchBinding(BindingModel):
+    person: Uri
+    age: Literal[int]
+    name: Literal[str]
+    born: Literal[datetime]
+    remark: RdfLiteral
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+
+
+FULL_MATCH_BINDING = MatchBinding(
+    person=URIRef("http://example.org/a"),
+    age=3,
+    name="Alice",
+    born=datetime(2020, 1, 2, 3, 4, 5),
+    remark=RDFLiteral("foo", lang="de"),
+    temperature=12.5,
+)
+
+
+@pytest.mark.parametrize(
+    ("field", "matching", "different"),
+    [
+        ("person", "<http://example.org/a>", "<http://example.org/b>"),
+        (
+            "age",
+            '"3"^^<http://www.w3.org/2001/XMLSchema#integer>',
+            '"4"^^<http://www.w3.org/2001/XMLSchema#integer>',
+        ),
+        ("name", '"Alice"', '"Bob"'),
+        (
+            "born",
+            '"2020-01-02T03:04:05"^^<http://www.w3.org/2001/XMLSchema#dateTime>',
+            '"2021-01-02T03:04:05"^^<http://www.w3.org/2001/XMLSchema#dateTime>',
+        ),
+        ("remark", '"foo"@de', '"foo"@en'),
+        (
+            "temperature",
+            '"12.5"^^<http://example.org/units#celsius>',
+            '"12.5"^^<http://www.w3.org/2001/XMLSchema#double>',
+        ),
+    ],
+)
+def test_matches_with_per_field_type(field, matching, different):
+    assert FULL_MATCH_BINDING.matches_with(**{field: matching})
+    assert not FULL_MATCH_BINDING.matches_with(**{field: different})
+
+
+def test_matches_with_ignores_unset_fields():
+    binding = MatchBinding(person=URIRef("http://example.org/a"))
+
+    assert binding.matches_with(
+        person="<http://example.org/a>",
+        age='"4"^^<http://www.w3.org/2001/XMLSchema#integer>',
+        temperature='"1.0"^^<http://example.org/units#celsius>',
+    )
+
+
+def test_matches_with_binding_for_all_field_types():
+    partial = MatchBinding(age=3, name="Alice", temperature=12.5)
+    other = MatchBinding(age=4, name="Alice", temperature=12.5)
+
+    assert FULL_MATCH_BINDING.matches_with_binding(partial)
+    assert not FULL_MATCH_BINDING.matches_with_binding(other)
+
+
 # ---------- Explicit None defaults
 
 
@@ -334,6 +402,8 @@ def test_explicit_none_defaults_behave_like_implicit_ones():
         "remark": '"foo"@de',
         "temperature": '"12.5"^^<http://example.org/units#celsius>',
     }
+
+
 # ---------- UNDEFINED sentinels
 
 UNDEFINED_N3 = "<http://www.knowledge-engine.eu/mapper/undefined>"

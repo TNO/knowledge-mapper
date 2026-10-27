@@ -300,11 +300,18 @@ class BindingModel(BaseModel):
         return self.model_dump(by_alias=True, exclude_none=exclude_none)
 
     def matches_with(self, **kwargs) -> bool:
+        """Return whether every set field equals the given N3-encoded value.
+
+        Fields are compared in their serialized (N3) form, so ``Literal[T]`` and
+        ``Datatype`` fields compare the same way as ``Uri`` and ``RdfLiteral``.
+        Unset (``None``) fields match anything.
+        """
+        own_values = self.model_dump()
         for key, other_value in kwargs.items():
-            own_value = getattr(self, key)
+            own_value = own_values[key]
             if own_value is None:
                 continue
-            if own_value.n3() == other_value:
+            if own_value == other_value:
                 continue
             return False
         return True
