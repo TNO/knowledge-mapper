@@ -7,6 +7,8 @@ from rdflib import XSD, URIRef
 from rdflib import Literal as RDFLiteral
 
 from knowledge_mapper.ke.models import (
+    UNDEFINED,
+    UNDEFINED_LITERAL,
     BindingModel,
     Datatype,
     Literal,
@@ -332,3 +334,99 @@ def test_explicit_none_defaults_behave_like_implicit_ones():
         "remark": '"foo"@de',
         "temperature": '"12.5"^^<http://example.org/units#celsius>',
     }
+# ---------- UNDEFINED sentinels
+
+UNDEFINED_N3 = "<http://www.knowledge-engine.eu/mapper/undefined>"
+
+
+class OptionalValuesBinding(BindingModel):
+    uri: Uri
+    count: Literal[int]
+    name: Literal[str]
+    timestamp: Literal[datetime]
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+    remark: RdfLiteral
+
+
+LITERAL_FIELDS = ["count", "name", "timestamp", "temperature", "remark"]
+ALL_UNDEFINED = {"uri": UNDEFINED} | dict.fromkeys(LITERAL_FIELDS, UNDEFINED_LITERAL)
+
+
+def make_defined_binding() -> OptionalValuesBinding:
+    return OptionalValuesBinding(
+        uri=URIRef("http://example.org/a"),
+        count=1,
+        name="a",
+        timestamp=datetime(2020, 1, 1),
+        temperature=1.5,
+        remark=RDFLiteral("a"),
+    )
+
+
+def test_undefined_sentinels_share_the_mapper_uri():
+    assert URIRef("http://www.knowledge-engine.eu/mapper/undefined") == UNDEFINED
+    assert UNDEFINED.n3() == UNDEFINED_N3
+    assert UNDEFINED_LITERAL.n3() == UNDEFINED_N3
+
+
+def test_undefined_sentinels_serialize_to_the_mapper_uri():
+    binding = OptionalValuesBinding(**ALL_UNDEFINED)
+
+    assert binding.dump_result_binding() == dict.fromkeys(ALL_UNDEFINED, UNDEFINED_N3)
+
+
+def test_mapper_uri_deserializes_to_the_sentinel_matching_the_field_type():
+    binding = OptionalValuesBinding.model_validate(
+        dict.fromkeys(ALL_UNDEFINED, UNDEFINED_N3)
+    )
+
+    for field, sentinel in ALL_UNDEFINED.items():
+        assert getattr(binding, field) is sentinel
+
+
+@pytest.mark.parametrize("field", list(ALL_UNDEFINED))
+def test_undefined_sentinel_can_be_assigned_and_replaced(field):
+    binding = make_defined_binding()
+    original = getattr(binding, field)
+
+    setattr(binding, field, ALL_UNDEFINED[field])
+    assert getattr(binding, field) is ALL_UNDEFINED[field]
+    assert binding.dump_result_binding()[field] == UNDEFINED_N3
+
+    setattr(binding, field, original)
+    assert getattr(binding, field) == original
+
+
+@pytest.mark.parametrize("field", LITERAL_FIELDS)
+def test_uri_sentinel_is_rejected_for_literal_fields(field):
+    with pytest.raises(ValidationError, match="UNDEFINED_LITERAL"):
+        OptionalValuesBinding(**{field: UNDEFINED})
+
+
+def test_literal_sentinel_is_rejected_for_uri_fields():
+    with pytest.raises(ValidationError, match="UNDEFINED instead"):
+        OptionalValuesBinding(uri=UNDEFINED_LITERAL)
+
+
+@pytest.mark.parametrize("field", ["count", "temperature", "remark"])
+def test_bare_mapper_uri_string_is_not_a_sentinel(field):
+    with pytest.raises(ValidationError):
+        OptionalValuesBinding(**{field: str(UNDEFINED)})
+
+
+def test_undefined_sentinels_are_concrete_values_in_partial_bindings():
+    binding = OptionalValuesBinding(uri=UNDEFINED, count=UNDEFINED_LITERAL)
+
+    assert binding.dump_partial_binding() == {
+        "uri": UNDEFINED_N3,
+        "count": UNDEFINED_N3,
+    }
+    assert binding.matches_with(uri=UNDEFINED_N3, count=UNDEFINED_N3)
+    assert not binding.matches_with(count='"1"^^xsd:integer')
+
+
+def test_other_uris_are_still_rejected_for_literal_fields():
+    with pytest.raises(ValidationError):
+        OptionalValuesBinding(count="<http://example.org/other>")
+    with pytest.raises(ValidationError):
+        OptionalValuesBinding(temperature=URIRef("http://example.org/other"))

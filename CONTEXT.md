@@ -90,6 +90,7 @@ examples/
   post_measurement.py          # POST KI with argument and result BindingModels
   11-custom_datatypes.py       # Custom literal datatypes with Datatype and RdfLiteral
   12-dockerized/               # Dockerfile + compose.yaml for running a KB next to an SC/KD
+  13-undefined_values.py       # UNDEFINED / UNDEFINED_LITERAL sentinels for variables without a value
   custom-settings/
     custom_settings.py         # KnowledgeBaseSettings subclass + ki_from_settings pattern
     settings.yaml              # Example YAML config for all four KI types
@@ -316,6 +317,10 @@ class PersonBinding(BindingModel):
 - Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
 - The `None` default lives in `Field(default=None)` inside each `Annotated` alias. Pyright ignores defaults declared there (it only recognises assigned defaults), so binding model fields are written with an explicit `= None` (issue #77). A custom `__init__` or `dataclass_transform` metaclass on `BindingModel` does not help: pyright still synthesizes `__init__` per subclass from assigned defaults only.
+- **`UNDEFINED` / `UNDEFINED_LITERAL`** (issue #75): The KE has no optional values, so every variable must be bound. Both sentinels serialize as `<http://www.knowledge-engine.eu/mapper/undefined>`; incoming bindings with that URI deserialize to the sentinel matching the field type (test with `is`), never to `None`.
+  - `UNDEFINED = URIRef(...)` is for `Uri` fields.
+  - `UNDEFINED_LITERAL` (single member of enum `UndefinedLiteral`) is for `Literal[T]`, `RdfLiteral` and `Datatype` fields. It is an enum member rather than a `URIRef` so pyright accepts it in literal fields (their hint is `T | UndefinedLiteral | None`) and narrows it away with `is not UNDEFINED_LITERAL`. A wrap validator short-circuits it before the field's own validation; the enum branch is `Strict()` so the bare URI string is not coerced into the sentinel.
+  - Using the wrong sentinel for a field type raises a `ValidationError`. `None` is never converted automatically: `dump_result_binding()` still rejects `None`. In partial bindings and `matches_with`, the sentinels are concrete values, not wildcards.
 
 **When to use typed BindingModels vs raw `BindingSet` (list of dicts)**:
 - Use `BindingModel` when you want type safety, validation, and automatic N3 serialization.
