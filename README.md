@@ -229,6 +229,7 @@ The sentinel's type, `UndefinedLiteral`, is also exported for annotating helpers
 ```python
 from knowledge_mapper import UNDEFINED_LITERAL, UndefinedLiteral
 
+
 def value_or_undefined(value: int | None) -> int | UndefinedLiteral:
     return UNDEFINED_LITERAL if value is None else value
 ```
