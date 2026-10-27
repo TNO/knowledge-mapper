@@ -284,7 +284,7 @@ def test_datatype_with_str_and_datetime():
 
 def test_datatype_accepts_string_iri():
     class Binding(BindingModel):
-        temperature: Annotated[Literal[float], Datatype(str(CELSIUS))]
+        temperature: Annotated[Literal[float], Datatype(str(CELSIUS))] = None
 
     assert Binding(temperature=1.5).dump_result_binding() == {
         "temperature": '"1.5"^^<http://example.org/units#celsius>'
@@ -310,12 +310,12 @@ def test_datatype_and_rdf_literal_validate_on_assignment():
 
 
 class MatchBinding(BindingModel):
-    person: Uri
-    age: Literal[int]
-    name: Literal[str]
-    born: Literal[datetime]
-    remark: RdfLiteral
-    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+    person: Uri = None
+    age: Literal[int] = None
+    name: Literal[str] = None
+    born: Literal[datetime] = None
+    remark: RdfLiteral = None
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
 
 
 FULL_MATCH_BINDING = MatchBinding(
@@ -410,12 +410,12 @@ UNDEFINED_N3 = "<http://www.knowledge-engine.eu/mapper/undefined>"
 
 
 class OptionalValuesBinding(BindingModel):
-    uri: Uri
-    count: Literal[int]
-    name: Literal[str]
-    timestamp: Literal[datetime]
-    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
-    remark: RdfLiteral
+    uri: Uri = None
+    count: Literal[int] = None
+    name: Literal[str] = None
+    timestamp: Literal[datetime] = None
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
+    remark: RdfLiteral = None
 
 
 LITERAL_FIELDS = ["count", "name", "timestamp", "temperature", "remark"]

@@ -32,9 +32,9 @@ class DeviceCommandBinding(BindingModel):
 
 
 class DeviceAckBinding(BindingModel):
-    device: Uri
-    accepted: Literal[bool]
-    source: Literal[str]
+    device: Uri = None
+    accepted: Literal[bool] = None
+    source: Literal[str] = None
 
 
 kb = KnowledgeBase(
