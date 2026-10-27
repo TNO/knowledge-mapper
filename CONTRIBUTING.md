@@ -31,6 +31,15 @@ Unit tests use `TestClient`, an in-memory fake Smart Connector. No external serv
 uv run pytest
 ```
 
+### Public API Type Check
+
+`tests/typing/public_api.py` imports the public API the way a downstream project would. Pyright must run from that directory so it treats `knowledge_mapper` as an installed typed package and reports re-exports missing from `__all__`:
+
+```bash
+uv sync
+cd tests/typing && uvx pyright --pythonpath ../../.venv/bin/python
+```
+
 ### Integration Tests
 
 Integration tests require a live Knowledge Engine runtime. Use the Docker Compose file in `examples/`:
