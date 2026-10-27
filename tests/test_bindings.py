@@ -372,8 +372,8 @@ def test_matches_with_binding_for_all_field_types():
 
     assert FULL_MATCH_BINDING.matches_with_binding(partial)
     assert not FULL_MATCH_BINDING.matches_with_binding(other)
-    
-    
+
+
 # ---------- UNDEFINED sentinels
 
 UNDEFINED_N3 = "<http://www.knowledge-engine.eu/mapper/undefined>"
