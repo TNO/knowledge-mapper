@@ -45,6 +45,10 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/
 
+      - name: Type-check public API as a consumer
+        working-directory: tests/typing
+        run: uvx pyright --pythonpath ../../.venv/bin/python
+
   build:
     name: Build package
     runs-on: ubuntu-latest

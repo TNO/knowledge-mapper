@@ -18,6 +18,7 @@ from .ke.models import (
     Literal,
     PostExchangeInfo,
     RdfLiteral,
+    UndefinedLiteral,
     Uri,
     validate_kb_id,
 )
@@ -25,6 +26,35 @@ from .knowledge_interaction import ExchangeResult
 from .settings import KnowledgeBaseSettings
 
 __version__ = "0.1.0rc1"
+
+# Explicit `__all__` so type checkers (e.g. pyright) treat these re-exports as
+# public API of this typed (py.typed) package.
+__all__ = [
+    "UNDEFINED",
+    "UNDEFINED_LITERAL",
+    "AnyExchangeInfo",
+    "AskExchangeInfo",
+    "BindingModel",
+    "BindingSet",
+    "Datatype",
+    "Depends",
+    "ExchangeInfo",
+    "ExchangeResult",
+    "KnowledgeBase",
+    "KnowledgeBaseBuilder",
+    "KnowledgeBaseId",
+    "KnowledgeBaseSettings",
+    "KnowledgeInteraction",
+    "KnowledgeInteractionId",
+    "Literal",
+    "PostExchangeInfo",
+    "RdfLiteral",
+    "UndefinedLiteral",
+    "Uri",
+    "__version__",
+    "get_requesting_kb_id",
+    "validate_kb_id",
+]
 
 # The package attaches its own handler/formatter so log output is sensible
 # out of the box, even if the host application never calls
