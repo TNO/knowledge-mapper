@@ -25,7 +25,7 @@ from .ke.models import (
 from .knowledge_interaction import ExchangeResult
 from .settings import KnowledgeBaseSettings
 
-__version__ = "0.1.0rc1"
+__version__ = "0.1.0"
 
 # Explicit `__all__` so type checkers (e.g. pyright) treat these re-exports as
 # public API of this typed (py.typed) package.
