@@ -81,6 +81,7 @@ The [`examples/`](./examples/) directory contains runnable examples covering all
 | [10-cli.py](./examples/10-cli.py) | Start a KB via the `knowledge-mapper run` CLI |
 | [11-custom_datatypes.py](./examples/11-custom_datatypes.py) | Literals with custom (non-XSD) datatypes in binding models |
 | [12-dockerized/](./examples/12-dockerized/) | Package a KB as a Docker image and run it with a Smart Connector via Docker Compose |
+| [13-undefined_values.py](./examples/13-undefined_values.py) | Bindings where some variables have no value, using `UNDEFINED` and `UNDEFINED_LITERAL` |
 
 See the [examples README](./examples/README.md) for prerequisites and setup instructions.
 
@@ -202,6 +203,20 @@ class ObservationBinding(BindingModel):
     temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")]
     # rdflib.Literal kept as-is; any datatype or language tag is preserved
     remark: RdfLiteral
+```
+
+The Knowledge Engine requires every variable in a binding to have a value. When there is none, assign a sentinel instead of `None`: `UNDEFINED` for `Uri` fields, `UNDEFINED_LITERAL` for `Literal[T]`, `RdfLiteral` and `Datatype` fields. Both are sent as `<http://www.knowledge-engine.eu/mapper/undefined>`, and incoming bindings with this URI deserialize back to the sentinel matching the field type. Pyright narrows the field type after an `is not UNDEFINED_LITERAL` check:
+
+```python
+from knowledge_mapper import UNDEFINED_LITERAL
+
+person = PersonBinding(
+    person=URIRef("http://example.org/bob"), name="Bob", age=UNDEFINED_LITERAL
+)
+person.dump_result_binding()  # {..., "age": "<http://www.knowledge-engine.eu/mapper/undefined>"}
+
+if incoming.age is not None and incoming.age is not UNDEFINED_LITERAL:
+    next_year = incoming.age + 1  # narrowed to int
 ```
 
 ### `Depends` — Dependency Injection
