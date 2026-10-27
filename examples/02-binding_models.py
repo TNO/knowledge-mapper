@@ -31,11 +31,14 @@ kb = KnowledgeBase(
 
 
 # Define strongly-typed bindings for variables in the graph pattern.
+# Fields already default to None at runtime; the explicit `= None` lets type
+# checkers such as pyright accept partial bindings like
+# `CurrentTemperatureBinding(measurement=...)`.
 class CurrentTemperatureBinding(BindingModel):
-    measurement: Uri
-    value: Literal[float]
-    unit: Uri
-    time: Literal[datetime]
+    measurement: Uri = None
+    value: Literal[float] = None
+    unit: Uri = None
+    time: Literal[datetime] = None
 
 
 @kb.answer_ki(

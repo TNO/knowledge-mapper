@@ -113,8 +113,8 @@ def get_sensor_repository(
 
 
 class SensorReadingBinding(BindingModel):
-    sensor: Uri
-    temperature: Literal[float]
+    sensor: Uri = None
+    temperature: Literal[float] = None
 
 
 # ---------------------------------------------------------------------------

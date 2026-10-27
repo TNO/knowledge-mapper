@@ -40,10 +40,10 @@ kb = KnowledgeBase(
 
 
 class PersonBinding(BindingModel):
-    person: Uri
-    name: Literal[str]
-    age: Literal[int]
-    employer: Uri
+    person: Uri = None
+    name: Literal[str] = None
+    age: Literal[int] = None
+    employer: Uri = None
 
 
 # Ages and employers are not known for everyone.

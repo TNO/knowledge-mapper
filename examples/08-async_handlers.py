@@ -27,14 +27,14 @@ EX = "http://example.org/knowledge-mapper/async-handlers#"
 
 
 class DeviceCommandBinding(BindingModel):
-    device: Uri
-    desired_state: Literal[str]
+    device: Uri = None
+    desired_state: Literal[str] = None
 
 
 class DeviceAckBinding(BindingModel):
-    device: Uri
-    accepted: Literal[bool]
-    source: Literal[str]
+    device: Uri = None
+    accepted: Literal[bool] = None
+    source: Literal[str] = None
 
 
 kb = KnowledgeBase(

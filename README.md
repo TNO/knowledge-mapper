@@ -184,10 +184,12 @@ from knowledge_mapper import BindingModel, Uri, Literal
 
 
 class PersonBinding(BindingModel):
-    person: Uri  # URIRef, serialized as <...>
-    name: Literal[str]  # Python str, serialized as "..."^^xsd:string
-    age: Literal[int]  # Python int, serialized as "..."^^xsd:integer
+    person: Uri = None  # URIRef, serialized as <...>
+    name: Literal[str] = None  # Python str, serialized as "..."^^xsd:string
+    age: Literal[int] = None  # Python int, serialized as "..."^^xsd:integer
 ```
+
+All fields default to `None`, so partial bindings such as `PersonBinding(person=...)` (e.g. for ASK queries) work at runtime. Write `= None` explicitly anyway: static type checkers such as pyright do not see defaults declared inside `Annotated`, and would otherwise report every field as a required argument.
 
 Use `BindingModel` for type safety and automatic serialization. Use raw `BindingSet` (`Sequence[dict[str, str]]`) for passthrough data.
 
@@ -198,11 +200,14 @@ from typing import Annotated
 from knowledge_mapper import BindingModel, Datatype, Literal, RdfLiteral
 
 
+CELSIUS = "http://example.org/celsius"
+
+
 class ObservationBinding(BindingModel):
     # Python float, serialized as "..."^^ex:celsius; other incoming datatypes are rejected
-    temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")]
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
     # rdflib.Literal kept as-is; any datatype or language tag is preserved
-    remark: RdfLiteral
+    remark: RdfLiteral = None
 ```
 
 The Knowledge Engine requires every variable in a binding to have a value. When there is none, assign a sentinel instead of `None`: `UNDEFINED` for `Uri` fields, `UNDEFINED_LITERAL` for `Literal[T]`, `RdfLiteral` and `Datatype` fields. Both are sent as `<http://www.knowledge-engine.eu/mapper/undefined>`, and incoming bindings with this URI deserialize back to the sentinel matching the field type. Pyright narrows the field type after an `is not UNDEFINED_LITERAL` check:

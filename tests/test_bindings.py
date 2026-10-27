@@ -68,9 +68,9 @@ def test_serialize_literal():
 
 def test_serialize_binding():
     class TestBinding(BindingModel):
-        sensor: Uri
-        year_of_manufacture: Literal[int]
-        manufacturer_name: Literal[str]
+        sensor: Uri = None
+        year_of_manufacture: Literal[int] = None
+        manufacturer_name: Literal[str] = None
 
     binding = TestBinding(
         sensor=URIRef("http://example.org/test#sensor"),
@@ -87,9 +87,9 @@ def test_serialize_binding():
 
 def test_validate_binding():
     class TestBinding(BindingModel):
-        sensor: Uri
-        year_of_manufacture: Literal[int]
-        manufacturer_name: Literal[str]
+        sensor: Uri = None
+        year_of_manufacture: Literal[int] = None
+        manufacturer_name: Literal[str] = None
 
     binding = TestBinding.model_validate(
         {
@@ -106,7 +106,7 @@ def test_validate_binding():
 
 def test_assigned_datetime_string_dumps_with_datetime_datatype():
     class TestBinding(BindingModel):
-        timestamp: Literal[datetime]
+        timestamp: Literal[datetime] = None
 
     binding = TestBinding()
     binding.timestamp = "2026-07-14T20:30:00+0200"
@@ -119,7 +119,7 @@ def test_assigned_datetime_string_dumps_with_datetime_datatype():
 
 def test_assigned_datetime_dumps_with_datetime_datatype():
     class TestBinding(BindingModel):
-        timestamp: Literal[datetime]
+        timestamp: Literal[datetime] = None
 
     binding = TestBinding()
     binding.timestamp = datetime.fromisoformat("2026-07-14T20:30:00+02:00")
@@ -132,7 +132,7 @@ def test_assigned_datetime_dumps_with_datetime_datatype():
 
 def test_assigning_invalid_value_to_typed_literal_raises():
     class TestBinding(BindingModel):
-        timestamp: Literal[datetime]
+        timestamp: Literal[datetime] = None
 
     binding = TestBinding()
 
@@ -144,7 +144,7 @@ def test_assigning_invalid_value_to_typed_literal_raises():
 
 
 class RdfLiteralBinding(BindingModel):
-    value: RdfLiteral
+    value: RdfLiteral = None
 
 
 @pytest.mark.parametrize(
@@ -204,7 +204,7 @@ def test_rdf_literal_rejects_non_literals(value):
 
 def test_plain_literal_still_coerces_custom_datatype():
     class FloatBinding(BindingModel):
-        value: Literal[float]
+        value: Literal[float] = None
 
     binding = FloatBinding.model_validate(
         {"value": '"12.5"^^<http://example.org/units#celsius>'}
@@ -217,7 +217,7 @@ def test_plain_literal_still_coerces_custom_datatype():
 
 
 class CelsiusBinding(BindingModel):
-    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
 
 
 def test_datatype_validates_custom_literal():
@@ -268,8 +268,8 @@ def test_datatype_with_str_and_datetime():
     code_type = URIRef("http://example.org/types#code")
 
     class Binding(BindingModel):
-        timestamp: Annotated[Literal[datetime], Datatype(timestamp_type)]
-        code: Annotated[Literal[str], Datatype(code_type)]
+        timestamp: Annotated[Literal[datetime], Datatype(timestamp_type)] = None
+        code: Annotated[Literal[str], Datatype(code_type)] = None
 
     n3 = {
         "timestamp": '"2020-01-02T03:04:05"^^<http://example.org/types#timestamp>',
@@ -284,7 +284,7 @@ def test_datatype_with_str_and_datetime():
 
 def test_datatype_accepts_string_iri():
     class Binding(BindingModel):
-        temperature: Annotated[Literal[float], Datatype(str(CELSIUS))]
+        temperature: Annotated[Literal[float], Datatype(str(CELSIUS))] = None
 
     assert Binding(temperature=1.5).dump_result_binding() == {
         "temperature": '"1.5"^^<http://example.org/units#celsius>'
@@ -293,8 +293,8 @@ def test_datatype_accepts_string_iri():
 
 def test_datatype_and_rdf_literal_validate_on_assignment():
     class Binding(BindingModel):
-        temperature: Annotated[Literal[float], Datatype(CELSIUS)]
-        remark: RdfLiteral
+        temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
+        remark: RdfLiteral = None
 
     binding = Binding()
     binding.temperature = '"12.5"^^<http://example.org/units#celsius>'
@@ -310,12 +310,12 @@ def test_datatype_and_rdf_literal_validate_on_assignment():
 
 
 class MatchBinding(BindingModel):
-    person: Uri
-    age: Literal[int]
-    name: Literal[str]
-    born: Literal[datetime]
-    remark: RdfLiteral
-    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
+    person: Uri = None
+    age: Literal[int] = None
+    name: Literal[str] = None
+    born: Literal[datetime] = None
+    remark: RdfLiteral = None
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
 
 
 FULL_MATCH_BINDING = MatchBinding(
@@ -374,18 +374,48 @@ def test_matches_with_binding_for_all_field_types():
     assert not FULL_MATCH_BINDING.matches_with_binding(other)
 
 
+# ---------- Explicit None defaults
+
+
+def test_explicit_none_defaults_behave_like_implicit_ones():
+    """`= None` is the recommended pattern for type checkers (issue #77)."""
+
+    class Binding(BindingModel):
+        person: Uri = None
+        age: Literal[int] = None
+        remark: RdfLiteral = None
+        temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
+
+    partial = Binding(person=URIRef("http://example.org/a"))
+    validated = Binding.model_validate(
+        {
+            "age": '"3"^^<http://www.w3.org/2001/XMLSchema#integer>',
+            "remark": '"foo"@de',
+            "temperature": '"12.5"^^<http://example.org/units#celsius>',
+        }
+    )
+
+    assert partial.dump_partial_binding() == {"person": "<http://example.org/a>"}
+    assert validated.age == 3
+    assert validated.dump_partial_binding() == {
+        "age": '"3"^^<http://www.w3.org/2001/XMLSchema#integer>',
+        "remark": '"foo"@de',
+        "temperature": '"12.5"^^<http://example.org/units#celsius>',
+    }
+
+
 # ---------- UNDEFINED sentinels
 
 UNDEFINED_N3 = "<http://www.knowledge-engine.eu/mapper/undefined>"
 
 
 class OptionalValuesBinding(BindingModel):
-    uri: Uri
-    count: Literal[int]
-    name: Literal[str]
-    timestamp: Literal[datetime]
-    temperature: Annotated[Literal[float], Datatype(CELSIUS)]
-    remark: RdfLiteral
+    uri: Uri = None
+    count: Literal[int] = None
+    name: Literal[str] = None
+    timestamp: Literal[datetime] = None
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
+    remark: RdfLiteral = None
 
 
 LITERAL_FIELDS = ["count", "name", "timestamp", "temperature", "remark"]

@@ -305,9 +305,9 @@ from rdflib import URIRef
 
 
 class PersonBinding(BindingModel):
-    person: Uri  # maps to/from URIRef, serialized as <...>
-    name: Literal[str]  # maps to/from Python str, serialized as "..."^^xsd:string
-    age: Literal[int]  # maps to/from Python int, serialized as "..."^^xsd:integer
+    person: Uri = None  # URIRef, serialized as <...>
+    name: Literal[str] = None  # Python str, serialized as "..."^^xsd:string
+    age: Literal[int] = None  # Python int, serialized as "..."^^xsd:integer
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.
@@ -316,6 +316,7 @@ class PersonBinding(BindingModel):
 - **`RdfLiteral`**: Keeps the `rdflib.Literal` as-is (no conversion to Python), preserving lexical form, datatype and language tag. Accepts only `rdflib.Literal` or N3 literal strings.
 - Values are validated on construction **and** on attribute assignment (`validate_assignment=True`), so e.g. assigning an ISO string to a `Literal[datetime]` field coerces it to `datetime` and serializes with `^^xsd:dateTime`.
 - All fields default to `None` — use `dump_result_binding()` to validate all fields are set before returning, or `dump_partial_binding()` for partial/query bindings.
+- The `None` default lives in `Field(default=None)` inside each `Annotated` alias. Pyright ignores defaults declared there (it only recognises assigned defaults), so binding model fields are written with an explicit `= None` (issue #77). A custom `__init__` or `dataclass_transform` metaclass on `BindingModel` does not help: pyright still synthesizes `__init__` per subclass from assigned defaults only.
 - **`UNDEFINED` / `UNDEFINED_LITERAL`** (issue #75): The KE has no optional values, so every variable must be bound. Both sentinels serialize as `<http://www.knowledge-engine.eu/mapper/undefined>`; incoming bindings with that URI deserialize to the sentinel matching the field type (test with `is`), never to `None`.
   - `UNDEFINED = URIRef(...)` is for `Uri` fields.
   - `UNDEFINED_LITERAL` (single member of enum `UndefinedLiteral`) is for `Literal[T]`, `RdfLiteral` and `Datatype` fields. It is an enum member rather than a `URIRef` so pyright accepts it in literal fields (their hint is `T | UndefinedLiteral | None`) and narrows it away with `is not UNDEFINED_LITERAL`. A wrap validator short-circuits it before the field's own validation; the enum branch is `Strict()` so the bare URI string is not coerced into the sentinel.
