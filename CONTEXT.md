@@ -305,9 +305,9 @@ from rdflib import URIRef
 
 
 class PersonBinding(BindingModel):
-    person: Uri = None  # maps to/from URIRef, serialized as <...>
-    name: Literal[str] = None  # maps to/from Python str, serialized as "..."^^xsd:string
-    age: Literal[int] = None  # maps to/from Python int, serialized as "..."^^xsd:integer
+    person: Uri = None  # URIRef, serialized as <...>
+    name: Literal[str] = None  # Python str, serialized as "..."^^xsd:string
+    age: Literal[int] = None  # Python int, serialized as "..."^^xsd:integer
 ```
 
 - **`Uri`**: Accepts `URIRef` or N3-encoded string (`<...>`), serializes to N3 `<...>`.

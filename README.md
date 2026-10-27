@@ -200,9 +200,12 @@ from typing import Annotated
 from knowledge_mapper import BindingModel, Datatype, Literal, RdfLiteral
 
 
+CELSIUS = "http://example.org/celsius"
+
+
 class ObservationBinding(BindingModel):
     # Python float, serialized as "..."^^ex:celsius; other incoming datatypes are rejected
-    temperature: Annotated[Literal[float], Datatype("http://example.org/celsius")] = None
+    temperature: Annotated[Literal[float], Datatype(CELSIUS)] = None
     # rdflib.Literal kept as-is; any datatype or language tag is preserved
     remark: RdfLiteral = None
 ```
