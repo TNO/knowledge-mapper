@@ -224,6 +224,15 @@ if incoming.age is not None and incoming.age is not UNDEFINED_LITERAL:
     next_year = incoming.age + 1  # narrowed to int
 ```
 
+The sentinel's type, `UndefinedLiteral`, is also exported for annotating helpers:
+
+```python
+from knowledge_mapper import UNDEFINED_LITERAL, UndefinedLiteral
+
+def value_or_undefined(value: int | None) -> int | UndefinedLiteral:
+    return UNDEFINED_LITERAL if value is None else value
+```
+
 ### `Depends` — Dependency Injection
 
 Handlers can declare dependencies using `Depends()` in `Annotated` type hints. The framework resolves them at call time.
