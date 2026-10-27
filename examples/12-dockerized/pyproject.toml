@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A knowledge base application packaged as a Docker image."
 requires-python = ">=3.13"
 dependencies = [
-    "knowledge-mapper==0.1.0rc1",
+    "knowledge-mapper==0.1.0",
 ]
 
 [tool.uv]
